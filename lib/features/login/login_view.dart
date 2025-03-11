@@ -23,6 +23,7 @@ class _LoginViewState extends State<LoginView>{
            mainAxisAlignment: MainAxisAlignment.center,
            children: [
              Spacer(),
+             Image.asset("assets/images/logo.png"),
              Text("Wilkommen beim SeasonPlanner"),
              const SizedBox(height: 15),
              TextField(
