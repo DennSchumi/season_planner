@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
         routes: AppRouter().getRoutes(),
         title: 'seasonPlanner',
-        theme: AppTheme.lightTheme,
+        //theme: AppTheme.lightTheme,
         home: FutureBuilder(
           future: AuthService().isLoggedIn(),
           builder: (context,snapshot){

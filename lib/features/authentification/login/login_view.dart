@@ -25,7 +25,7 @@ class _LoginViewState extends State<LoginView>{
 
     try {
       await AuthService().login(email, password);
-      Navigator.pushReplacementNamed(context, '/');
+      Navigator.pushReplacementNamed(context, '/main');
     } catch (e) {
       setState(() {
         errorMessage = e.toString();

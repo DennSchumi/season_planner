@@ -8,6 +8,7 @@ class AuthService {
       .setProject(AppwriteConfig().projectId)
       .setSelfSigned(status: true);
 
+
   static final AuthService _instance = AuthService._internal();
 
   factory AuthService() {
@@ -26,12 +27,20 @@ class AuthService {
   /// Registers a new user with email, password, and name
   Future<models.User?> signUp(String email, String password, String name) async {
     try {
-      return await _account.create(
+        var user = await _account.create(
         userId: ID.unique(),
         email: email,
         password: password,
         name: name,
       );
+          print(user.$id);
+          Databases database = Databases(client);
+          final document = database.createDocument(
+              databaseId: AppwriteConfig().mainDatabaseId,
+              collectionId: AppwriteConfig().usersCollectionID,
+              documentId: user.$id,
+              data:{"id": user.$id}
+          );
     } catch (e) {
       print("Error during registration: $e");
       return null;

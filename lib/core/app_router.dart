@@ -10,6 +10,7 @@ class AppRouter {
       "/home": (context) =>  MainScaffoldView(),
       "/login": (context) =>  LoginView(),
       "/register": (context) => RegisterView(),
+      "/main": (context) => MainScaffoldView(),
     };
   }
 }

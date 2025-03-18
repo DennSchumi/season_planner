@@ -62,15 +62,7 @@ class _RegisterView extends State<RegisterView>{
              TextField(
                controller: nameController,
                decoration:InputDecoration(
-                 label: Text("Vorname"),
-               ),
-             ),
-             const SizedBox(height: 10),
-
-             TextField(
-               controller: lastnNameController,
-               decoration:InputDecoration(
-                 label: Text("Nachmane"),
+                 label: Text("Name"),
                ),
              ),
              const SizedBox(height: 10),
@@ -87,7 +79,6 @@ class _RegisterView extends State<RegisterView>{
                controller: passwordController,
                decoration:InputDecoration(
                  label: Text("Passwort"),
-                  errorText: passwordErrorText,
                ),
                autocorrect: false,
                onEditingComplete: checkPasswordNorm,
@@ -98,7 +89,6 @@ class _RegisterView extends State<RegisterView>{
                controller: passwordRedoController,
                decoration:InputDecoration(
                  label: Text("Passwort wiederholen"),
-                 errorText: "Die Passwoerter stimmen nicht überein",
                ),
                autocorrect: false,
                onEditingComplete: checkPasswords,
