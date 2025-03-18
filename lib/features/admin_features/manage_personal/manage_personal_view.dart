@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
-class HomeView extends StatefulWidget{
+class ManagePersonalView extends StatefulWidget{
 
   @override
-  _HomeViewState createState() => _HomeViewState();
-
+  _ManagePersonalView createState() => _ManagePersonalView();
 }
-class _HomeViewState extends State<HomeView>{
+
+class _ManagePersonalView extends State<ManagePersonalView>{
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Text("data"),
+
     );
   }
 

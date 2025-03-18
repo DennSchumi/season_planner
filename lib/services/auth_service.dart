@@ -7,11 +7,20 @@ class AuthService {
       .setEndpoint(AppwriteConfig().appwriteEnpoint)
       .setProject(AppwriteConfig().projectId);
 
+  static final AuthService _instance = AuthService._internal();
+
+  factory AuthService() {
+    return _instance;
+  }
+  AuthService._internal();
+
   late final Account _account;
 
-  AuthService() {
+  void init() {
     _account = Account(client);
   }
+
+
 
   /// Registers a new user with email, password, and name
   Future<models.User?> signUp(String email, String password, String name) async {
@@ -29,13 +38,13 @@ class AuthService {
   }
 
   /// Logs in a user with email and password
-  Future<bool> login(String email, String password) async {
+  Future<Object> login(String email, String password) async {
     try {
       await _account.createEmailPasswordSession(email: email, password: password);
-      return true;
+      return "";
     } catch (e) {
       print("Error during login: $e");
-      return false;
+      return e;
     }
   }
 
