@@ -5,7 +5,8 @@ import 'package:season_planer/core/appwrite_config.dart';
 class AuthService {
   final Client client = Client()
       .setEndpoint(AppwriteConfig().appwriteEnpoint)
-      .setProject(AppwriteConfig().projectId);
+      .setProject(AppwriteConfig().projectId)
+      .setSelfSigned(status: true);
 
   static final AuthService _instance = AuthService._internal();
 
@@ -40,7 +41,8 @@ class AuthService {
   /// Logs in a user with email and password
   Future<Object> login(String email, String password) async {
     try {
-      await _account.createEmailPasswordSession(email: email, password: password);
+      var result = await _account.createEmailPasswordSession(email: email, password: password);
+      print(result);
       return "";
     } catch (e) {
       print("Error during login: $e");

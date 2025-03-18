@@ -109,7 +109,7 @@ class _RegisterView extends State<RegisterView>{
                width: double.infinity,
                child: OutlinedButton(
                  onPressed: handleRegistration,
-                 child: Text("Login"),
+                 child: Text("Registrieren"),
                ),
              ),
            ],

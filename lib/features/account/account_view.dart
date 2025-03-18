@@ -1,18 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class HomeView extends StatefulWidget{
+class AccountView extends StatefulWidget{
   @override
-  _HomeViewState createState() => _HomeViewState();
+  _AccountViewState createState() => _AccountViewState();
 }
 
-class _HomeViewState extends State<HomeView>{
+class _AccountViewState extends State<AccountView>{
 
   @override
   Widget build(BuildContext context){
     return Scaffold(
       body: Center(
-        child: Text("Home"),
+        child: Text("Account"),
       ),
     );
   }

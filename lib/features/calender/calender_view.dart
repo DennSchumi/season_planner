@@ -1,18 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class HomeView extends StatefulWidget{
+class CalenderView extends StatefulWidget{
   @override
-  _HomeViewState createState() => _HomeViewState();
+  _CalenderView createState() => _CalenderView();
 }
 
-class _HomeViewState extends State<HomeView>{
+class _CalenderView extends State<CalenderView>{
 
   @override
   Widget build(BuildContext context){
     return Scaffold(
       body: Center(
-        child: Text("Home"),
+        child: Text("Kalender"),
       ),
     );
   }
