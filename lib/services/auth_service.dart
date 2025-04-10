@@ -47,6 +47,7 @@ class AuthService {
     }
   }
 
+
   /// Logs in a user with email and password
   Future<Object> login(String email, String password) async {
     try {

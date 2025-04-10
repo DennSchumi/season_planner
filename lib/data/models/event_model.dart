@@ -1,6 +1,8 @@
 import 'package:season_planer/data/enums/event_status_enum.dart';
+import 'package:season_planer/data/enums/role_enum.dart';
 
 class Event {
+  final String flightSchoolId;
   final String identifier;
   final EventStatusEnum status;
   final DateTime startTime;
@@ -8,9 +10,10 @@ class Event {
   final String displayName;
   final List<String> team;
   final List<String> notes;
+  final RoleEnum role;
 
-  // Constructor
   Event({
+    required this.flightSchoolId,
     required this.identifier,
     required this.status,
     required this.startTime,
@@ -18,36 +21,39 @@ class Event {
     required this.displayName,
     required this.team,
     required this.notes,
+    required this.role,
   });
 
-  // Factory method to create an instance from a JSON object
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
+      flightSchoolId: json['flightSchoolId'] as String,
       identifier: json['identifier'] as String,
-      status: EventStatusEnum.values.byName(json['status']), // Enum parsing
+      status: EventStatusEnum.values.byName(json['status']),
       startTime: DateTime.parse(json['startTime']),
       endTime: DateTime.parse(json['endTime']),
       displayName: json['displayName'] as String,
       team: List<String>.from(json['team'] ?? []),
       notes: List<String>.from(json['notes'] ?? []),
+      role: RoleEnum.values.byName(json['role']),
     );
   }
 
-  // Convert object to JSON
   Map<String, dynamic> toJson() {
     return {
+      'flightSchoolId': flightSchoolId,
       'identifier': identifier,
-      'status': status.name, // Enum to string
+      'status': status.name,
       'startTime': startTime.toIso8601String(),
       'endTime': endTime.toIso8601String(),
       'displayName': displayName,
       'team': team,
       'notes': notes,
+      'role': role.name,
     };
   }
 
-  // Copy method to update specific fields
   Event copyWith({
+    String? flightSchoolId,
     String? identifier,
     EventStatusEnum? status,
     DateTime? startTime,
@@ -55,8 +61,10 @@ class Event {
     String? displayName,
     List<String>? team,
     List<String>? notes,
+    RoleEnum? role,
   }) {
     return Event(
+      flightSchoolId: flightSchoolId ?? this.flightSchoolId,
       identifier: identifier ?? this.identifier,
       status: status ?? this.status,
       startTime: startTime ?? this.startTime,
@@ -64,13 +72,13 @@ class Event {
       displayName: displayName ?? this.displayName,
       team: team ?? this.team,
       notes: notes ?? this.notes,
+      role: role ?? this.role,
     );
   }
 
-  // Debugging & Readable Output
   @override
   String toString() {
-    return 'Event(identifier: $identifier, status: $status, startTime: $startTime, endTime: $endTime, '
-        'displayName: $displayName, team: $team, notes: $notes)';
+    return 'Event(flightSchoolId: $flightSchoolId, identifier: $identifier, status: $status, '
+        'startTime: $startTime, endTime: $endTime, displayName: $displayName, team: $team, notes: $notes, role: $role)';
   }
 }

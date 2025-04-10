@@ -66,6 +66,17 @@ class UserModel {
     );
   }
 
+  // Leerer Benutzer (z. B. für Initialzustand)
+  static UserModel empty() {
+    return UserModel(
+      id: '',
+      name: '',
+      mail: '',
+      phone: '',
+      flightSchools: [],
+      events: [],
+    );
+  }
   // Debugging & Readable Output
   @override
   String toString() {

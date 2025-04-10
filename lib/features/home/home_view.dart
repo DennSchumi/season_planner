@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:season_planer/services/database_service.dart';
 
 class HomeView extends StatefulWidget{
   @override
@@ -7,6 +8,12 @@ class HomeView extends StatefulWidget{
 }
 
 class _HomeViewState extends State<HomeView>{
+
+  @override
+  void initState() {
+    super.initState();
+    DatabaseService().getUserInformation();
+  }
 
   @override
   Widget build(BuildContext context){

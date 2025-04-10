@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:season_planer/core/AppState.dart';
+import 'package:season_planer/data/models/user_model.dart';
 import 'package:season_planer/features/account/account_view.dart';
 import 'package:season_planer/features/calender/calender_view.dart';
 import 'package:season_planer/features/home/home_view.dart';
+import 'package:season_planer/services/database_service.dart';
 
 class MainScaffoldView extends StatefulWidget{
 
@@ -18,12 +21,21 @@ class _MainScaffoldState extends State<MainScaffoldView>{
     AccountView()
   ];
 
+  @override
+  void initState() {
+    super.initState();
+  }
+
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
+/*UserModel getUserInformation(){
+    return DatabaseService()
+}*/
   @override
   Widget build(BuildContext context) {
     return Scaffold(
