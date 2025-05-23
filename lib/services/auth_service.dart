@@ -22,7 +22,9 @@ class AuthService {
     _account = Account(client);
   }
 
-
+Future<void> testLogin() async {
+  await _account.createEmailPasswordSession(email: "test@test.de", password: "testpass");
+  }
 
   /// Registers a new user with email, password, and name
   Future<models.User?> signUp(String email, String password, String name) async {

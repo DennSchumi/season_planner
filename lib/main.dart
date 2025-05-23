@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:season_planer/features/main_scaffold/main_scaffold_view.dart';
 import 'package:season_planer/services/auth_service.dart';
 import 'package:season_planer/services/database_service.dart';
 import 'core/app_router.dart';
 import 'features/authentification/login/login_view.dart';
 import './../core/theme.dart';
+import 'features/user_features/main_scaffold/main_scaffold_view.dart';
 
 void main() {
   runApp(const MyApp());
   AuthService().init();
   DatabaseService().init();
+  //AuthService().testLogin();
 }
 
 class MyApp extends StatelessWidget {
