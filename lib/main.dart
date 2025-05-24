@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:season_planer/services/auth_service.dart';
 import 'package:season_planer/services/database_service.dart';
+import 'package:season_planer/services/flight_school_provider.dart';
+import 'package:season_planer/services/user_provider.dart';
 import 'core/app_router.dart';
 import 'features/authentification/login/login_view.dart';
-import './../core/theme.dart';
-import 'features/user_features/main_scaffold/main_scaffold_view.dart';
+import 'features/user_features/main_scaffold/main_user_scaffold_view.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => FlightSchoolProvider())
+      ],
+      child: const MyApp(),
+    ),
+  );
   AuthService().init();
   DatabaseService().init();
   //AuthService().testLogin();
@@ -15,7 +25,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
+  //TODO: implement timer that loads data periodically
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +37,7 @@ class MyApp extends StatelessWidget {
           future: AuthService().isLoggedIn(),
           builder: (context,snapshot){
             bool loggedIn = snapshot.data ?? true;
-            return loggedIn ? MainScaffoldView() : LoginView();
+            return loggedIn ? MainUserScaffoldView() : LoginView();
             },
       )
     );

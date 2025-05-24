@@ -1,4 +1,3 @@
-import 'package:appwrite/models.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:season_planer/data/models/user_model.dart';
 

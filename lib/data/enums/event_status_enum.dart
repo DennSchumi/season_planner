@@ -1,3 +1,7 @@
 enum EventStatusEnum{
-  scheduled,provisional,canceled,running,done
+  scheduled('Scheduled'),provisional('Provisional'),canceled('Canceled'),running('Running'),done('Done');
+
+  final String label;
+
+  const EventStatusEnum(this.label);
 }

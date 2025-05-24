@@ -1,7 +1,9 @@
+import 'package:season_planer/data/enums/event_role_enum.dart';
 import 'package:season_planer/data/enums/event_status_enum.dart';
-import 'package:season_planer/data/enums/role_enum.dart';
+import 'package:season_planer/data/enums/event_user_status_enum.dart';
 
 class Event {
+  final String id;
   final String flightSchoolId;
   final String identifier;
   final EventStatusEnum status;
@@ -10,9 +12,11 @@ class Event {
   final String displayName;
   final List<String> team;
   final List<String> notes;
-  final RoleEnum role;
+  final EventRoleEnum role;
+  final EventUserStatusEnum assignmentStatus;
 
   Event({
+    required this.id,
     required this.flightSchoolId,
     required this.identifier,
     required this.status,
@@ -22,10 +26,12 @@ class Event {
     required this.team,
     required this.notes,
     required this.role,
+    required this.assignmentStatus,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
+      id: json['id'] as String,
       flightSchoolId: json['flightSchoolId'] as String,
       identifier: json['identifier'] as String,
       status: EventStatusEnum.values.byName(json['status']),
@@ -34,12 +40,14 @@ class Event {
       displayName: json['displayName'] as String,
       team: List<String>.from(json['team'] ?? []),
       notes: List<String>.from(json['notes'] ?? []),
-      role: RoleEnum.values.byName(json['role']),
+      role: EventRoleEnum.values.byName(json['role']),
+      assignmentStatus: EventUserStatusEnum.values.byName(json['assignmentStatus']),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'flightSchoolId': flightSchoolId,
       'identifier': identifier,
       'status': status.name,
@@ -49,10 +57,12 @@ class Event {
       'team': team,
       'notes': notes,
       'role': role.name,
+      'assignmentStatus': assignmentStatus.name,
     };
   }
 
   Event copyWith({
+    String? id,
     String? flightSchoolId,
     String? identifier,
     EventStatusEnum? status,
@@ -61,9 +71,11 @@ class Event {
     String? displayName,
     List<String>? team,
     List<String>? notes,
-    RoleEnum? role,
+    EventRoleEnum? role,
+    EventUserStatusEnum? assignmentStatus,
   }) {
     return Event(
+      id: id ?? this.id,
       flightSchoolId: flightSchoolId ?? this.flightSchoolId,
       identifier: identifier ?? this.identifier,
       status: status ?? this.status,
@@ -73,12 +85,14 @@ class Event {
       team: team ?? this.team,
       notes: notes ?? this.notes,
       role: role ?? this.role,
+      assignmentStatus: assignmentStatus ?? this.assignmentStatus,
     );
   }
 
   @override
   String toString() {
-    return 'Event(flightSchoolId: $flightSchoolId, identifier: $identifier, status: $status, '
-        'startTime: $startTime, endTime: $endTime, displayName: $displayName, team: $team, notes: $notes, role: $role)';
+    return 'Event(id: $id, flightSchoolId: $flightSchoolId, identifier: $identifier, status: $status, '
+        'startTime: $startTime, endTime: $endTime, displayName: $displayName, team: $team, '
+        'notes: $notes, role: $role, assignmentStatus: $assignmentStatus)';
   }
 }

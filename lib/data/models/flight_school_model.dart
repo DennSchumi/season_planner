@@ -6,8 +6,8 @@ class FlightSchool {
   final String eventsCollectionId;
   final String auditLogsCollectionId;
   final String logoLink;
+  final List<String> adminUserIds;
 
-  // Constructor
   FlightSchool({
     required this.id,
     required this.displayName,
@@ -16,9 +16,9 @@ class FlightSchool {
     required this.eventsCollectionId,
     required this.auditLogsCollectionId,
     required this.logoLink,
+    required this.adminUserIds,
   });
 
-  // Factory method to create an instance from a JSON object
   factory FlightSchool.fromJson(Map<String, dynamic> json) {
     return FlightSchool(
       id: json['id'] as String,
@@ -28,10 +28,10 @@ class FlightSchool {
       eventsCollectionId: json['eventsCollectionId'] as String,
       auditLogsCollectionId: json['auditLogsCollectionId'] as String,
       logoLink: json['logoLink'] as String,
+      adminUserIds: List<String>.from(json['adminUserIds'] ?? []),
     );
   }
 
-  // Convert object to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -41,10 +41,10 @@ class FlightSchool {
       'eventsCollectionId': eventsCollectionId,
       'auditLogsCollectionId': auditLogsCollectionId,
       'logoLink': logoLink,
+      'adminUserIds': adminUserIds,
     };
   }
 
-  // Copy method to update specific fields
   FlightSchool copyWith({
     String? id,
     String? displayName,
@@ -53,6 +53,7 @@ class FlightSchool {
     String? eventsCollectionId,
     String? auditLogsCollectionId,
     String? logoLink,
+    List<String>? adminUserIds,
   }) {
     return FlightSchool(
       id: id ?? this.id,
@@ -62,14 +63,14 @@ class FlightSchool {
       eventsCollectionId: eventsCollectionId ?? this.eventsCollectionId,
       auditLogsCollectionId: auditLogsCollectionId ?? this.auditLogsCollectionId,
       logoLink: logoLink ?? this.logoLink,
+      adminUserIds: adminUserIds ?? this.adminUserIds,
     );
   }
 
-  // Debugging & Readable Output
   @override
   String toString() {
     return 'FlightSchool(id: $id, displayName: $displayName, databaseId: $databaseId, '
         'teamAssignmentsEventsCollectionId: $teamAssignmentsEventsCollectionId, eventsCollectionId: $eventsCollectionId, '
-        'auditLogsCollectionId: $auditLogsCollectionId, logoLink: $logoLink)';
+        'auditLogsCollectionId: $auditLogsCollectionId, logoLink: $logoLink, adminUserIds: $adminUserIds)';
   }
 }

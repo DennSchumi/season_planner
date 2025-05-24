@@ -13,7 +13,6 @@ class BaseView extends StatefulWidget {
 
 class _BaseViewState extends State<BaseView> {
   bool? _isLoggedIn;
-  bool _isLoadingUserData = false;
 
   @override
   void initState() {
