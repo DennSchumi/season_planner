@@ -1,0 +1,4 @@
+rootProject.name = 'season_planer'
+
+include ':app'
+
