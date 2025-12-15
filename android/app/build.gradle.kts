@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.season_planer"
+    namespace = "com.schirmschumi.season_planer"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 

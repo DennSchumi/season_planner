@@ -10,7 +10,7 @@ class Event {
   final DateTime startTime;
   final DateTime endTime;
   final String displayName;
-  final List<String> team;
+  final List<TeamMember> team;
   final List<String> notes;
   final EventRoleEnum role;
   final EventUserStatusEnum assignmentStatus;
@@ -38,7 +38,7 @@ class Event {
       startTime: DateTime.parse(json['startTime']),
       endTime: DateTime.parse(json['endTime']),
       displayName: json['displayName'] as String,
-      team: List<String>.from(json['team'] ?? []),
+      team: List<TeamMember>.from(json['team'] ?? []),
       notes: List<String>.from(json['notes'] ?? []),
       role: EventRoleEnum.values.byName(json['role']),
       assignmentStatus: EventUserStatusEnum.values.byName(json['assignmentStatus']),
@@ -69,7 +69,7 @@ class Event {
     DateTime? startTime,
     DateTime? endTime,
     String? displayName,
-    List<String>? team,
+    List<TeamMember>? team,
     List<String>? notes,
     EventRoleEnum? role,
     EventUserStatusEnum? assignmentStatus,
@@ -95,4 +95,69 @@ class Event {
         'startTime: $startTime, endTime: $endTime, displayName: $displayName, team: $team, '
         'notes: $notes, role: $role, assignmentStatus: $assignmentStatus)';
   }
+}
+class TeamMember {
+  final String userId;           // Appwrite user id (or related doc id)
+  final String name;             // display name
+  final String role;             // e.g. "instructor", "admin" (or use enum later)
+  final String status;           // e.g. "assigned", "pending" (or use enum later)
+
+  const TeamMember({
+    required this.userId,
+    required this.name,
+    required this.role,
+    required this.status,
+  });
+
+  /// Create from Appwrite document data / map
+  factory TeamMember.fromMap(Map<String, dynamic> map) {
+    return TeamMember(
+      userId: (map['user_id'] ?? map['userId'] ?? '') as String,
+      name: (map['name'] ?? map['display_name'] ?? '') as String,
+      role: (map['role'] ?? '') as String,
+      status: (map['status'] ?? '') as String,
+    );
+  }
+
+  /// Convert to map for Appwrite
+  Map<String, dynamic> toMap() {
+    return {
+      'user_id': userId,
+      'name': name,
+      'role': role,
+      'status': status,
+    };
+  }
+
+  TeamMember copyWith({
+    String? userId,
+    String? name,
+    String? role,
+    String? status,
+  }) {
+    return TeamMember(
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      role: role ?? this.role,
+      status: status ?? this.status,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'TeamMember(userId: $userId, name: $name, role: $role, status: $status)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TeamMember &&
+        other.userId == userId &&
+        other.name == name &&
+        other.role == role &&
+        other.status == status;
+  }
+
+  @override
+  int get hashCode => Object.hash(userId, name, role, status);
 }

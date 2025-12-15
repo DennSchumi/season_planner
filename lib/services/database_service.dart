@@ -80,19 +80,33 @@ class DatabaseService {
 
     for (final flightSchool in user.flightSchools) {
       final teamAssignments = await _database.listDocuments(
-          databaseId: flightSchool.databaseId,
-          collectionId: flightSchool.teamAssignmentsEventsCollectionId,
-          queries: [
-            Query.or([
-              Query.equal("user_id", user.id),
-              Query.equal("user_id", "69"),
-            ])
-          ]
+        databaseId: flightSchool.databaseId,
+        collectionId: flightSchool.teamAssignmentsEventsCollectionId,
+        queries: [
+          Query.or([
+            Query.equal("user_id", user.id),
+            Query.equal("user_id", "69"),
+          ])
+        ],
       );
 
       for (final assignment in teamAssignments.documents) {
         final data = assignment.data;
-        final eventData = data["event"];
+
+        final eventData = data["events"];
+
+        final teamDocs = await _database.listDocuments(
+          databaseId: flightSchool.databaseId,
+          collectionId: flightSchool.teamAssignmentsEventsCollectionId,
+          queries: [
+            Query.equal("events", [eventData["\$id"]]),
+          ],
+        );
+
+        final List<TeamMember> teamMembers = teamDocs.documents
+            .map((doc) => TeamMember.fromMap(doc.data))
+            .toList();
+
         final event = Event(
           id: data["\$id"],
           flightSchoolId: flightSchool.id ?? "test",
@@ -101,16 +115,18 @@ class DatabaseService {
           startTime: DateTime.parse(eventData["start_time"]),
           endTime: DateTime.parse(eventData["end_time"]),
           displayName: eventData["display_name"] ?? "test",
-          team: List<String>.from(eventData["team"] ?? []),
+          team: teamMembers,
           notes: List<String>.from(eventData["notes"] ?? []),
           role: EventRoleEnum.values.byName(data["role"]),
           assignmentStatus: EventUserStatusEnum.values.byName(data["status"]),
         );
+
         allEvents.add(event);
       }
     }
-    return allEvents != null ? allEvents:user.events;
+    return allEvents;
   }
+
 
    Future<UserModel?> getUserInformation() async {
     try{
@@ -128,22 +144,25 @@ class DatabaseService {
         );
 
         final userDocumentData = userDocument.documents.first.data;
-        final flightshoolList = userDocumentData["flightSchools"];
 
+        final membershipsList = userDocumentData["memberships"] as List;
 
-        final List<FlightSchool> flightSchools = flightshoolList.map<FlightSchool>( (flightSchool) {
-        //TODO: getFile Link for logo or other solution
+        final List<FlightSchool> flightSchools = membershipsList
+            .where((m) => m["flightSchools"] != null)
+            .map((membership) {
+          final fs = membership["flightSchools"];
           return FlightSchool(
-              id: flightSchool["\$id"],
-              displayName: flightSchool["display_name"],
-              databaseId: flightSchool["database_id"],
-              teamAssignmentsEventsCollectionId: flightSchool["team_assigments_events_id"],
-              eventsCollectionId: flightSchool["events_id"],
-              auditLogsCollectionId: flightSchool["audit_logs_id"],
-              adminUserIds:List<String>.from(flightSchool['admin_users'] ?? []),
-              logoLink: "!");
+            id: fs["\$id"],
+            displayName: fs["display_name"],
+            databaseId: fs["database_id"],
+            teamAssignmentsEventsCollectionId:
+            fs["team_assigments_events_id"],
+            eventsCollectionId: fs["events_id"],
+            auditLogsCollectionId: fs["audit_logs_id"],
+            adminUserIds: List<String>.from(fs["admin_users"] ?? []),
+            logoLink: "!",
+          );
         }).toList();
-
 
      //get All events Relevant to User
         final List<Event> allEvents = [];
@@ -162,7 +181,20 @@ class DatabaseService {
 
           for (final assignment in teamAssignments.documents) {
             final data = assignment.data;
-            final eventData = data["event"];
+            final eventData = data["events"];
+
+            final teamDocs = await _database.listDocuments(
+              databaseId: flightSchool.databaseId,
+              collectionId: flightSchool.teamAssignmentsEventsCollectionId,
+              queries: [
+                Query.equal("events", [eventData["\$id"]]),
+              ],
+            );
+
+            final List<TeamMember> teamMembers = teamDocs.documents
+                .map((doc) => TeamMember.fromMap(doc.data))
+                .toList();
+
             final event = Event(
               id: data["\$id"],
               flightSchoolId: flightSchool.id ?? "test",
@@ -171,16 +203,16 @@ class DatabaseService {
               startTime: DateTime.parse(eventData["start_time"]),
               endTime: DateTime.parse(eventData["end_time"]),
               displayName: eventData["display_name"] ?? "test",
-              team: List<String>.from(eventData["team"] ?? []),
-              notes: List<String>.from(eventData["notes"] ?? []),
+              team: teamMembers,
+              notes: asStringList(eventData["notes"]),
               role: EventRoleEnum.values.byName(data["role"]),
               assignmentStatus: EventUserStatusEnum.values.byName(data["status"]),
             );
+
             allEvents.add(event);
           }
-        }
 
-        return UserModel(
+          return UserModel(
             id: userID,
             name: user.name,
             mail: user.email,
@@ -188,10 +220,18 @@ class DatabaseService {
             flightSchools: flightSchools,
             events: allEvents);
 
+          }
       }
     }catch(e){
       print(e);
     }
+  }
+
+  List<String> asStringList(dynamic value) {
+    if (value == null) return <String>[];
+    if (value is List) return value.map((e) => e.toString()).toList();
+    if (value is String) return value.isEmpty ? <String>[] : <String>[value];
+    return <String>[value.toString()];
   }
 
 
