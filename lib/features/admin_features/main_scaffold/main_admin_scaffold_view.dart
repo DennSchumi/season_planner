@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import '../../../data/models/user_model.dart';
 import '../../../services/database_service.dart';
+import '../../../services/flight_school_provider.dart';
 import '../../../services/user_provider.dart';
 
 class MainAdminScaffoldView extends StatefulWidget{
@@ -10,8 +11,8 @@ class MainAdminScaffoldView extends StatefulWidget{
 
   MainAdminScaffoldView(
   {
- super.key,
-this.selected_index
+   super.key,
+  this.selected_index
 });
 
   @override
@@ -19,6 +20,7 @@ this.selected_index
 }
 class _MainAdminScaffoldState extends State<MainAdminScaffoldView>{
   int _selectedIndex = 0;
+
 
   List<Widget> _widgetList = <Widget>[
 
@@ -54,17 +56,16 @@ class _MainAdminScaffoldState extends State<MainAdminScaffoldView>{
 }
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<UserProvider>(context).user;
-
-
-    if (user == null) {
+    final flight_school_provider = Provider.of<FlightSchoolProvider>(context);
+    final user_provider = Provider.of<UserProvider>(context).user;
+    if (user_provider == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      body: Center(child: _widgetList.elementAt(_selectedIndex)),
+      body: Center(child: Text(flight_school_provider.flightSchool!.displayName)),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         items: const [

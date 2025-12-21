@@ -12,7 +12,6 @@ class BaseAdminView extends StatefulWidget {
   _BaseAdminViewState createState() => _BaseAdminViewState();
 }
 
-//flightschools vom user holen, schauen bei welchen er Admin ist, wenn bei einer , direkt weiterleiten , wenn bei mehreren dann auswahl. Vor dem Weiterleiten noch die flight school im provider setzen
 
 class _BaseAdminViewState extends State<BaseAdminView> {
   @override
