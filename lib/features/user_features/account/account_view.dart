@@ -48,7 +48,7 @@ class _AccountViewState extends State<AccountView> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
-                      Text("Switch to ADMIN"),
+                      Text("Switch to ADMIN-Mode"),
                       SizedBox(width: 8),
                       Icon(Icons.accessible_forward_outlined),
                     ],
