@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
+import 'package:season_planer/features/admin_features/manage_events_view/manage_events_view.dart';
+import 'package:season_planer/features/admin_features/manage_flight_school_view/manage_flight_school_view.dart';
+import 'package:season_planer/features/admin_features/manage_personal/manage_personal_view.dart';
 import '../../../data/models/user_model.dart';
 import '../../../services/database_service.dart';
 import '../../../services/flight_school_provider.dart';
@@ -23,7 +26,9 @@ class _MainAdminScaffoldState extends State<MainAdminScaffoldView>{
 
 
   List<Widget> _widgetList = <Widget>[
-
+    ManageEventsView(),
+    ManagePersonalView(),
+    ManageFlightSchoolView()
   ];
 
   @override
@@ -65,12 +70,12 @@ class _MainAdminScaffoldState extends State<MainAdminScaffoldView>{
     }
 
     return Scaffold(
-      body: Center(child: Text(flight_school_provider.flightSchool!.displayName)),
+      body: Center(child: _widgetList.elementAt(_selectedIndex)),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'HOME'),
-          BottomNavigationBarItem(icon: Icon(Icons.access_time_outlined), label: 'EVENT'),
+          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'EVENTS'),
+          BottomNavigationBarItem(icon: Icon(Icons.supervised_user_circle), label: 'PERSONAL'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'KALENDER'),
           BottomNavigationBarItem(icon: Icon(Icons.account_circle_outlined), label: 'BENUTZER'),
         ],
