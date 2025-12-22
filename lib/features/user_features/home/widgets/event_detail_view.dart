@@ -5,7 +5,7 @@ import 'package:season_planer/data/models/event_model.dart';
 import 'package:season_planer/services/database_service.dart';
 import 'package:season_planer/services/user_provider.dart';
 
-import '../../../../data/models/user_model.dart';
+import '../../../../data/models/user_models/user_model_userView.dart';
 
 class EventDetailView extends StatefulWidget {
   final Event event;
@@ -17,7 +17,7 @@ class EventDetailView extends StatefulWidget {
 }
 
 class _EventDetailViewState extends State<EventDetailView> {
-  late UserModel user;
+  late UserModelUserView user;
 
   @override
   void initState() {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:season_planer/data/models/flight_school_model.dart';
+import 'package:season_planer/data/models/user_models/flight_school_model_user_view.dart';
 
 class FlightSchoolSelector extends StatefulWidget {
-  final List<FlightSchool> flightSchools;
+  final List<FlightSchoolUserView> flightSchools;
 
   final void Function(Set<String> selectedIds) onSelectionChanged;
 

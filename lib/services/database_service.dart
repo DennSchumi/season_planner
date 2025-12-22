@@ -4,13 +4,15 @@ import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_role_enum.dart';
 import 'package:season_planer/data/enums/event_user_status_enum.dart';
 import 'package:season_planer/data/models/event_model.dart';
-import 'package:season_planer/data/models/flight_school_model.dart';
-import 'package:season_planer/data/models/user_model.dart';
+import 'package:season_planer/data/models/user_models/flight_school_model_user_view.dart';
+import 'package:season_planer/data/models/user_models/user_model_userView.dart';
 import 'package:season_planer/services/auth_service.dart';
 import 'package:season_planer/services/user_provider.dart';
 
 import '../core/appwrite_config.dart';
 import '../data/enums/event_status_enum.dart';
+import '../data/models/admin_models/flight_school_model_flight_school_view.dart';
+import '../data/models/admin_models/user_summary_flight_school_view.dart';
 
 class DatabaseService {
   final Client client = Client()
@@ -34,7 +36,7 @@ class DatabaseService {
   }
 
   Future<bool> changeEventAssignmentStatus({
-    required UserModel user,
+    required UserModelUserView user,
     required Event event,
     required EventUserStatusEnum newStatus,
   }) async {
@@ -75,7 +77,7 @@ class DatabaseService {
     }
   }
 
-  Future<List<Event>> loadUserEvents(UserModel user) async {
+  Future<List<Event>> loadUserEvents(UserModelUserView user) async {
     final List<Event> allEvents = [];
 
     for (final flightSchool in user.flightSchools) {
@@ -127,8 +129,131 @@ class DatabaseService {
     return allEvents;
   }
 
+  Future<FlightSchoolModelFlightSchoolView?> getFlightSchool(String id) async {
+    try {
+      final fsDoc = await _database.getDocument(
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().flightSchoolsCollectionId,
+        documentId: id,
+      );
 
-  Future<UserModel?> getUserInformation() async {
+      final fs = fsDoc.data;
+
+      final String databaseId = (fs["database_id"] ?? "") as String;
+      final String teamAssignmentsId =
+      (fs["team_assigments_events_id"] ?? "") as String;
+      final String eventsCollectionId = (fs["events_id"] ?? "") as String;
+
+      List<UserSummary> members = [];
+      try {
+        final usersResult = await _database.listDocuments(
+          databaseId: AppwriteConfig().mainDatabaseId,
+          collectionId: AppwriteConfig().usersCollectionID,
+          queries: [],
+        );
+
+        members = usersResult.documents
+            .where((u) {
+          final data = u.data;
+          final memberships = data["memberships"];
+          if (memberships is! List) return false;
+
+          return memberships.any((m) {
+            if (m is! Map) return false;
+
+            final direct = m["flightSchoolId"];
+            if (direct != null && direct.toString() == id) return true;
+
+            final rel = m["flightSchools"];
+            if (rel is Map) {
+              final relId = rel["\$id"] ?? rel["id"];
+              if (relId != null && relId.toString() == id) return true;
+            }
+
+            return false;
+          });
+        })
+            .map((u) {
+          final data = u.data;
+          return UserSummary(
+            id: (data["id"] ?? u.$id).toString(),
+            name: (data["name"] ?? "").toString(),
+            mail: (data["mail"] ?? data["email"] ?? "").toString(),
+            phone: (data["phone"] ?? "").toString(),
+          );
+        })
+            .toList();
+      } catch (_) {
+        members = [];
+      }
+
+      List<Event> events = [];
+      try {
+        if (databaseId.isNotEmpty && eventsCollectionId.isNotEmpty) {
+          final eventsResult = await _database.listDocuments(
+            databaseId: databaseId,
+            collectionId: eventsCollectionId,
+            queries: [
+              Query.orderDesc("start_time"),
+              Query.limit(200),
+            ],
+          );
+
+          final List<Event> eventList = [];
+
+          for (final doc in eventsResult.documents) {
+            final data = doc.data;
+
+            eventList.add(
+              Event(
+                id: doc.$id,
+                flightSchoolId: id,
+                identifier: data["identifier"] ?? "test",
+                status: EventStatusEnum.values.byName(data["status"]),
+                startTime: DateTime.parse(data["start_time"]),
+                endTime: DateTime.parse(data["end_time"]),
+                displayName: data["display_name"] ?? "test",
+                team: teamMembers,
+                notes: asStringList(data["notes"]),
+                role: EventRoleEnum.values.byName(data["role"]),
+                assignmentStatus: EventUserStatusEnum.values.byName(data["status"]),
+              ),
+            );
+          }
+
+          events = eventList;
+
+        }
+      } catch (_) {
+        events = [];
+      }
+
+      print(events);
+
+      final settings = (fs["settings"] as Map<String, dynamic>?) ?? <String, dynamic>{};
+
+      return FlightSchoolModelFlightSchoolView(
+        id: fsDoc.$id,
+        displayName: (fs["display_name"] ?? "") as String,
+        databaseId: databaseId,
+        teamAssignmentsEventsCollectionId: teamAssignmentsId,
+        eventsCollectionId: eventsCollectionId,
+        auditLogsCollectionId: (fs["audit_logs_id"] ?? "") as String,
+        logoLink: (fs["logo_link"] ?? "!") as String,
+        adminUserIds: List<String>.from(fs["admin_users"] ?? const []),
+        members: members,
+        events: events,
+        settings: settings,
+      );
+    } catch (e) {
+      print("getFlightSchool (FS view) error: $e");
+      return null;
+    }
+  }
+
+
+
+  Future<UserModelUserView?> getUserInformation() async {
     try {
       final user = await AuthService().getCurrentUser();
       if (user == null) return null;
@@ -146,11 +271,11 @@ class DatabaseService {
       final userDocumentData = userDocument.documents.first.data;
       final membershipsList = userDocumentData["memberships"] as List;
 
-      final List<FlightSchool> flightSchools = membershipsList
+      final List<FlightSchoolUserView> flightSchools = membershipsList
           .where((m) => m["flightSchools"] != null)
           .map((membership) {
         final fs = membership["flightSchools"];
-          return FlightSchool(
+          return FlightSchoolUserView(
           id: fs["\$id"],
           displayName: fs["display_name"],
           databaseId: fs["database_id"],
@@ -208,7 +333,7 @@ class DatabaseService {
           ));
         }
       }
-      return UserModel(
+      return UserModelUserView(
         id: userID,
         name: user.name,
         mail: user.email,

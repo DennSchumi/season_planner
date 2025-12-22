@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:season_planer/features/user_features/current_event/current_event_view.dart';
 
 
-import '../../../data/models/user_model.dart';
+import '../../../data/models/user_models/user_model_userView.dart';
 import '../../../services/database_service.dart';
 import '../../../services/user_provider.dart';
 import '../account/account_view.dart';
@@ -58,7 +58,7 @@ class _MainUserScaffoldState extends State<MainUserScaffoldView>{
   }
 
 
-  Future<UserModel?> _getUserInformation() {
+  Future<UserModelUserView?> _getUserInformation() {
   return DatabaseService().getUserInformation();
 }
   @override

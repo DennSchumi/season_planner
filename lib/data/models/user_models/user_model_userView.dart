@@ -1,16 +1,16 @@
 import 'package:season_planer/data/models/event_model.dart';
-import 'package:season_planer/data/models/flight_school_model.dart';
+import 'package:season_planer/data/models/user_models/flight_school_model_user_view.dart';
 
-class UserModel {
+class UserModelUserView {
   final String id;
   final String name;
   final String mail;
   final String phone;
-  final List<FlightSchool> flightSchools;
+  final List<FlightSchoolUserView> flightSchools;
   final List<Event> events;
 
   // Constructor
-  UserModel({
+  UserModelUserView({
     required this.id,
     required this.name,
     required this.mail,
@@ -20,14 +20,14 @@ class UserModel {
   });
 
   // Factory method to create an instance from a JSON object
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
+  factory UserModelUserView.fromJson(Map<String, dynamic> json) {
+    return UserModelUserView(
       id: json['id'] as String,
       name: json['name'] as String,
       mail: json['mail'] as String,
       phone: json['phone'] as String,
       flightSchools: (json['flightSchools'] as List)
-          .map((fs) => FlightSchool.fromJson(fs))
+          .map((fs) => FlightSchoolUserView.fromJson(fs))
           .toList(),
       events: (json['events'] as List)
           .map((e) => Event.fromJson(e))
@@ -48,15 +48,15 @@ class UserModel {
   }
 
   // Copy method to update specific fields
-  UserModel copyWith({
+  UserModelUserView copyWith({
     String? id,
     String? name,
     String? mail,
     String? phone,
-    List<FlightSchool>? flightSchools,
+    List<FlightSchoolUserView>? flightSchools,
     List<Event>? events,
   }) {
-    return UserModel(
+    return UserModelUserView(
       id: id ?? this.id,
       name: name ?? this.name,
       mail: mail ?? this.mail,
@@ -66,9 +66,8 @@ class UserModel {
     );
   }
 
-  // Leerer Benutzer (z. B. für Initialzustand)
-  static UserModel empty() {
-    return UserModel(
+  static UserModelUserView empty() {
+    return UserModelUserView(
       id: '',
       name: '',
       mail: '',
@@ -77,7 +76,6 @@ class UserModel {
       events: [],
     );
   }
-  // Debugging & Readable Output
   @override
   String toString() {
     return 'UserModel(id: $id, name: $name, mail: $mail, phone: $phone, '

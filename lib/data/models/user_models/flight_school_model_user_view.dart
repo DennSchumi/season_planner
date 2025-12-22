@@ -1,4 +1,4 @@
-class FlightSchool {
+class FlightSchoolUserView {
   final String id;
   final String displayName;
   final String databaseId;
@@ -8,7 +8,7 @@ class FlightSchool {
   final String logoLink;
   final List<String> adminUserIds;
 
-  FlightSchool({
+  FlightSchoolUserView({
     required this.id,
     required this.displayName,
     required this.databaseId,
@@ -19,8 +19,8 @@ class FlightSchool {
     required this.adminUserIds,
   });
 
-  factory FlightSchool.fromJson(Map<String, dynamic> json) {
-    return FlightSchool(
+  factory FlightSchoolUserView.fromJson(Map<String, dynamic> json) {
+    return FlightSchoolUserView(
       id: json['id'] as String,
       displayName: json['displayName'] as String,
       databaseId: json['databaseId'] as String,
@@ -45,7 +45,7 @@ class FlightSchool {
     };
   }
 
-  FlightSchool copyWith({
+  FlightSchoolUserView copyWith({
     String? id,
     String? displayName,
     String? databaseId,
@@ -55,7 +55,7 @@ class FlightSchool {
     String? logoLink,
     List<String>? adminUserIds,
   }) {
-    return FlightSchool(
+    return FlightSchoolUserView(
       id: id ?? this.id,
       displayName: displayName ?? this.displayName,
       databaseId: databaseId ?? this.databaseId,

@@ -97,10 +97,10 @@ class Event {
   }
 }
 class TeamMember {
-  final String userId;           // Appwrite user id (or related doc id)
-  final String name;             // display name
-  final String role;             // e.g. "instructor", "admin" (or use enum later)
-  final String status;           // e.g. "assigned", "pending" (or use enum later)
+  final String userId;
+  final String name;
+  final String role;
+  final String status;
 
   const TeamMember({
     required this.userId,
@@ -109,7 +109,7 @@ class TeamMember {
     required this.status,
   });
 
-  /// Create from Appwrite document data / map
+
   factory TeamMember.fromMap(Map<String, dynamic> map) {
     return TeamMember(
       userId: (map['user_id'] ?? map['userId'] ?? '') as String,
@@ -119,7 +119,7 @@ class TeamMember {
     );
   }
 
-  /// Convert to map for Appwrite
+
   Map<String, dynamic> toMap() {
     return {
       'user_id': userId,
