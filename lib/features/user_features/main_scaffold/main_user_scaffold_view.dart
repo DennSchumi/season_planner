@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/features/user_features/current_event/current_event_view.dart';
 
@@ -26,7 +25,7 @@ this.selected_index
 class _MainUserScaffoldState extends State<MainUserScaffoldView>{
   int _selectedIndex = 0;
 
-  List<Widget> _widgetList = <Widget>[
+  final List<Widget> _widgetList = <Widget>[
     HomeView(),
     CurrentEventView(),
     CalenderView(),

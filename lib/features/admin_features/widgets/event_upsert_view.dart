@@ -208,7 +208,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<UserSummary?>(
-                      value: selected,
+                      initialValue: selected,
                       decoration: const InputDecoration(
                         labelText: "Member (optional)",
                         border: OutlineInputBorder(),
@@ -233,7 +233,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<EventRoleEnum>(
-                      value: role,
+                      initialValue: role,
                       decoration: const InputDecoration(
                         labelText: "Role",
                         border: OutlineInputBorder(),
@@ -379,7 +379,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                     // open: optional member selection (incl. None)
                     if (canPickMember) ...[
                       DropdownButtonFormField<UserSummary?>(
-                        value: selectedUser,
+                        initialValue: selectedUser,
                         decoration: const InputDecoration(
                           labelText: "Member (optional)",
                           border: OutlineInputBorder(),
@@ -409,7 +409,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                     ],
 
                     DropdownButtonFormField<EventRoleEnum>(
-                      value: role,
+                      initialValue: role,
                       decoration: InputDecoration(
                         labelText: "Role",
                         border: const OutlineInputBorder(),
@@ -659,7 +659,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<EventStatusEnum>(
-                value: _status,
+                initialValue: _status,
                 decoration: const InputDecoration(
                   labelText: "Status",
                   border: OutlineInputBorder(),

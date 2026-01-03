@@ -19,7 +19,7 @@ class _ManageEventsViewState extends State<ManageEventsView> {
 
   String _search = "";
   dynamic _statusFilter;
-  bool _sortAsc = true;
+  final bool _sortAsc = true;
 
   DateTimeRange? _dateRange;
 
@@ -163,7 +163,7 @@ class _ManageEventsViewState extends State<ManageEventsView> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<dynamic>(
-                          value: _statusFilter,
+                          initialValue: _statusFilter,
                           decoration: const InputDecoration(
                             labelText: "Status",
                             border: OutlineInputBorder(),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class ManageFlightSchoolView extends StatefulWidget{
+  const ManageFlightSchoolView({super.key});
+
 
   @override
   _ManageFlightSchoolView createState() => _ManageFlightSchoolView();

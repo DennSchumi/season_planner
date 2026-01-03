@@ -1,13 +1,13 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/features/base_admin_view.dart';
 import 'package:season_planer/services/auth_service.dart';
 
 import '../../../services/user_provider.dart';
-import '../../admin_features/main_scaffold/main_admin_scaffold_view.dart';
 
 class AccountView extends StatefulWidget {
+  const AccountView({super.key});
+
   @override
   _AccountViewState createState() => _AccountViewState();
 }

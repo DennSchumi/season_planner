@@ -1,8 +1,9 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:season_planer/services/auth_service.dart';
 
 class RegisterView extends StatefulWidget{
+  const RegisterView({super.key});
+
   @override
   _RegisterView createState() => _RegisterView();
 }
@@ -42,7 +43,7 @@ class _RegisterView extends State<RegisterView>{
   }
 
   Future<void> handleRegistration() async{
-    String name = nameController.text.trim() + " " + lastnNameController .text.trim();
+    String name = "${nameController.text.trim()} ${lastnNameController .text.trim()}";
     String password = passwordRedoController.text.trim();
     String email = emailController.text.trim();
 
@@ -53,7 +54,7 @@ class _RegisterView extends State<RegisterView>{
   Widget build(BuildContext context) {
    return Scaffold(
      body: Center(
-       child: Container(
+       child: SizedBox(
          width: 300,
          child: Column(
            mainAxisAlignment: MainAxisAlignment.center,

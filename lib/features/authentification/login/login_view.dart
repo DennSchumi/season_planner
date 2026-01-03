@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:season_planer/services/auth_service.dart';
 
 import '../register/register_view.dart';
 
 class LoginView extends StatefulWidget{
+  const LoginView({super.key});
+
 
 @override
 _LoginViewState createState() => _LoginViewState();
@@ -38,7 +39,7 @@ class _LoginViewState extends State<LoginView>{
   Widget build(BuildContext context) {
    return Scaffold(
      body: Center(
-       child: Container(
+       child: SizedBox(
          width: 300,
          child: Column(
            mainAxisAlignment: MainAxisAlignment.center,

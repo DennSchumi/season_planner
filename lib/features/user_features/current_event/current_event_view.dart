@@ -1,7 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class CurrentEventView extends StatefulWidget{
+  const CurrentEventView({super.key});
+
   @override
   _CurrentEventViewState createState() => _CurrentEventViewState();
 }

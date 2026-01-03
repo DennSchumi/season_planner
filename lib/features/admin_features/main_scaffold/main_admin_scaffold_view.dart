@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/features/admin_features/manage_events_view/manage_events_view.dart';
 import 'package:season_planer/features/admin_features/manage_flight_school_view/manage_flight_school_view.dart';
@@ -25,9 +24,10 @@ class _MainAdminScaffoldState extends State<MainAdminScaffoldView>{
   int _selectedIndex = 0;
 
 
-  List<Widget> _widgetList = <Widget>[
+  final List<Widget> _widgetList = <Widget>[
     ManageEventsView(),
     ManagePersonalView(),
+    ManageFlightSchoolView(),
     ManageFlightSchoolView()
   ];
 
@@ -61,9 +61,9 @@ class _MainAdminScaffoldState extends State<MainAdminScaffoldView>{
 }
   @override
   Widget build(BuildContext context) {
-    final flight_school_provider = Provider.of<FlightSchoolProvider>(context);
-    final user_provider = Provider.of<UserProvider>(context).user;
-    if (user_provider == null) {
+    final flightSchoolProvider = Provider.of<FlightSchoolProvider>(context);
+    final userProvider = Provider.of<UserProvider>(context).user;
+    if (userProvider == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
@@ -77,7 +77,7 @@ class _MainAdminScaffoldState extends State<MainAdminScaffoldView>{
           BottomNavigationBarItem(icon: Icon(Icons.event), label: 'EVENTS'),
           BottomNavigationBarItem(icon: Icon(Icons.supervised_user_circle), label: 'PERSONAL'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'KALENDER'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_circle_outlined), label: 'BENUTZER'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_circle_outlined), label: 'SCHOOL'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.amber[800],

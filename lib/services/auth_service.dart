@@ -47,6 +47,7 @@ Future<void> testLogin() async {
       print("Error during registration: $e");
       return null;
     }
+    return null;
   }
 
 

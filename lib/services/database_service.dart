@@ -1,5 +1,4 @@
 import 'package:appwrite/appwrite.dart';
-import 'package:appwrite/models.dart' as models;
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_role_enum.dart';
@@ -8,7 +7,6 @@ import 'package:season_planer/data/models/event_model.dart';
 import 'package:season_planer/data/models/user_models/flight_school_model_user_view.dart';
 import 'package:season_planer/data/models/user_models/user_model_userView.dart';
 import 'package:season_planer/services/auth_service.dart';
-import 'package:season_planer/services/user_provider.dart';
 
 import '../core/appwrite_config.dart';
 import '../data/enums/event_status_enum.dart';
@@ -249,7 +247,7 @@ class DatabaseService {
       } catch (e) {
         print("events loading error: $e");
         events = [];
-      };
+      }
 
 
 

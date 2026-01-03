@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_user_status_enum.dart';
@@ -12,6 +11,8 @@ import 'package:season_planer/services/user_provider.dart';
 import '../../../data/models/event_model.dart';
 
 class HomeView extends StatefulWidget {
+  const HomeView({super.key});
+
   @override
   _HomeViewState createState() => _HomeViewState();
 }
@@ -38,10 +39,10 @@ class _HomeViewState extends State<HomeView> {
     final List<Event> publicRequests = [];
     final List<Event> acceptedEvents = [];
     final List<Event> pendingOrRequestedEvents = [];
-    DateTime date_time_now = DateTime.now();
+    DateTime dateTimeNow = DateTime.now();
 
     for (final event in user.events) {
-      if (!event.startTime.isBefore(date_time_now) && selectedFlightSchools.contains(event.flightSchoolId)) {
+      if (!event.startTime.isBefore(dateTimeNow) && selectedFlightSchools.contains(event.flightSchoolId)) {
         switch (event.assignmentStatus) {
           case EventUserStatusEnum.open:
             publicRequests.add(event);

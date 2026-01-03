@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:season_planer/services/auth_service.dart';
 import 'package:season_planer/services/database_service.dart';
@@ -7,6 +6,8 @@ import 'core/AppState.dart';
 import 'features/authentification/login/login_view.dart';
 
 class BaseView extends StatefulWidget {
+  const BaseView({super.key});
+
   @override
   _BaseViewState createState() => _BaseViewState();
 }

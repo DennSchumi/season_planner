@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:season_planer/data/enums/event_status_enum.dart';
 import 'package:season_planer/data/models/event_model.dart';
@@ -27,7 +26,7 @@ class YourEventsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (events.isEmpty) {
-      return  Container(
+      return  SizedBox(
         height: 50,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,7 +42,7 @@ class YourEventsWidget extends StatelessWidget {
         ),
       );
     }
-    return Container(
+    return SizedBox(
       height: 180,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
