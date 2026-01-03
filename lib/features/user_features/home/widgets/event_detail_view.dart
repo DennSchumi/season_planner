@@ -127,7 +127,7 @@ class _EventDetailViewState extends State<EventDetailView> {
                     _sectionTitle("Notizen"),
                     if (event.notes.isEmpty)
                       const Text("Keine Notizen vorhanden."),
-                    ...event.notes.map((n) => Text("– $n")),
+                      Text(event.notes),
                   ],
                 ),
               ),
@@ -223,7 +223,7 @@ class _ActionDialog extends StatefulWidget {
 
 class _ActionDialogState extends State<_ActionDialog> {
   bool _isLoading = false;
-  bool? _success; // null = noch nichts, true = Erfolg, false = Fehler
+  bool? _success;
 
   Future<void> _execute() async {
     setState(() => _isLoading = true);

@@ -1,5 +1,5 @@
 enum EventStatusEnum{
-  scheduled('Scheduled'),provisional('Provisional'),canceled('Canceled'),running('Running'),done('Done');
+  scheduled('Scheduled'),provisional('Provisional'),canceled('Canceled'),done('Done');
 
   final String label;
 

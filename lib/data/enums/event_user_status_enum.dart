@@ -28,3 +28,25 @@ extension EventUserStatusLabel on EventUserStatusEnum {
         }
     }
 }
+
+extension EventUserStatusLabelForNewEvent on EventUserStatusEnum {
+    String get label {
+        switch (this) {
+            case EventUserStatusEnum.open:
+                return 'Open Opportunity';
+            case EventUserStatusEnum.aceppted_flight_school:
+                return 'Accepted by Flight School';
+            case EventUserStatusEnum.accepted_user:
+                return 'Accepted by User';
+            case EventUserStatusEnum.pending_flight_school:
+                return 'Waiting for Flight School';
+            case EventUserStatusEnum.pending_user:
+                return 'Waiting for User';
+            case EventUserStatusEnum.denied_user:
+                return 'Declined by User';
+            case EventUserStatusEnum.denied_flight_school:
+                return 'Declined by Flight School';
+        }
+    }
+}
+

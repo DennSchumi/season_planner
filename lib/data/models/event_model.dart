@@ -5,13 +5,19 @@ import 'package:season_planer/data/enums/event_user_status_enum.dart';
 class Event {
   final String id;
   final String flightSchoolId;
+
   final String identifier;
   final EventStatusEnum status;
   final DateTime startTime;
   final DateTime endTime;
+
   final String displayName;
+  final String location;
+
   final List<TeamMember> team;
-  final List<String> notes;
+
+  final String notes;
+
   final EventRoleEnum role;
   final EventUserStatusEnum assignmentStatus;
 
@@ -23,23 +29,31 @@ class Event {
     required this.startTime,
     required this.endTime,
     required this.displayName,
+    required this.location,
     required this.team,
     required this.notes,
     required this.role,
     required this.assignmentStatus,
   });
 
+  /// JSON für App-interne Serialisierung (nicht 1:1 Appwrite)
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
-      id: json['id'] as String,
-      flightSchoolId: json['flightSchoolId'] as String,
-      identifier: json['identifier'] as String,
+      id: (json['id'] ?? '').toString(),
+      flightSchoolId: (json['flightSchoolId'] ?? '').toString(),
+      identifier: (json['identifier'] ?? '').toString(),
       status: EventStatusEnum.values.byName(json['status']),
       startTime: DateTime.parse(json['startTime']),
       endTime: DateTime.parse(json['endTime']),
-      displayName: json['displayName'] as String,
-      team: List<TeamMember>.from(json['team'] ?? []),
-      notes: List<String>.from(json['notes'] ?? []),
+      displayName: (json['displayName'] ?? '').toString(),
+      location: (json['location'] ?? '').toString(),
+      team: (json['team'] as List? ?? const [])
+          .map((e) => TeamMember.fromMap(e as Map<String, dynamic>))
+          .toList(),
+
+      /// ✅ Notes als String
+      notes: (json['notes'] ?? '').toString(),
+
       role: EventRoleEnum.values.byName(json['role']),
       assignmentStatus: EventUserStatusEnum.values.byName(json['assignmentStatus']),
     );
@@ -54,8 +68,11 @@ class Event {
       'startTime': startTime.toIso8601String(),
       'endTime': endTime.toIso8601String(),
       'displayName': displayName,
-      'team': team,
+      'location': location,
+      'team': team.map((t) => t.toMap()).toList(),
+
       'notes': notes,
+
       'role': role.name,
       'assignmentStatus': assignmentStatus.name,
     };
@@ -69,8 +86,9 @@ class Event {
     DateTime? startTime,
     DateTime? endTime,
     String? displayName,
+    String? location,
     List<TeamMember>? team,
-    List<String>? notes,
+    String? notes,
     EventRoleEnum? role,
     EventUserStatusEnum? assignmentStatus,
   }) {
@@ -82,6 +100,7 @@ class Event {
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       displayName: displayName ?? this.displayName,
+      location: location ?? this.location,
       team: team ?? this.team,
       notes: notes ?? this.notes,
       role: role ?? this.role,
@@ -91,11 +110,14 @@ class Event {
 
   @override
   String toString() {
-    return 'Event(id: $id, flightSchoolId: $flightSchoolId, identifier: $identifier, status: $status, '
-        'startTime: $startTime, endTime: $endTime, displayName: $displayName, team: $team, '
-        'notes: $notes, role: $role, assignmentStatus: $assignmentStatus)';
+    return 'Event(id: $id, flightSchoolId: $flightSchoolId, identifier: $identifier, '
+        'status: $status, startTime: $startTime, endTime: $endTime, '
+        'displayName: $displayName, location: $location, '
+        'team: ${team.length}, notes: $notes, '
+        'role: $role, assignmentStatus: $assignmentStatus)';
   }
 }
+
 class TeamMember {
   final String userId;
   final String name;
@@ -110,15 +132,15 @@ class TeamMember {
   });
 
 
+
   factory TeamMember.fromMap(Map<String, dynamic> map) {
     return TeamMember(
-      userId: (map['user_id'] ?? map['userId'] ?? '') as String,
-      name: (map['name'] ?? map['display_name'] ?? '') as String,
-      role: (map['role'] ?? '') as String,
-      status: (map['status'] ?? '') as String,
+      userId: (map['user_id'] ?? map['userId'] ?? '').toString(),
+      name: (map['name'] ?? map['display_name'] ?? '').toString(),
+      role: (map['role'] ?? '').toString(),
+      status: (map['status'] ?? '').toString(),
     );
   }
-
 
   Map<String, dynamic> toMap() {
     return {
@@ -141,6 +163,24 @@ class TeamMember {
       role: role ?? this.role,
       status: status ?? this.status,
     );
+  }
+
+  bool get isSlot => userId.startsWith('slot_');
+
+  EventRoleEnum? get roleEnum {
+    try {
+      return EventRoleEnum.values.byName(role);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  EventUserStatusEnum? get statusEnum {
+    try {
+      return EventUserStatusEnum.values.byName(status);
+    } catch (_) {
+      return null;
+    }
   }
 
   @override

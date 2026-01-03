@@ -1,5 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_role_enum.dart';
 import 'package:season_planer/data/enums/event_user_status_enum.dart';
@@ -13,6 +14,7 @@ import '../core/appwrite_config.dart';
 import '../data/enums/event_status_enum.dart';
 import '../data/models/admin_models/flight_school_model_flight_school_view.dart';
 import '../data/models/admin_models/user_summary_flight_school_view.dart';
+import 'flight_school_provider.dart';
 
 class DatabaseService {
   final Client client = Client()
@@ -117,8 +119,9 @@ class DatabaseService {
           startTime: DateTime.parse(eventData["start_time"]),
           endTime: DateTime.parse(eventData["end_time"]),
           displayName: eventData["display_name"] ?? "test",
+          location: eventData["location"],
           team: teamMembers,
-          notes: List<String>.from(eventData["notes"] ?? []),
+          notes: eventData["notes"] ?? "",
           role: EventRoleEnum.values.byName(data["role"]),
           assignmentStatus: EventUserStatusEnum.values.byName(data["status"]),
         );
@@ -201,32 +204,54 @@ class DatabaseService {
 
           final List<Event> eventList = [];
 
-          for (final doc in eventsResult.documents) {
-            final data = doc.data;
+          for (final eventDoc in eventsResult.documents) {
+            final eventData = eventDoc.data;
+
+            final teamDocs = await _database.listDocuments(
+              databaseId: databaseId,
+              collectionId: teamAssignmentsId,
+              queries: [
+                Query.equal("events", eventDoc.$id),
+
+              ],
+            );
+
+            final teamMembers = teamDocs.documents
+                .map((d) => TeamMember.fromMap(d.data))
+                .toList();
+
+            final firstAssignment = teamDocs.documents.isNotEmpty ? teamDocs.documents.first.data : null;
 
             eventList.add(
               Event(
-                id: doc.$id,
+                id: eventDoc.$id,
                 flightSchoolId: id,
-                identifier: data["identifier"] ?? "test",
-                status: EventStatusEnum.values.byName(data["status"]),
-                startTime: DateTime.parse(data["start_time"]),
-                endTime: DateTime.parse(data["end_time"]),
-                displayName: data["display_name"] ?? "test",
+                identifier: (eventData["identifier"] ?? "test").toString(),
+                status: EventStatusEnum.values.byName(eventData["status"]),
+                startTime: DateTime.parse(eventData["start_time"]),
+                endTime: DateTime.parse(eventData["end_time"]),
+                displayName: (eventData["display_name"] ?? "test").toString(),
                 team: teamMembers,
-                notes: asStringList(data["notes"]),
-                role: EventRoleEnum.values.byName(data["role"]),
-                assignmentStatus: EventUserStatusEnum.values.byName(data["status"]),
+                notes: eventData["notes"],
+                location: eventData["location"],
+                role: firstAssignment != null
+                    ? EventRoleEnum.values.byName(firstAssignment["role"])
+                    : EventRoleEnum.values.first,
+                assignmentStatus: firstAssignment != null
+                    ? EventUserStatusEnum.values.byName(firstAssignment["status"])
+                    : EventUserStatusEnum.values.first,
               ),
             );
           }
 
           events = eventList;
-
         }
-      } catch (_) {
+      } catch (e) {
+        print("events loading error: $e");
         events = [];
-      }
+      };
+
+
 
       print(events);
 
@@ -327,7 +352,8 @@ class DatabaseService {
             endTime: DateTime.parse(eventData["end_time"]),
             displayName: eventData["display_name"] ?? "test",
             team: teamMembers,
-            notes: asStringList(eventData["notes"]),
+            location: eventData["location"],
+            notes: eventData["notes"],
             role: EventRoleEnum.values.byName(data["role"]),
             assignmentStatus: EventUserStatusEnum.values.byName(data["status"]),
           ));
@@ -347,6 +373,192 @@ class DatabaseService {
     }
   }
 
+  Future<Event> createEventWithTeam({
+    required BuildContext context,
+    required Event event,
+  }) async {
+    final fs = context.read<FlightSchoolProvider>().flightSchool;
+    if (fs == null) throw Exception("FlightSchool not set in provider");
+
+    final eventDoc = await _database.createDocument(
+      databaseId: fs.databaseId,
+      collectionId: fs.eventsCollectionId,
+      documentId: ID.unique(),
+      data: {
+        "identifier": event.identifier,
+        "display_name": event.displayName,
+        "status": event.status.name,
+        "start_time": event.startTime.toIso8601String(),
+        "end_time": event.endTime.toIso8601String(),
+        "notes": event.notes,
+        "location": event.location
+      },
+    );
+
+    final created = event.copyWith(
+      id: eventDoc.$id,
+      flightSchoolId: fs.id,
+    );
+
+    print(created.team);
+
+    for (final tm in created.team) {
+      await _database.createDocument(
+        databaseId: fs.databaseId,
+        collectionId: fs.teamAssignmentsEventsCollectionId,
+        documentId: ID.unique(),
+        data: {
+          "user_id": tm.isSlot ? "" : tm.userId,
+          "role": tm.role,
+          "status": tm.status,
+          "events": created.id,
+        },
+      );
+    }
+
+    return created;
+  }
+
+  Future<Event> updateEventWithTeam({
+    required BuildContext context,
+    required Event event,
+  }) async {
+    final fs = context.read<FlightSchoolProvider>().flightSchool;
+    if (fs == null) throw Exception("FlightSchool not set in provider");
+
+    if (event.id.trim().isEmpty) {
+      throw Exception("Event.id is empty – cannot update.");
+    }
+
+    await _database.updateDocument(
+      databaseId: fs.databaseId,
+      collectionId: fs.eventsCollectionId,
+      documentId: event.id,
+      data: {
+        "identifier": event.identifier,
+        "display_name": event.displayName,
+        "status": event.status.name,
+        "start_time": event.startTime.toIso8601String(),
+        "end_time": event.endTime.toIso8601String(),
+        "notes": event.notes,
+        "location": event.location,
+      },
+    );
+
+    final existing = await _database.listDocuments(
+      databaseId: fs.databaseId,
+      collectionId: fs.teamAssignmentsEventsCollectionId,
+      queries: [
+        Query.equal("events", [event.id]),
+        Query.limit(500),
+      ],
+    );
+
+    final Map<String, dynamic> existingByKey = {};
+    for (final doc in existing.documents) {
+      final data = doc.data;
+      final userId = (data["user_id"] ?? "").toString();
+      final key = userId.isEmpty ? "slot:${doc.$id}" : "user:$userId";
+
+      existingByKey[key] = {
+        "docId": doc.$id,
+        "user_id": userId,
+        "role": (data["role"] ?? "").toString(),
+        "status": (data["status"] ?? "").toString(),
+      };
+    }
+
+    final Map<String, TeamMember> newByKey = {};
+    int slotIndex = 0;
+    for (final tm in event.team) {
+      if (tm.isSlot) {
+        newByKey["slot:new:$slotIndex"] = tm;
+        slotIndex++;
+      } else {
+        newByKey["user:${tm.userId}"] = tm;
+      }
+    }
+
+
+    for (final entry in existingByKey.entries) {
+      final key = entry.key;
+      final docId = (entry.value["docId"] as String);
+
+      final isExistingSlot = key.startsWith("slot:");
+      final isExistingUser = key.startsWith("user:");
+
+      if (isExistingUser) {
+        if (!newByKey.containsKey(key)) {
+          await _database.deleteDocument(
+            databaseId: fs.databaseId,
+            collectionId: fs.teamAssignmentsEventsCollectionId,
+            documentId: docId,
+          );
+        }
+      } else if (isExistingSlot) {
+        await _database.deleteDocument(
+          databaseId: fs.databaseId,
+          collectionId: fs.teamAssignmentsEventsCollectionId,
+          documentId: docId,
+        );
+      }
+    }
+
+    for (final entry in newByKey.entries) {
+      final key = entry.key;
+      final tm = entry.value;
+
+      if (key.startsWith("slot:new:")) {
+        await _database.createDocument(
+          databaseId: fs.databaseId,
+          collectionId: fs.teamAssignmentsEventsCollectionId,
+          documentId: ID.unique(),
+          data: {
+            "user_id": "",
+            "role": tm.role,
+            "status": tm.status,
+            "events": event.id,
+          },
+        );
+        continue;
+      }
+
+      final existingEntry = existingByKey[key];
+      if (existingEntry == null) {
+        await _database.createDocument(
+          databaseId: fs.databaseId,
+          collectionId: fs.teamAssignmentsEventsCollectionId,
+          documentId: ID.unique(),
+          data: {
+            "user_id": tm.userId,
+            "role": tm.role,
+            "status": tm.status,
+            "events": event.id,
+          },
+        );
+      } else {
+        final docId = existingEntry["docId"] as String;
+        final oldRole = existingEntry["role"] as String;
+        final oldStatus = existingEntry["status"] as String;
+
+        if (oldRole != tm.role || oldStatus != tm.status) {
+          await _database.updateDocument(
+            databaseId: fs.databaseId,
+            collectionId: fs.teamAssignmentsEventsCollectionId,
+            documentId: docId,
+            data: {
+              "role": tm.role,
+              "status": tm.status,
+            },
+          );
+        }
+      }
+    }
+
+    return event;
+  }
+
+
 
   List<String> asStringList(dynamic value) {
     if (value == null) return <String>[];
@@ -354,6 +566,7 @@ class DatabaseService {
     if (value is String) return value.isEmpty ? <String>[] : <String>[value];
     return <String>[value.toString()];
   }
+
 
 
 }
