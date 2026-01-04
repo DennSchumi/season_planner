@@ -17,10 +17,7 @@ class ManagePersonalView extends StatefulWidget {
 class _ManagePersonalViewState extends State<ManagePersonalView> {
   final _searchCtrl = TextEditingController();
   String _search = "";
-
   bool _busy = false;
-
-  final Map<String, Set<EventRoleEnum>> _localRolesByUserId = {};
 
   @override
   void dispose() {
@@ -64,7 +61,6 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
                       ),
                     ),
                     const SizedBox(height: 12),
-
                     _MultiRolePicker(
                       value: selectedRoles,
                       onChanged: (newSet) => setLocal(() {
@@ -73,7 +69,6 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
                           ..addAll(newSet);
                       }),
                     ),
-
                     const SizedBox(height: 8),
                     const Align(
                       alignment: Alignment.centerLeft,
@@ -123,6 +118,9 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
       //   roles: selectedRoles.map((r) => r.name).toList(),
       // );
 
+      // TODO: Provider reload (damit neue Invites/Members angezeigt werden)
+      // await context.read<FlightSchoolProvider>().reloadFlightSchool();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -139,13 +137,10 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
     }
   }
 
-  // ---------------- Change Roles ----------------
+  // ---------------- Change Roles (direkt speichern) ----------------
   Future<void> _editRolesForUser(UserSummary user) async {
-    final current = _localRolesByUserId[user.id] ?? <EventRoleEnum>{};
-
-    final Set<EventRoleEnum> working = current.isEmpty
-        ? {EventRoleEnum.values.first}
-        : {...current};
+    final Set<EventRoleEnum> working =
+    user.roles.isEmpty ? {EventRoleEnum.values.first} : {...user.roles};
 
     final res = await showDialog<Set<EventRoleEnum>>(
       context: context,
@@ -190,17 +185,18 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
 
     if (res == null) return;
 
-    setState(() => _localRolesByUserId[user.id] = res);
-
     setState(() => _busy = true);
     try {
-      // TODO: Backend Update
+      // TODO: Backend Update – Membership roles updaten
       // final db = DatabaseService();
       // await db.updateMembershipRoles(
       //   context: context,
       //   userId: user.id,
       //   roles: res.map((r) => r.name).toList(),
       // );
+
+      // TODO: Provider reload – damit UI die echten Rollen aus Backend zeigt
+      // await context.read<FlightSchoolProvider>().reloadFlightSchool();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Roles updated: ${res.map((e) => e.label).join(", ")}")),
@@ -214,7 +210,7 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
     }
   }
 
-  // Optional: Remove member
+  // ---------------- Remove member ----------------
   Future<void> _removeMember({required UserSummary user}) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -240,6 +236,9 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
       // final db = DatabaseService();
       // await db.removeMemberFromFlightSchool(context: context, userId: user.id);
 
+      // TODO: Provider reload
+      // await context.read<FlightSchoolProvider>().reloadFlightSchool();
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Member removed.")),
       );
@@ -256,7 +255,6 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
   @override
   Widget build(BuildContext context) {
     final fs = context.watch<FlightSchoolProvider>().flightSchool;
-
 
     if (fs == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -309,7 +307,7 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final m = members[index];
-                  final roles = _localRolesByUserId[m.id] ?? <EventRoleEnum>{};
+                  final roles = m.roles.toSet();
 
                   return Card(
                     elevation: 1,
@@ -352,13 +350,10 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
                             ],
                           ),
                           const SizedBox(height: 10),
-
                           if (m.phone.isNotEmpty)
                             Text("Phone: ${m.phone}",
                                 style: const TextStyle(color: Colors.black54)),
-
                           const SizedBox(height: 10),
-
                           Row(
                             children: [
                               Expanded(
@@ -366,14 +361,8 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
                                   spacing: 8,
                                   runSpacing: 6,
                                   children: roles.isEmpty
-                                      ? [
-                                    const Chip(
-                                      label: Text("No roles set"),
-                                    )
-                                  ]
-                                      : roles
-                                      .map((r) => Chip(label: Text(r.label)))
-                                      .toList(),
+                                      ? const [Chip(label: Text("No roles set"))]
+                                      : roles.map((r) => Chip(label: Text(r.label))).toList(),
                                 ),
                               ),
                               const SizedBox(width: 8),
