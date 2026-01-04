@@ -41,6 +41,8 @@ class _EventUpsertViewState extends State<EventUpsertView> {
 
   late List<TeamMember> _team;
 
+  late final Set<String> _persistedTeamKeys;
+
   bool _saving = false;
   bool get isEdit => widget.initialEvent != null;
 
@@ -59,6 +61,8 @@ class _EventUpsertViewState extends State<EventUpsertView> {
     _status = e?.status ?? EventStatusEnum.values.first;
 
     _team = List<TeamMember>.from(e?.team ?? const <TeamMember>[]);
+
+    _persistedTeamKeys = _team.map(_teamKey).toSet();
   }
 
   @override
@@ -71,6 +75,13 @@ class _EventUpsertViewState extends State<EventUpsertView> {
   }
 
   // ----------------- helpers -----------------
+
+  String _teamKey(TeamMember tm) => "${tm.userId}|${tm.role}|${tm.status}";
+
+  bool _isPersisted(TeamMember tm) {
+    return _persistedTeamKeys.contains(_teamKey(tm));
+  }
+
   EventUserStatusEnum _statusOf(TeamMember tm) {
     try {
       return EventUserStatusEnum.values.byName(tm.status);
@@ -87,28 +98,29 @@ class _EventUpsertViewState extends State<EventUpsertView> {
       s == EventUserStatusEnum.aceppted_flight_school ||
           s == EventUserStatusEnum.accepted_user;
 
-  bool _isPendingFs(EventUserStatusEnum s) =>
-      s == EventUserStatusEnum.pending_flight_school;
-  bool _isPendingUser(EventUserStatusEnum s) =>
-      s == EventUserStatusEnum.pending_user;
+  bool _isPendingFs(EventUserStatusEnum s) => s == EventUserStatusEnum.pending_flight_school;
+  bool _isPendingUser(EventUserStatusEnum s) => s == EventUserStatusEnum.pending_user;
   bool _isOpen(EventUserStatusEnum s) => s == EventUserStatusEnum.open;
+
+  bool _isOpenSlot(TeamMember tm) {
+    return tm.userId.isEmpty || tm.userId.startsWith("slot_");
+  }
 
   String _resolveName(TeamMember tm, List<UserSummary> members) {
     if (tm.name.trim().isNotEmpty) return tm.name.trim();
-    if (tm.isSlot) return "Open Opportunity";
+    if (_isOpenSlot(tm)) return "Open Opportunity";
 
     final hit = members.where((m) => m.id == tm.userId).toList();
-    if (hit.isNotEmpty && hit.first.name.trim().isNotEmpty) {
-      return hit.first.name.trim();
-    }
-    return "User not yet Set";
+    if (hit.isNotEmpty && hit.first.name.trim().isNotEmpty) return hit.first.name.trim();
+
+    return "Member";
   }
 
   void _removeTeamMember(int index) => setState(() => _team.removeAt(index));
-  void _updateTeamMember(int index, TeamMember updated) =>
-      setState(() => _team[index] = updated);
+  void _updateTeamMember(int index, TeamMember updated) => setState(() => _team[index] = updated);
 
   // ----------------- discard -----------------
+
   Future<void> _confirmDiscard() async {
     final discard = await showDialog<bool>(
       context: context,
@@ -117,10 +129,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
           title: const Text("Discard changes?"),
           content: const Text("All unsaved changes will be lost."),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("Cancel"),
-            ),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () => Navigator.pop(ctx, true),
@@ -135,6 +144,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
   }
 
   // ----------------- date/time -----------------
+
   Future<DateTime?> _pickDateTime(DateTime initial) async {
     final date = await showDatePicker(
       context: context,
@@ -169,6 +179,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
   }
 
   // ----------------- team add dialog -----------------
+
   Future<void> _addTeamMemberDialog() async {
     final fs = context.read<FlightSchoolProvider>().flightSchool;
     if (fs == null) {
@@ -180,20 +191,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
 
     final members = fs.members;
 
-    UserSummary? selected = members.isNotEmpty
-        ? members.firstWhere(
-          (m) => !_team.any((t) => t.userId == m.id),
-      orElse: () => members.first,
-    )
-        : null;
-
-    // Default: allow Open Opportunity as "none"
-    if (members.isNotEmpty) {
-      // keep selected as first free member
-    } else {
-      selected = null;
-    }
-
+    UserSummary? selected = null; // default: Open Opportunity
     EventRoleEnum role = EventRoleEnum.values.first;
 
     final result = await showDialog<TeamMember>(
@@ -201,6 +199,11 @@ class _EventUpsertViewState extends State<EventUpsertView> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setLocal) {
+            final availableMembers = members.where((m) {
+              final alreadyInTeam = _team.any((t) => t.userId == m.id);
+              return !alreadyInTeam;
+            }).toList();
+
             return AlertDialog(
               title: const Text("Add Team Entry"),
               content: SingleChildScrollView(
@@ -208,7 +211,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<UserSummary?>(
-                      initialValue: selected,
+                      value: selected, // null = Open Opportunity
                       decoration: const InputDecoration(
                         labelText: "Member (optional)",
                         border: OutlineInputBorder(),
@@ -218,31 +221,24 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                           value: null,
                           child: Text("Open Opportunity (no member)"),
                         ),
-                        ...members.map((m) {
-                          final alreadyInTeam = _team.any((t) => t.userId == m.id);
-                          return DropdownMenuItem<UserSummary?>(
+                        ...availableMembers.map(
+                              (m) => DropdownMenuItem<UserSummary?>(
                             value: m,
-                            enabled: !alreadyInTeam,
-                            child: Text(
-                              alreadyInTeam ? "${m.name} (already in team)" : m.name,
-                            ),
-                          );
-                        }),
+                            child: Text(m.name),
+                          ),
+                        ),
                       ],
                       onChanged: (v) => setLocal(() => selected = v),
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<EventRoleEnum>(
-                      initialValue: role,
+                      value: role,
                       decoration: const InputDecoration(
                         labelText: "Role",
                         border: OutlineInputBorder(),
                       ),
                       items: EventRoleEnum.values
-                          .map((r) => DropdownMenuItem(
-                        value: r,
-                        child: Text(r.label),
-                      ))
+                          .map((r) => DropdownMenuItem(value: r, child: Text(r.label)))
                           .toList(),
                       onChanged: (v) => setLocal(() => role = v ?? role),
                     ),
@@ -250,16 +246,11 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text("Cancel"),
-                ),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
                 ElevatedButton(
                   onPressed: () {
-                    // ✅ If no user selected => Open Opportunity slot
                     if (selected == null) {
-                      final slotId =
-                          "slot_${DateTime.now().microsecondsSinceEpoch}";
+                      final slotId = "slot_${DateTime.now().microsecondsSinceEpoch}";
                       Navigator.pop(
                         ctx,
                         TeamMember(
@@ -293,7 +284,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
 
     if (result == null) return;
 
-    if (!result.isSlot && _team.any((t) => t.userId == result.userId)) {
+    if (!result.userId.startsWith("slot_") && _team.any((t) => t.userId == result.userId)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Member already in team.")),
       );
@@ -314,32 +305,40 @@ class _EventUpsertViewState extends State<EventUpsertView> {
   }
 
   // ----------------- team edit popup -----------------
+
   Future<void> _openTeamEditDialog({
     required int index,
     required TeamMember tm,
     required List<UserSummary> members,
   }) async {
     final currentStatus = _statusOf(tm);
+    final persisted = _isPersisted(tm);
 
-    if (_isDenied(currentStatus)) return;
+    if (_isDenied(currentStatus) && persisted) return;
+
 
     final open = _isOpen(currentStatus);
+
     final pendingFs = _isPendingFs(currentStatus);
     final pendingUser = _isPendingUser(currentStatus);
     final accepted = _isAccepted(currentStatus);
 
-    // Rules:
-    // - open: member optional (null => stay open/slot, selected => pending_user + real member), role editable
-    // - pending_flight_school: can accept, no member change
-    // - pending_user: role editable, no member change
-    // - accepted_*: role editable, no member change (unless you later allow "edit mode")
-    final canPickMember = open;
-    final canChangeRole = open || pendingUser || accepted;
+    // Member ändern:
+    // - erlaubt wenn "open" ODER "nicht persisted" (also local, noch nicht gespeichert)
+    final canPickMember = open || !persisted;
+
+    // Rolle ändern:
+    // - in deinen Regeln: open/pending_user/accepted
+    // - und natürlich auch local
+    final canChangeRole = open || pendingUser || accepted || !persisted;
+
+    // Accept für pending_flight_school:
     final canAcceptPendingFs = pendingFs;
 
     EventRoleEnum role = EventRoleEnum.values.byName(tm.role);
 
-    UserSummary? selectedUser = tm.isSlot
+    // null => Open Opportunity
+    UserSummary? selectedUser = _isOpenSlot(tm)
         ? null
         : members.where((m) => m.id == tm.userId).isNotEmpty
         ? members.firstWhere((m) => m.id == tm.userId)
@@ -350,13 +349,18 @@ class _EventUpsertViewState extends State<EventUpsertView> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setLocal) {
+            final availableMembers = members.where((m) {
+              final alreadyInTeam = _team.any((t) => t.userId == m.id);
+              final isCurrentlySelected = selectedUser?.id == m.id;
+              return !alreadyInTeam || isCurrentlySelected;
+            }).toList();
+
             return AlertDialog(
               title: Text(_resolveName(tm, members)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // accept button for pending_flight_school
                     if (canAcceptPendingFs)
                       SizedBox(
                         width: double.infinity,
@@ -364,10 +368,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                           onPressed: () {
                             Navigator.pop(
                               ctx,
-                              tm.copyWith(
-                                status: EventUserStatusEnum
-                                    .aceppted_flight_school.name,
-                              ),
+                              tm.copyWith(status: EventUserStatusEnum.aceppted_flight_school.name),
                             );
                           },
                           icon: const Icon(Icons.check),
@@ -376,12 +377,11 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                       ),
                     if (canAcceptPendingFs) const SizedBox(height: 12),
 
-                    // open: optional member selection (incl. None)
                     if (canPickMember) ...[
                       DropdownButtonFormField<UserSummary?>(
-                        initialValue: selectedUser,
+                        value: selectedUser, // null = Open Opportunity
                         decoration: const InputDecoration(
-                          labelText: "Member (optional)",
+                          labelText: "Member",
                           border: OutlineInputBorder(),
                         ),
                         items: [
@@ -389,19 +389,12 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                             value: null,
                             child: Text("Open Opportunity (no member)"),
                           ),
-                          ...members.map((m) {
-                            final alreadyInTeam =
-                            _team.any((t) => t.userId == m.id);
-                            final enabled = !alreadyInTeam ||
-                                (selectedUser?.id == m.id);
-                            return DropdownMenuItem<UserSummary?>(
+                          ...availableMembers.map(
+                                (m) => DropdownMenuItem<UserSummary?>(
                               value: m,
-                              enabled: enabled,
-                              child: Text(
-                                !enabled ? "${m.name} (already in team)" : m.name,
-                              ),
-                            );
-                          }),
+                              child: Text(m.name),
+                            ),
+                          ),
                         ],
                         onChanged: (v) => setLocal(() => selectedUser = v),
                       ),
@@ -409,23 +402,16 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                     ],
 
                     DropdownButtonFormField<EventRoleEnum>(
-                      initialValue: role,
+                      value: role,
                       decoration: InputDecoration(
                         labelText: "Role",
                         border: const OutlineInputBorder(),
-                        helperText: canChangeRole
-                            ? null
-                            : "Role cannot be changed in this status.",
+                        helperText: canChangeRole ? null : "Role cannot be changed in this status.",
                       ),
                       items: EventRoleEnum.values
-                          .map((r) => DropdownMenuItem(
-                        value: r,
-                        child: Text(r.label),
-                      ))
+                          .map((r) => DropdownMenuItem(value: r, child: Text(r.label)))
                           .toList(),
-                      onChanged: canChangeRole
-                          ? (v) => setLocal(() => role = v ?? role)
-                          : null,
+                      onChanged: canChangeRole ? (v) => setLocal(() => role = v ?? role) : null,
                     ),
 
                     if (pendingUser)
@@ -433,8 +419,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                         padding: EdgeInsets.only(top: 10),
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text("Waiting for user response…",
-                              style: TextStyle(fontSize: 12)),
+                          child: Text("Waiting for user response…", style: TextStyle(fontSize: 12)),
                         ),
                       ),
                     if (pendingFs)
@@ -442,51 +427,45 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                         padding: EdgeInsets.only(top: 10),
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text("Waiting for flight school…",
-                              style: TextStyle(fontSize: 12)),
+                          child: Text("Waiting for flight school…", style: TextStyle(fontSize: 12)),
                         ),
                       ),
                   ],
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, null),
-                  child: const Text("Close"),
-                ),
+                TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text("Close")),
                 ElevatedButton(
                   onPressed: () {
-                    if (open) {
-                      if (selectedUser == null) {
-                        Navigator.pop(
-                          ctx,
-                          tm.copyWith(
-                            role: role.name,
-                            status: EventUserStatusEnum.open.name,
-                            // keep slot userId
-                          ),
-                        );
-                        return;
-                      }
+                    if (selectedUser == null) {
+                      // Open Opportunity behalten/setzen
+                      // Wenn tm bereits slot_ hat, behalten. Wenn tm real ist → zu slot machen.
+                      final newSlotId = _isOpenSlot(tm)
+                          ? tm.userId
+                          : "slot_${DateTime.now().microsecondsSinceEpoch}";
 
                       Navigator.pop(
                         ctx,
                         tm.copyWith(
-                          userId: selectedUser!.id,
-                          name: selectedUser!.name,
+                          userId: newSlotId,
+                          name: "Open Opportunity",
+                          status: EventUserStatusEnum.open.name,
                           role: role.name,
-                          status: EventUserStatusEnum.pending_user.name,
                         ),
                       );
                       return;
                     }
 
-                    if (pendingUser || accepted) {
-                      Navigator.pop(ctx, tm.copyWith(role: role.name));
-                      return;
-                    }
-
-                    Navigator.pop(ctx, null);
+                    // User gewählt: solange nicht gespeichert oder open → pending_user
+                    Navigator.pop(
+                      ctx,
+                      tm.copyWith(
+                        userId: selectedUser!.id,
+                        name: selectedUser!.name,
+                        status: EventUserStatusEnum.pending_user.name,
+                        role: role.name,
+                      ),
+                    );
                   },
                   child: const Text("Apply"),
                 ),
@@ -501,6 +480,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
   }
 
   // ----------------- submit -----------------
+
   Future<void> _submit() async {
     if (_saving) return;
 
@@ -524,18 +504,19 @@ class _EventUpsertViewState extends State<EventUpsertView> {
       return;
     }
 
-    // invariant: open must be slot, everything else must be real member
+
     for (final tm in _team) {
       final s = _statusOf(tm);
+
       if (s == EventUserStatusEnum.open) {
-        if (!tm.isSlot) {
+        if (!_isOpenSlot(tm)) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Open must be a slot (no real member).")),
+            const SnackBar(content: Text("Open Opportunity must have no real member.")),
           );
           return;
         }
       } else {
-        if (tm.isSlot) {
+        if (_isOpenSlot(tm)) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("This status requires a real member.")),
           );
@@ -589,6 +570,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
   }
 
   // ----------------- UI -----------------
+
   @override
   Widget build(BuildContext context) {
     final fs = context.watch<FlightSchoolProvider>().flightSchool;
@@ -610,11 +592,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
           TextButton(
             onPressed: _saving ? null : _submit,
             child: _saving
-                ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Text("Save"),
           ),
         ],
@@ -627,23 +605,14 @@ class _EventUpsertViewState extends State<EventUpsertView> {
             children: [
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: "Event Name",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                (v == null || v.trim().isEmpty) ? "Please enter a name." : null,
+                decoration: const InputDecoration(labelText: "Event Name", border: OutlineInputBorder()),
+                validator: (v) => (v == null || v.trim().isEmpty) ? "Please enter a name." : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _identifierCtrl,
-                decoration: const InputDecoration(
-                  labelText: "Identifier",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? "Please enter an identifier."
-                    : null,
+                decoration: const InputDecoration(labelText: "Identifier", border: OutlineInputBorder()),
+                validator: (v) => (v == null || v.trim().isEmpty) ? "Please enter an identifier." : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -653,23 +622,13 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                   border: OutlineInputBorder(),
                   hintText: "e.g. Kössen – Unterberg",
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? "Please enter a location."
-                    : null,
+                validator: (v) => (v == null || v.trim().isEmpty) ? "Please enter a location." : null,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<EventStatusEnum>(
-                initialValue: _status,
-                decoration: const InputDecoration(
-                  labelText: "Status",
-                  border: OutlineInputBorder(),
-                ),
-                items: EventStatusEnum.values
-                    .map((s) => DropdownMenuItem(
-                  value: s,
-                  child: Text(s.label),
-                ))
-                    .toList(),
+                value: _status,
+                decoration: const InputDecoration(labelText: "Status", border: OutlineInputBorder()),
+                items: EventStatusEnum.values.map((s) => DropdownMenuItem(value: s, child: Text(s.label))).toList(),
                 onChanged: (v) => setState(() => _status = v ?? _status),
               ),
               const SizedBox(height: 12),
@@ -692,12 +651,11 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 16),
-              const Text(
-                "Team",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
+              const Text("Team", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
+
               if (_team.isEmpty)
                 const Text("No team entries yet.")
               else
@@ -707,10 +665,15 @@ class _EventUpsertViewState extends State<EventUpsertView> {
 
                   final s = _statusOf(tm);
                   final denied = _isDenied(s);
+
+                  final persisted = _isPersisted(tm);
                   final displayName = _resolveName(tm, fs.members);
 
+                  // ✅ Remove nur sperren wenn persisted + bestimmte Status
+                  final removeLocked = persisted && (denied || _isPendingFs(s) || _isPendingUser(s));
+
                   return Opacity(
-                    opacity: denied ? 0.5 : 1.0,
+                    opacity: (denied && persisted) ? 0.5 : 1.0,
                     child: Card(
                       elevation: 1,
                       child: ListTile(
@@ -724,7 +687,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                           children: [
                             IconButton(
                               tooltip: "Edit",
-                              onPressed: denied
+                              onPressed: (denied && persisted)
                                   ? null
                                   : () => _openTeamEditDialog(
                                 index: index,
@@ -735,14 +698,12 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                             ),
                             IconButton(
                               tooltip: "Remove",
-                              onPressed: denied || _isPendingFs(s) || _isPendingUser(s)
-                                  ? null
-                                  : () => _removeTeamMember(index),
+                              onPressed: removeLocked ? null : () => _removeTeamMember(index),
                               icon: const Icon(Icons.delete_outline),
                             ),
                           ],
                         ),
-                        onTap: denied
+                        onTap: (denied && persisted)
                             ? null
                             : () => _openTeamEditDialog(
                           index: index,
@@ -753,12 +714,14 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                     ),
                   );
                 }),
+
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _addTeamMemberDialog,
                 icon: const Icon(Icons.person_add),
                 label: const Text("Add Team Entry"),
               ),
+
               const SizedBox(height: 16),
               TextFormField(
                 controller: _notesCtrl,
@@ -771,6 +734,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                   hintText: "Max. 250 characters",
                 ),
               ),
+
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _saving ? null : _submit,
