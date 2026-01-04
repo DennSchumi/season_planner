@@ -155,7 +155,6 @@ class DatabaseService {
           flightSchoolId: id,
         );
 
-
         if (result is List) {
           members = result.map((m) {
             final mm = (m is Map) ? m : <String, dynamic>{};
@@ -165,6 +164,9 @@ class DatabaseService {
               name: (mm["name"] ?? "").toString(),
               mail: (mm["email"] ?? "").toString(),
               phone: (mm["phone"] ?? "").toString(),
+              roles:UserSummary.parseRoles(
+            mm["membership"]?["roles"],
+            ),
             );
           }).toList();
         } else {
@@ -174,7 +176,6 @@ class DatabaseService {
         members = [];
         debugPrint("getMembersWithAuth failed: $e");
       }
-
 
 
       List<Event> events = [];
