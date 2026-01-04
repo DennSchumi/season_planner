@@ -6,6 +6,7 @@ class UserSummary {
   final String mail;
   final String phone;
   final List<EventRoleEnum> roles;
+  final String membershipId;
 
   UserSummary({
     required this.id,
@@ -13,6 +14,7 @@ class UserSummary {
     required this.mail,
     required this.phone,
     required this.roles,
+    required this.membershipId
   });
 
   factory UserSummary.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class UserSummary {
       name: (json['name'] ?? '').toString(),
       mail: (json['mail'] ?? json['email'] ?? '').toString(),
       phone: (json['phone'] ?? '').toString(),
+      membershipId: (json['membershipId'] ?? '').toString(),
       roles: parseRoles(rawRoles),
     );
   }
@@ -32,6 +35,7 @@ class UserSummary {
     'name': name,
     'mail': mail,
     'phone': phone,
+    'membershipId':membershipId,
     'roles': roles.map((r) => r.name).toList(),
   };
 

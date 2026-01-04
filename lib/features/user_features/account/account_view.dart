@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:season_planer/features/base_admin_view.dart';
 import 'package:season_planer/services/auth_service.dart';
 
-import '../../../services/user_provider.dart';
+import '../../../services/providers/user_provider.dart';
 
 class AccountView extends StatefulWidget {
   const AccountView({super.key});

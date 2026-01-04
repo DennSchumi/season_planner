@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_role_enum.dart';
-import 'package:season_planer/services/flight_school_provider.dart';
+import 'package:season_planer/services/flight_school_service.dart';
+import 'package:season_planer/services/providers/flight_school_provider.dart';
 import 'package:season_planer/data/models/admin_models/user_summary_flight_school_view.dart';
-
-// TODO: später deinen DatabaseService importieren
-// import 'package:season_planer/services/database_service.dart';
 
 class ManagePersonalView extends StatefulWidget {
   const ManagePersonalView({super.key});
@@ -36,10 +34,15 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
     }).toList();
   }
 
+  String _rolesLabel(Set<EventRoleEnum> roles) {
+    if (roles.isEmpty) return "no role selected";
+    return roles.map((e) => e.label).join(", ");
+  }
+
   // ---------------- Invite Dialog ----------------
   Future<void> _openInviteDialog() async {
     final emailCtrl = TextEditingController();
-    final Set<EventRoleEnum> selectedRoles = {EventRoleEnum.values.first};
+    final Set<EventRoleEnum> selectedRoles = {}; // ✅ leer starten
 
     final ok = await showDialog<bool>(
       context: context,
@@ -108,23 +111,23 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
       return;
     }
 
+    final fs = context.read<FlightSchoolProvider>().flightSchool;
+    if (fs == null) return;
+
     setState(() => _busy = true);
     try {
-      // TODO: Backend Call
-      // final db = DatabaseService();
-      // await db.inviteUserToFlightSchool(
-      //   context: context,
-      //   email: email,
-      //   roles: selectedRoles.map((r) => r.name).toList(),
-      // );
+      await FlightSchoolService().inviteMember(
+        flightSchoolId: fs.id,
+        email: email,
+        //roles: selectedRoles.map((e) => e.name).toList(),
+      );
 
-      // TODO: Provider reload (damit neue Invites/Members angezeigt werden)
-      // await context.read<FlightSchoolProvider>().reloadFlightSchool();
+      //await context.read<FlightSchoolProvider>().reloadFlightSchool();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Invitation sent to $email (roles: ${selectedRoles.map((e) => e.label).join(", ")}).",
+            "Invitation sent to $email (roles: ${_rolesLabel(selectedRoles)}).",
           ),
         ),
       );
@@ -139,8 +142,8 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
 
   // ---------------- Change Roles (direkt speichern) ----------------
   Future<void> _editRolesForUser(UserSummary user) async {
-    final Set<EventRoleEnum> working =
-    user.roles.isEmpty ? {EventRoleEnum.values.first} : {...user.roles};
+    // ✅ wenn user.roles leer -> working bleibt leer
+    final Set<EventRoleEnum> working = {...user.roles};
 
     final res = await showDialog<Set<EventRoleEnum>>(
       context: context,
@@ -165,15 +168,7 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
                   child: const Text("Cancel"),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    if (working.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Please select at least one role.")),
-                      );
-                      return;
-                    }
-                    Navigator.pop(ctx, working);
-                  },
+                  onPressed: () => Navigator.pop(ctx, working),
                   child: const Text("Save"),
                 ),
               ],
@@ -185,21 +180,25 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
 
     if (res == null) return;
 
+    // ⚠️ du brauchst membershipId zum speichern
+    if (user.membershipId == null || user.membershipId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Missing membershipId for this user.")),
+      );
+      return;
+    }
+
     setState(() => _busy = true);
     try {
-      // TODO: Backend Update – Membership roles updaten
-      // final db = DatabaseService();
-      // await db.updateMembershipRoles(
-      //   context: context,
-      //   userId: user.id,
-      //   roles: res.map((r) => r.name).toList(),
-      // );
+      await FlightSchoolService().updateRolesInMemberOfFlightSchool(
+        user.membershipId!,
+        res.map((r) => r.name).toList(),
+      );
 
-      // TODO: Provider reload – damit UI die echten Rollen aus Backend zeigt
-      // await context.read<FlightSchoolProvider>().reloadFlightSchool();
+      //await context.read<FlightSchoolProvider>().reloadFlightSchool();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Roles updated: ${res.map((e) => e.label).join(", ")}")),
+        SnackBar(content: Text("Roles updated: ${_rolesLabel(res)}")),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -218,7 +217,10 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
         title: const Text("Remove member?"),
         content: Text("Remove ${user.name.isEmpty ? user.mail : user.name}?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
@@ -230,14 +232,18 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
 
     if (ok != true) return;
 
+    if (user.membershipId == null || user.membershipId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Missing membershipId for this user.")),
+      );
+      return;
+    }
+
     setState(() => _busy = true);
     try {
-      // TODO: Backend call
-      // final db = DatabaseService();
-      // await db.removeMemberFromFlightSchool(context: context, userId: user.id);
+      await FlightSchoolService().removeMemberOfFlightSchool(user.membershipId!);
 
-      // TODO: Provider reload
-      // await context.read<FlightSchoolProvider>().reloadFlightSchool();
+      //await context.read<FlightSchoolProvider>().reloadFlightSchool();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Member removed.")),

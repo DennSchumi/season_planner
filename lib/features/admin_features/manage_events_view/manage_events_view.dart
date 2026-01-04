@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_status_enum.dart';
-import 'package:season_planer/services/flight_school_provider.dart';
+import 'package:season_planer/services/providers/flight_school_provider.dart';
 import 'package:season_planer/data/models/event_model.dart';
 
 import '../../../services/database_service.dart';

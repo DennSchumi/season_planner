@@ -5,8 +5,8 @@ import 'package:season_planer/features/admin_features/manage_flight_school_view/
 import 'package:season_planer/features/admin_features/manage_personal/manage_personal_view.dart';
 import '../../../data/models/user_models/user_model_userView.dart';
 import '../../../services/database_service.dart';
-import '../../../services/flight_school_provider.dart';
-import '../../../services/user_provider.dart';
+import '../../../services/providers/flight_school_provider.dart';
+import '../../../services/providers/user_provider.dart';
 
 class MainAdminScaffoldView extends StatefulWidget{
    int? selected_index;

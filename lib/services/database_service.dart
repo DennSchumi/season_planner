@@ -12,7 +12,7 @@ import '../core/appwrite_config.dart';
 import '../data/enums/event_status_enum.dart';
 import '../data/models/admin_models/flight_school_model_flight_school_view.dart';
 import '../data/models/admin_models/user_summary_flight_school_view.dart';
-import 'flight_school_provider.dart';
+import 'providers/flight_school_provider.dart';
 import 'functions/flight_school_functions.dart';
 
 class DatabaseService {
@@ -158,12 +158,12 @@ class DatabaseService {
         if (result is List) {
           members = result.map((m) {
             final mm = (m is Map) ? m : <String, dynamic>{};
-
             return UserSummary(
               id: (mm["userId"] ?? "").toString(),
               name: (mm["name"] ?? "").toString(),
               mail: (mm["email"] ?? "").toString(),
               phone: (mm["phone"] ?? "").toString(),
+              membershipId: (mm["membership"]["id"]).toString(),
               roles:UserSummary.parseRoles(
             mm["membership"]?["roles"],
             ),
@@ -176,7 +176,6 @@ class DatabaseService {
         members = [];
         debugPrint("getMembersWithAuth failed: $e");
       }
-
 
       List<Event> events = [];
       try {
@@ -273,7 +272,7 @@ class DatabaseService {
       final userDocument = await _database.listDocuments(
         databaseId: AppwriteConfig().mainDatabaseId,
         collectionId: AppwriteConfig().usersCollectionID,
-        queries: [Query.equal("id", userID)],
+        queries: [Query.equal("\$id", userID)],
       );
 
       if (userDocument.documents.isEmpty) return null;

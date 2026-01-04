@@ -4,7 +4,7 @@ import 'package:season_planer/data/models/event_model.dart';
 import 'package:season_planer/data/enums/event_status_enum.dart';
 import 'package:season_planer/data/enums/event_role_enum.dart';
 import 'package:season_planer/data/enums/event_user_status_enum.dart';
-import 'package:season_planer/services/flight_school_provider.dart';
+import 'package:season_planer/services/providers/flight_school_provider.dart';
 import 'package:season_planer/data/models/admin_models/user_summary_flight_school_view.dart';
 
 class EventUpsertView extends StatefulWidget {

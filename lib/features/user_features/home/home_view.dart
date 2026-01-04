@@ -6,7 +6,7 @@ import 'package:season_planer/features/user_features/home/widgets/flight_school_
 import 'package:season_planer/features/user_features/home/widgets/open_opportunities_widget.dart';
 import 'package:season_planer/features/user_features/home/widgets/your_events_widget.dart';
 import 'package:season_planer/services/database_service.dart';
-import 'package:season_planer/services/user_provider.dart';
+import 'package:season_planer/services/providers/user_provider.dart';
 
 import '../../../data/models/event_model.dart';
 

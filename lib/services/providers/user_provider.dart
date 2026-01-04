@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../data/models/event_model.dart';
-import '../data/models/user_models/user_model_userView.dart';
+import '../../data/models/event_model.dart';
+import '../../data/models/user_models/user_model_userView.dart';
 
 class UserProvider with ChangeNotifier {
   UserModelUserView? _user;

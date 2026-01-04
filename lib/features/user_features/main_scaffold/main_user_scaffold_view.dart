@@ -5,7 +5,7 @@ import 'package:season_planer/features/user_features/current_event/current_event
 
 import '../../../data/models/user_models/user_model_userView.dart';
 import '../../../services/database_service.dart';
-import '../../../services/user_provider.dart';
+import '../../../services/providers/user_provider.dart';
 import '../account/account_view.dart';
 import '../calender/calender_view.dart';
 import '../home/home_view.dart';

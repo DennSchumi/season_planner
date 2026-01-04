@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_user_status_enum.dart';
 import 'package:season_planer/data/models/event_model.dart';
 import 'package:season_planer/services/database_service.dart';
-import 'package:season_planer/services/user_provider.dart';
+import 'package:season_planer/services/providers/user_provider.dart';
 
 import '../../../../data/models/user_models/user_model_userView.dart';
 
