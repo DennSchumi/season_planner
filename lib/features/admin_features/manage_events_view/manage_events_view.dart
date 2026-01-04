@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_status_enum.dart';
+import 'package:season_planer/services/flight_school_service.dart';
 import 'package:season_planer/services/providers/flight_school_provider.dart';
 import 'package:season_planer/data/models/event_model.dart';
 
@@ -15,6 +16,7 @@ class ManageEventsView extends StatefulWidget {
 }
 
 class _ManageEventsViewState extends State<ManageEventsView> {
+  final _flightSchoolService = FlightSchoolService();
   final TextEditingController _searchCtrl = TextEditingController();
 
   String _search = "";
@@ -23,7 +25,6 @@ class _ManageEventsViewState extends State<ManageEventsView> {
 
   DateTimeRange? _dateRange;
 
-  // ✅ NEU: Vergangene Events anzeigen?
   bool _showPastEvents = false;
 
   @override
@@ -245,6 +246,9 @@ class _ManageEventsViewState extends State<ManageEventsView> {
                                     context: context,
                                     event: updated,
                                   );
+                                  context.read<FlightSchoolProvider>().reloadFlightSchoolInBackground(
+                                    _flightSchoolService.getFlightSchool,
+                                  );
 
                                 },
                               ),
@@ -274,6 +278,9 @@ class _ManageEventsViewState extends State<ManageEventsView> {
                   await db.createEventWithTeam(
                     context: context,
                     event: event,
+                  );
+                  context.read<FlightSchoolProvider>().reloadFlightSchoolInBackground(
+                    _flightSchoolService.getFlightSchool,
                   );
                 },
               ),
