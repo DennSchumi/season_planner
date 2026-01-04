@@ -43,7 +43,7 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
   // ---------------- Invite Dialog ----------------
   Future<void> _openInviteDialog() async {
     final emailCtrl = TextEditingController();
-    final Set<EventRoleEnum> selectedRoles = {}; // ✅ leer starten
+    final Set<EventRoleEnum> selectedRoles = {};
 
     final ok = await showDialog<bool>(
       context: context,
@@ -64,21 +64,11 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    _MultiRolePicker(
-                      value: selectedRoles,
-                      onChanged: (newSet) =>
-                          setLocal(() {
-                            selectedRoles
-                              ..clear()
-                              ..addAll(newSet);
-                          }),
-                    ),
                     const SizedBox(height: 8),
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        "This will send an invitation e-mail.",
+                        "This will send an invitation to the User.",
                         style: TextStyle(fontSize: 12, color: Colors.black54),
                       ),
                     ),
@@ -278,13 +268,6 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Manage Personnel"),
-        actions: [
-          IconButton(
-            tooltip: "Invite user",
-            onPressed: _busy ? null : _openInviteDialog,
-            icon: const Icon(Icons.person_add_alt_1),
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(
@@ -326,68 +309,77 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
                     elevation: 1,
                     child: Padding(
                       padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child:Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Row(
-                            children: [
-                              const CircleAvatar(child: Icon(Icons.person)),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      m.name.isEmpty ? "Unnamed user" : m.name,
-                                      style: const TextStyle(fontWeight: FontWeight.w700),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      m.mail.isEmpty ? "—" : m.mail,
-                                      style: const TextStyle(color: Colors.black54),
-                                    ),
-                                  ],
+                          Expanded(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const CircleAvatar(child: Icon(Icons.person)),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        m.name.isEmpty ? "Unnamed user" : m.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontWeight: FontWeight.w700),
+                                      ),
+                                      if (m.mail.isNotEmpty)
+                                        Text(
+                                          "E-Mail: ${m.mail}",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(color: Colors.black54),
+                                        ),
+                                      if (m.phone.isNotEmpty)
+                                        Text(
+                                          "Phone: ${m.phone}",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(color: Colors.black54),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              PopupMenuButton<String>(
-                                tooltip: "Actions",
-                                onSelected: (value) {
-                                  if (value == "remove") _removeMember(user: m);
-                                  if (value == "roles") _editRolesForUser(m);
-                                },
-                                itemBuilder: (ctx) => const [
-                                  PopupMenuItem(value: "roles", child: Text("Edit roles")),
-                                  PopupMenuItem(value: "remove", child: Text("Remove")),
-                                ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 10),
-                          if (m.phone.isNotEmpty)
-                            Text("Phone: ${m.phone}",
-                                style: const TextStyle(color: Colors.black54)),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 6,
-                                  children: roles.isEmpty
-                                      ? const [Chip(label: Text("No roles set"))]
-                                      : roles.map((r) => Chip(label: Text(r.label))).toList(),
-                                ),
+
+                          const SizedBox(width: 10),
+
+                          Flexible(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Wrap(
+                                alignment: WrapAlignment.end,
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: roles.isEmpty
+                                    ? const [Chip(label: Text("No roles set"))]
+                                    : roles.map((r) => Chip(label: Text(r.label))).toList(),
                               ),
-                              const SizedBox(width: 8),
-                              OutlinedButton.icon(
-                                onPressed: _busy ? null : () => _editRolesForUser(m),
-                                icon: const Icon(Icons.edit),
-                                label: const Text("Edit"),
-                              ),
+                            ),
+                          ),
+
+                          PopupMenuButton<String>(
+                            tooltip: "Actions",
+                            onSelected: (value) {
+                              if (value == "remove") _removeMember(user: m);
+                              if (value == "roles") _editRolesForUser(m);
+                            },
+                            itemBuilder: (ctx) => const [
+                              PopupMenuItem(value: "roles", child: Text("Edit roles")),
+                              PopupMenuItem(value: "remove", child: Text("Remove")),
                             ],
                           ),
                         ],
-                      ),
+                      )
+
                     ),
                   );
                 },
