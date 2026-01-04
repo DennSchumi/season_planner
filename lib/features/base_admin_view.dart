@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:season_planer/data/models/admin_models/flight_school_model_flight_school_view.dart';
 import 'package:season_planer/features/admin_features/main_scaffold/main_admin_scaffold_view.dart';
 import 'package:season_planer/services/database_service.dart';
+import 'package:season_planer/services/flight_school_service.dart';
 import 'package:season_planer/services/providers/flight_school_provider.dart';
 import 'package:season_planer/services/providers/user_provider.dart';
 import '../data/models/user_models/flight_school_model_user_view.dart';
@@ -21,8 +22,7 @@ class _BaseAdminViewState extends State<BaseAdminView> {
     final flightSchoolProvider =
     Provider.of<FlightSchoolProvider>(context, listen: false);
 
-    final FlightSchoolModelFlightSchoolView? fs =
-    await DatabaseService().getFlightSchool(id);
+    final FlightSchoolModelFlightSchoolView? fs = await FlightSchoolService().getFlightSchool(id);
 
     if (!mounted) return;
 
