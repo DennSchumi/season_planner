@@ -143,6 +143,30 @@ class _EventUpsertViewState extends State<EventUpsertView> {
     if (discard == true && mounted) Navigator.pop(context);
   }
 
+  // ----------------- delete --------------------
+
+  Future<void> _confirmDelete() async { //not yet used
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text("Delete Event?"),
+          content: const Text("The Project will be Deleted completly. Are you shure you dont want to change the Status?"),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => {Navigator.pop(context)},
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (discard == true && mounted) Navigator.pop(context);
+  }
+
   // ----------------- date/time -----------------
 
   Future<DateTime?> _pickDateTime(DateTime initial) async {
@@ -588,14 +612,6 @@ class _EventUpsertViewState extends State<EventUpsertView> {
           tooltip: "Discard changes",
           onPressed: _saving ? null : _confirmDiscard,
         ),
-        actions: [
-          TextButton(
-            onPressed: _saving ? null : _submit,
-            child: _saving
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text("Save"),
-          ),
-        ],
       ),
       body: SafeArea(
         child: Form(
