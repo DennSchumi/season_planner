@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_role_enum.dart';
 import 'package:season_planer/services/flight_school_service.dart';
-import 'package:season_planer/services/providers/flight_school_provider.dart';
+import 'package:season_planer/services/providers/flight_school_provider.dart' hide FlightSchoolService;
 import 'package:season_planer/data/models/admin_models/user_summary_flight_school_view.dart';
 
 class ManagePersonalView extends StatefulWidget {
@@ -13,6 +13,7 @@ class ManagePersonalView extends StatefulWidget {
 }
 
 class _ManagePersonalViewState extends State<ManagePersonalView> {
+  final _flightSchoolService = FlightSchoolService();
   final _searchCtrl = TextEditingController();
   String _search = "";
   bool _busy = false;
@@ -66,11 +67,12 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
                     const SizedBox(height: 12),
                     _MultiRolePicker(
                       value: selectedRoles,
-                      onChanged: (newSet) => setLocal(() {
-                        selectedRoles
-                          ..clear()
-                          ..addAll(newSet);
-                      }),
+                      onChanged: (newSet) =>
+                          setLocal(() {
+                            selectedRoles
+                              ..clear()
+                              ..addAll(newSet);
+                          }),
                     ),
                     const SizedBox(height: 8),
                     const Align(
@@ -111,18 +113,21 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
       return;
     }
 
-    final fs = context.read<FlightSchoolProvider>().flightSchool;
+    final fs = context
+        .read<FlightSchoolProvider>()
+        .flightSchool;
     if (fs == null) return;
 
     setState(() => _busy = true);
     try {
-      await FlightSchoolService().inviteMember(
+      await _flightSchoolService.inviteMember(
         flightSchoolId: fs.id,
         email: email,
-        //roles: selectedRoles.map((e) => e.name).toList(),
       );
 
-      //await context.read<FlightSchoolProvider>().reloadFlightSchool();
+      context.read<FlightSchoolProvider>().reloadFlightSchoolInBackground(
+        _flightSchoolService.getFlightSchool,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -142,7 +147,6 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
 
   // ---------------- Change Roles (direkt speichern) ----------------
   Future<void> _editRolesForUser(UserSummary user) async {
-    // ✅ wenn user.roles leer -> working bleibt leer
     final Set<EventRoleEnum> working = {...user.roles};
 
     final res = await showDialog<Set<EventRoleEnum>>(
@@ -180,7 +184,6 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
 
     if (res == null) return;
 
-    // ⚠️ du brauchst membershipId zum speichern
     if (user.membershipId == null || user.membershipId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Missing membershipId for this user.")),
@@ -190,12 +193,14 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
 
     setState(() => _busy = true);
     try {
-      await FlightSchoolService().updateRolesInMemberOfFlightSchool(
+      await _flightSchoolService.updateRolesInMemberOfFlightSchool(
         user.membershipId!,
         res.map((r) => r.name).toList(),
       );
 
-      //await context.read<FlightSchoolProvider>().reloadFlightSchool();
+      context.read<FlightSchoolProvider>().reloadFlightSchoolInBackground(
+        _flightSchoolService.getFlightSchool,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Roles updated: ${_rolesLabel(res)}")),
@@ -243,7 +248,9 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
     try {
       await FlightSchoolService().removeMemberOfFlightSchool(user.membershipId!);
 
-      //await context.read<FlightSchoolProvider>().reloadFlightSchool();
+      context.read<FlightSchoolProvider>().reloadFlightSchoolInBackground(
+        _flightSchoolService.getFlightSchool,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Member removed.")),
