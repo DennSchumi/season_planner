@@ -13,6 +13,7 @@ import '../data/enums/event_status_enum.dart';
 import '../data/models/admin_models/flight_school_model_flight_school_view.dart';
 import '../data/models/admin_models/user_summary_flight_school_view.dart';
 import 'flight_school_provider.dart';
+import 'functions/flight_school_functions.dart';
 
 class DatabaseService {
   final Client client = Client()
@@ -146,47 +147,35 @@ class DatabaseService {
       final String eventsCollectionId = (fs["events_id"] ?? "") as String;
 
       List<UserSummary> members = [];
+
       try {
-        final usersResult = await _database.listDocuments(
-          databaseId: AppwriteConfig().mainDatabaseId,
-          collectionId: AppwriteConfig().usersCollectionID,
-          queries: [],
+        final fsFn = FlightSchoolFunctions(client);
+
+        final result = await fsFn.getMembersWithAuth(
+          flightSchoolId: id,
         );
 
-        members = usersResult.documents
-            .where((u) {
-          final data = u.data;
-          final memberships = data["memberships"];
-          if (memberships is! List) return false;
 
-          return memberships.any((m) {
-            if (m is! Map) return false;
+        if (result is List) {
+          members = result.map((m) {
+            final mm = (m is Map) ? m : <String, dynamic>{};
 
-            final direct = m["flightSchoolId"];
-            if (direct != null && direct.toString() == id) return true;
-
-            final rel = m["flightSchools"];
-            if (rel is Map) {
-              final relId = rel["\$id"] ?? rel["id"];
-              if (relId != null && relId.toString() == id) return true;
-            }
-
-            return false;
-          });
-        })
-            .map((u) {
-          final data = u.data;
-          return UserSummary(
-            id: (data["id"] ?? u.$id).toString(),
-            name: (data["name"] ?? "").toString(),
-            mail: (data["mail"] ?? data["email"] ?? "").toString(),
-            phone: (data["phone"] ?? "").toString(),
-          );
-        })
-            .toList();
-      } catch (_) {
+            return UserSummary(
+              id: (mm["userId"] ?? "").toString(),
+              name: (mm["name"] ?? "").toString(),
+              mail: (mm["email"] ?? "").toString(),
+              phone: (mm["phone"] ?? "").toString(),
+            );
+          }).toList();
+        } else {
+          members = [];
+        }
+      } catch (e) {
         members = [];
+        debugPrint("getMembersWithAuth failed: $e");
       }
+
+
 
       List<Event> events = [];
       try {
@@ -249,9 +238,6 @@ class DatabaseService {
         events = [];
       }
 
-
-
-      print(events);
 
       final settings = (fs["settings"] as Map<String, dynamic>?) ?? <String, dynamic>{};
 

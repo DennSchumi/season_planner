@@ -6,4 +6,6 @@ class AppwriteConfig{
   String usersCollectionID ="693ebfe8002f50b297c3";
   String flightSchoolsCollectionId = "693ebff40010c03b12ab";
   String flightSchoolLogosId = "67d9a415003679fc5369"; //NOT CORRECT!!
+
+  String flightSchoolFunctionsId = "695a659000312dc45be3";
 }
