@@ -19,6 +19,8 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   Set<String> selectedFlightSchools = {};
+  bool _initializedSelection = false;
+
 
   @override
   void initState() {
@@ -34,8 +36,10 @@ class _HomeViewState extends State<HomeView> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if(user.flightSchools.length == 1) selectedFlightSchools.add(user.flightSchools[0].id);
-
+    if (!_initializedSelection) {
+      selectedFlightSchools = user.flightSchools.map((fs) => fs.id).toSet();
+      _initializedSelection = true;
+    }
     final List<Event> publicRequests = [];
     final List<Event> acceptedEvents = [];
     final List<Event> pendingOrRequestedEvents = [];
@@ -70,19 +74,21 @@ class _HomeViewState extends State<HomeView> {
             Center(
               child: Text(
                 'Hallo ${user.name ?? "Gast"}',
-                style: TextStyle(fontSize: 15),
+                style: TextStyle(fontSize: 26),
               ),
             ),
             SizedBox(height: 10,),
+            Divider(),
             if(user.flightSchools.length>1)
-            FlightSchoolSelector(
-              flightSchools: user.flightSchools,
-              onSelectionChanged: (Set<String> selected) {
-                setState(() {
-                  selectedFlightSchools = selected;
-                });
-              },
-            ),
+              Text("Your Flight Schools"),
+              FlightSchoolSelector(
+                flightSchools: user.flightSchools,
+                onSelectionChanged: (Set<String> selected) {
+                  setState(() {
+                    selectedFlightSchools = selected;
+                  });
+                },
+              ),
 
             Divider(),
             YourEventsWidget(events: acceptedEvents),
