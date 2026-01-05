@@ -159,16 +159,16 @@ class DatabaseService {
           return FlightSchoolUserView(
           id: fs["\$id"],
           displayName: fs["display_name"],
+          displayShortName: fs["display_short_name"],
           databaseId: fs["database_id"],
           teamAssignmentsEventsCollectionId: fs["team_assigments_events_id"],
           eventsCollectionId: fs["events_id"],
           auditLogsCollectionId: fs["audit_logs_id"],
           adminUserIds: List<String>.from(fs["admin_users"] ?? []),
-          logoLink: "!",
+          logoLink: fs["logo_link"] ?? "",
         );
       })
           .toList();
-
       final List<Event> allEvents = [];
 
       for (final flightSchool in flightSchools) {
