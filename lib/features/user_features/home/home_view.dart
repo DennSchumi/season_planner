@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_user_status_enum.dart';
 import 'package:season_planer/features/user_features/home/widgets/direct_requests_widget.dart';
@@ -68,7 +69,9 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       body: SafeArea(
         minimum: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
-        child: Column(
+        child:SingleChildScrollView(
+          child:
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
@@ -99,6 +102,7 @@ class _HomeViewState extends State<HomeView> {
           ],
         ),
       ),
+    )
     );
   }
 }
