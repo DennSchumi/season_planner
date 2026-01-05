@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/features/base_admin_view.dart';
+import 'package:season_planer/features/user_features/account/widgets/manage_account.dart';
+import 'package:season_planer/features/user_features/account/widgets/manage_flight_school_memberships.dart';
 import 'package:season_planer/services/auth_service.dart';
 
 import '../../../services/providers/user_provider.dart';
@@ -42,14 +44,22 @@ class _AccountViewState extends State<AccountView> {
             const SizedBox(height: 40),
 
             OutlinedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ManageFlightSchoolMemberships()),
+                );
+              },
               child: const Text("Manage Flight School Memberships"),
             ),
 
             const SizedBox(height: 10),
 
             OutlinedButton(
-              onPressed: () {},
+              onPressed: () {Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ManageAccountView()),
+              );},
               child: const Text("Manage Personal Information"),
             ),
 

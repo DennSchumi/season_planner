@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_role_enum.dart';
 import 'package:season_planer/data/enums/event_user_status_enum.dart';
+import 'package:season_planer/data/enums/membership_status_enum.dart';
 import 'package:season_planer/data/models/event_model.dart';
 import 'package:season_planer/data/models/user_models/flight_school_model_user_view.dart';
 import 'package:season_planer/data/models/user_models/user_model_userView.dart';
@@ -35,6 +36,162 @@ class DatabaseService {
     _database = Databases(client);
     _storage = Storage(client);
   }
+
+
+
+  /// Sucht das Membership-Dokument des aktuellen Users zur Flugschule
+  /// und setzt status von invited -> active.
+  Future<bool> acceptMembership({
+    required String flightSchoolId,
+  }) async {
+    try {
+      final user = await AuthService().getCurrentUser();
+      if (user == null) return false;
+
+      final userId = user.$id;
+
+      final memberships = await _database.listDocuments(
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().membershipsId,
+        queries: [
+          Query.equal("users", userId),
+          Query.equal("flightSchools", [flightSchoolId]),
+          Query.limit(1),
+        ],
+      );
+
+      if (memberships.documents.isEmpty) {
+        throw Exception("Membership not found for flightSchoolId=$flightSchoolId");
+      }
+
+      final membershipDoc = memberships.documents.first;
+
+      await _database.updateDocument(
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().membershipsId,
+        documentId: membershipDoc.$id,
+        data: {
+          "status": MembershipStatusEnum.active.name,
+        },
+      );
+
+      return true;
+    } catch (e) {
+      print("acceptMembership error: $e");
+      return false;
+    }
+  }
+
+  /// Löscht die Membership (User verlässt Flugschule).
+  Future<bool> leaveMembership({
+    required String flightSchoolId,
+  }) async {
+    try {
+      final user = await AuthService().getCurrentUser();
+      if (user == null) return false;
+
+      final userId = user.$id;
+
+      final memberships = await _database.listDocuments(
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().membershipsId,
+        queries: [
+          Query.equal("users", userId),
+          Query.equal("flightSchools", [flightSchoolId]),
+          Query.limit(1),
+        ],
+      );
+
+      if (memberships.documents.isEmpty) {
+        throw Exception("Membership not found for flightSchoolId=$flightSchoolId");
+      }
+
+      final membershipDocId = memberships.documents.first.$id;
+
+      await _database.deleteDocument(
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().membershipsId,
+        documentId: membershipDocId,
+      );
+
+      return true;
+    } catch (e) {
+      print("leaveMembership error: $e");
+      return false;
+    }
+  }
+
+  /// Account-Infos aktualisieren (Name, Email, optional Phone).
+  ///
+  /// ⚠️ Appwrite updateEmail/updatePhone benötigen je nach Setup ein Passwort.
+  /// Wenn du E-Mail ändern willst und Appwrite es verlangt: password übergeben.
+  Future<bool> updateAccount({
+    required String firstName,
+    required String lastName,
+    required String email,
+    String phone = "",
+    String? password,
+  }) async {
+    try {
+      final account = Account(client);
+
+      // 1) Name (Appwrite Account.name)
+      final fullName = "${firstName.trim()} ${lastName.trim()}".trim();
+      if (fullName.isNotEmpty) {
+        await account.updateName(name: fullName);
+      }
+
+      // 2) Email ändern (falls anders)
+      final current = await account.get();
+      final currentEmail = current.email;
+
+      if (email.trim().isNotEmpty && email.trim() != currentEmail) {
+        if (password == null || password.isEmpty) {
+          throw Exception(
+            "Email change requires password (Appwrite). Provide password.",
+          );
+        }
+        await account.updateEmail(
+          email: email.trim(),
+          password: password,
+        );
+      }
+
+      // 3) Phone (optional)
+      // Appwrite hat updatePhone() nur sinnvoll, wenn Phone-Auth genutzt wird.
+      // Wenn dein Projekt phone im Account nutzt und Passwort nötig ist:
+      // -> password muss gesetzt sein.
+      //
+      // Wenn du Phone NICHT über Appwrite-Account pflegst, speichere es
+      // alternativ in deiner users-Collection oder in prefs.
+      if (phone.trim().isNotEmpty) {
+        // Variante A: Phone im Account (falls aktiviert)
+        // (kann je nach Appwrite-Version/Setup Passwort erfordern)
+        // if (password == null || password.isEmpty) {
+        //   throw Exception("Phone change requires password.");
+        // }
+        // await account.updatePhone(phone: phone.trim(), password: password);
+
+        // Variante B (robust): Phone in prefs speichern
+        final prefs = Map<String, dynamic>.from(current.prefs.data);
+        await account.updatePrefs(prefs: prefs);
+
+        await account.updatePrefs(prefs: prefs);
+      } else {
+        // phone leer -> optional: aus prefs entfernen
+        final prefs = Map<String, dynamic>.from(current.prefs.data);
+        prefs.remove("phone");
+        await account.updatePrefs(prefs: prefs);
+      }
+
+      return true;
+    } catch (e) {
+      print("updateAccount error: $e");
+      return false;
+    }
+  }
+
+
 
   Future<bool> changeEventAssignmentStatus({
     required UserModelUserView user,
@@ -160,6 +317,10 @@ class DatabaseService {
           id: fs["\$id"],
           displayName: fs["display_name"],
           displayShortName: fs["display_short_name"],
+          membershipStatus: MembershipStatusEnum.values.byName(membership["status"]),
+            availableRoles: (membership["roles"] as List? ?? [])
+                .map((r) => EventRoleEnum.values.byName(r.toString()))
+                .toList(),
           databaseId: fs["database_id"],
           teamAssignmentsEventsCollectionId: fs["team_assigments_events_id"],
           eventsCollectionId: fs["events_id"],

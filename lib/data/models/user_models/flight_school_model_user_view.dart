@@ -1,7 +1,14 @@
+import 'package:season_planer/data/enums/event_role_enum.dart';
+import '../../enums/membership_status_enum.dart';
+
 class FlightSchoolUserView {
   final String id;
   final String displayName;
   final String displayShortName;
+
+  final MembershipStatusEnum membershipStatus;
+  final List<EventRoleEnum> availableRoles;
+
   final String databaseId;
   final String teamAssignmentsEventsCollectionId;
   final String eventsCollectionId;
@@ -13,6 +20,8 @@ class FlightSchoolUserView {
     required this.id,
     required this.displayName,
     required this.displayShortName,
+    required this.membershipStatus,
+    required this.availableRoles,
     required this.databaseId,
     required this.teamAssignmentsEventsCollectionId,
     required this.eventsCollectionId,
@@ -20,6 +29,22 @@ class FlightSchoolUserView {
     required this.logoLink,
     required this.adminUserIds,
   });
+
+  static List<EventRoleEnum> _parseAvailableRoles(dynamic raw) {
+    if (raw is! List) return const [];
+
+    final roles = <EventRoleEnum>[];
+    for (final v in raw) {
+      final name = v?.toString();
+      if (name == null) continue;
+
+      try {
+        roles.add(EventRoleEnum.values.byName(name));
+      } catch (_) {
+      }
+    }
+    return roles;
+  }
 
   factory FlightSchoolUserView.fromJson(Map<String, dynamic> json) {
     final displayName = json['displayName'] as String? ?? '';
@@ -31,12 +56,16 @@ class FlightSchoolUserView {
       (json['displayShortName'] as String?)?.trim().isNotEmpty == true
           ? json['displayShortName'] as String
           : displayName,
-      databaseId: json['databaseId'] as String,
+      membershipStatus: MembershipStatusEnum.values.byName(
+        (json['membershipStatus'] ?? MembershipStatusEnum.active.name).toString(),
+      ),
+      availableRoles: _parseAvailableRoles(json['availableRoles']),
+      databaseId: (json['databaseId'] ?? '').toString(),
       teamAssignmentsEventsCollectionId:
-      json['teamAssignmentsEventsCollectionId'] as String,
-      eventsCollectionId: json['eventsCollectionId'] as String,
-      auditLogsCollectionId: json['auditLogsCollectionId'] as String,
-      logoLink: json['logoLink'] as String,
+      (json['teamAssignmentsEventsCollectionId'] ?? '').toString(),
+      eventsCollectionId: (json['eventsCollectionId'] ?? '').toString(),
+      auditLogsCollectionId: (json['auditLogsCollectionId'] ?? '').toString(),
+      logoLink: (json['logoLink'] ?? '').toString(),
       adminUserIds: List<String>.from(json['adminUserIds'] ?? []),
     );
   }
@@ -46,9 +75,10 @@ class FlightSchoolUserView {
       'id': id,
       'displayName': displayName,
       'displayShortName': displayShortName,
+      'membershipStatus': membershipStatus.name,
+      'availableRoles': availableRoles.map((r) => r.name).toList(),
       'databaseId': databaseId,
-      'teamAssignmentsEventsCollectionId':
-      teamAssignmentsEventsCollectionId,
+      'teamAssignmentsEventsCollectionId': teamAssignmentsEventsCollectionId,
       'eventsCollectionId': eventsCollectionId,
       'auditLogsCollectionId': auditLogsCollectionId,
       'logoLink': logoLink,
@@ -60,6 +90,8 @@ class FlightSchoolUserView {
     String? id,
     String? displayName,
     String? displayShortName,
+    MembershipStatusEnum? membershipStatus,
+    List<EventRoleEnum>? availableRoles,
     String? databaseId,
     String? teamAssignmentsEventsCollectionId,
     String? eventsCollectionId,
@@ -70,16 +102,14 @@ class FlightSchoolUserView {
     return FlightSchoolUserView(
       id: id ?? this.id,
       displayName: displayName ?? this.displayName,
-      displayShortName:
-      displayShortName ?? this.displayShortName,
+      displayShortName: displayShortName ?? this.displayShortName,
+      membershipStatus: membershipStatus ?? this.membershipStatus,
+      availableRoles: availableRoles ?? this.availableRoles,
       databaseId: databaseId ?? this.databaseId,
-      teamAssignmentsEventsCollectionId:
-      teamAssignmentsEventsCollectionId ??
+      teamAssignmentsEventsCollectionId: teamAssignmentsEventsCollectionId ??
           this.teamAssignmentsEventsCollectionId,
-      eventsCollectionId:
-      eventsCollectionId ?? this.eventsCollectionId,
-      auditLogsCollectionId:
-      auditLogsCollectionId ?? this.auditLogsCollectionId,
+      eventsCollectionId: eventsCollectionId ?? this.eventsCollectionId,
+      auditLogsCollectionId: auditLogsCollectionId ?? this.auditLogsCollectionId,
       logoLink: logoLink ?? this.logoLink,
       adminUserIds: adminUserIds ?? this.adminUserIds,
     );
@@ -91,6 +121,8 @@ class FlightSchoolUserView {
         'id: $id, '
         'displayName: $displayName, '
         'displayShortName: $displayShortName, '
+        'membershipStatus: ${membershipStatus.name}, '
+        'availableRoles: ${availableRoles.map((e) => e.name).toList()}, '
         'databaseId: $databaseId, '
         'teamAssignmentsEventsCollectionId: $teamAssignmentsEventsCollectionId, '
         'eventsCollectionId: $eventsCollectionId, '

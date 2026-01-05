@@ -80,10 +80,8 @@ class _HomeViewState extends State<HomeView> {
                 style: TextStyle(fontSize: 26),
               ),
             ),
-            SizedBox(height: 10,),
-            Divider(),
+            SizedBox(height: 16,),
             if(user.flightSchools.length>1)
-              Text("Your Flight Schools"),
               FlightSchoolSelector(
                 flightSchools: user.flightSchools,
                 onSelectionChanged: (Set<String> selected) {
