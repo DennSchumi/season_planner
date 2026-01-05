@@ -27,27 +27,32 @@ Future<void> testLogin() async {
   }
 
   /// Registers a new user with email, password, and name
-  Future<models.User?> signUp(String email, String password, String name) async {
+  Future<models.User> signUp(String email, String password, String name) async {
     try {
-        var user = await _account.create(
+      final user = await _account.create(
         userId: ID.unique(),
         email: email,
         password: password,
         name: name,
       );
-          print(user.$id);
-          Databases database = Databases(client);
-          final document = database.createDocument(
-              databaseId: AppwriteConfig().mainDatabaseId,
-              collectionId: AppwriteConfig().usersCollectionID,
-              documentId: user.$id,
-              data:{"id": user.$id}
-          );
+
+      final database = Databases(client);
+
+      await database.createDocument(
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().usersCollectionID,
+        documentId: user.$id,
+        data: {"id": user.$id},
+      );
+
+      return user;
+    } on AppwriteException catch (e) {
+      print("Appwrite signUp failed: ${e.type} (${e.code}) ${e.message}");
+      rethrow;
     } catch (e) {
-      print("Error during registration: $e");
-      return null;
+      print("Unknown signUp error: $e");
+      rethrow;
     }
-    return null;
   }
 
 
