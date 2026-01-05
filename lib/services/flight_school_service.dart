@@ -58,11 +58,13 @@ class FlightSchoolService {
       return FlightSchoolModelFlightSchoolView(
         id: fsDoc.$id,
         displayName: (fs["display_name"] ?? "") as String,
+        displayShortName: (fs["display_short_name"]) as String,
         databaseId: databaseId,
         teamAssignmentsEventsCollectionId: teamAssignmentsId,
         eventsCollectionId: eventsCollectionId,
         auditLogsCollectionId: (fs["audit_logs_id"] ?? "") as String,
         logoLink: (fs["logo_link"] ?? "!") as String,
+        logoId: (fs["logo_id"] ?? ""),
         adminUserIds: List<String>.from(fs["admin_users"] ?? const []),
         members: members,
         events: events,

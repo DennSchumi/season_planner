@@ -121,10 +121,6 @@ class DatabaseService {
     }
   }
 
-  /// Account-Infos aktualisieren (Name, Email, optional Phone).
-  ///
-  /// ⚠️ Appwrite updateEmail/updatePhone benötigen je nach Setup ein Passwort.
-  /// Wenn du E-Mail ändern willst und Appwrite es verlangt: password übergeben.
   Future<bool> updateAccount({
     required String firstName,
     required String lastName,
@@ -157,28 +153,14 @@ class DatabaseService {
         );
       }
 
-      // 3) Phone (optional)
-      // Appwrite hat updatePhone() nur sinnvoll, wenn Phone-Auth genutzt wird.
-      // Wenn dein Projekt phone im Account nutzt und Passwort nötig ist:
-      // -> password muss gesetzt sein.
-      //
-      // Wenn du Phone NICHT über Appwrite-Account pflegst, speichere es
-      // alternativ in deiner users-Collection oder in prefs.
-      if (phone.trim().isNotEmpty) {
-        // Variante A: Phone im Account (falls aktiviert)
-        // (kann je nach Appwrite-Version/Setup Passwort erfordern)
-        // if (password == null || password.isEmpty) {
-        //   throw Exception("Phone change requires password.");
-        // }
-        // await account.updatePhone(phone: phone.trim(), password: password);
 
-        // Variante B (robust): Phone in prefs speichern
+      if (phone.trim().isNotEmpty) {
+
         final prefs = Map<String, dynamic>.from(current.prefs.data);
         await account.updatePrefs(prefs: prefs);
 
         await account.updatePrefs(prefs: prefs);
       } else {
-        // phone leer -> optional: aus prefs entfernen
         final prefs = Map<String, dynamic>.from(current.prefs.data);
         prefs.remove("phone");
         await account.updatePrefs(prefs: prefs);

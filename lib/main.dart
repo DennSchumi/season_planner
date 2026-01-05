@@ -10,6 +10,7 @@ import 'features/authentification/login/login_view.dart';
 import 'features/user_features/main_scaffold/main_user_scaffold_view.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
     MultiProvider(
       providers: [
