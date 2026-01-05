@@ -5,12 +5,10 @@ allprojects {
     }
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
         kotlinOptions {
-            jvmTarget = "11"
+            jvmTarget = "17"
         }
     }
-    tasks.withType<JavaCompile>().configureEach {
-        options.release.set(1)
-    }
+
 }
 
 subprojects {
@@ -23,8 +21,8 @@ subprojects {
     afterEvaluate {
         if (project.plugins.hasPlugin("java")) {
             tasks.withType<JavaCompile>().configureEach {
-                sourceCompatibility = "11"
-                targetCompatibility = "11"
+                sourceCompatibility = "17"
+                targetCompatibility = "17"
             }
         }
     }
