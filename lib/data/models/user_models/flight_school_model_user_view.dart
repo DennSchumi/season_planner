@@ -1,6 +1,7 @@
 class FlightSchoolUserView {
   final String id;
   final String displayName;
+  final String displayShortName;
   final String databaseId;
   final String teamAssignmentsEventsCollectionId;
   final String eventsCollectionId;
@@ -11,6 +12,7 @@ class FlightSchoolUserView {
   FlightSchoolUserView({
     required this.id,
     required this.displayName,
+    required this.displayShortName,
     required this.databaseId,
     required this.teamAssignmentsEventsCollectionId,
     required this.eventsCollectionId,
@@ -20,11 +22,18 @@ class FlightSchoolUserView {
   });
 
   factory FlightSchoolUserView.fromJson(Map<String, dynamic> json) {
+    final displayName = json['displayName'] as String? ?? '';
+
     return FlightSchoolUserView(
       id: json['id'] as String,
-      displayName: json['displayName'] as String,
+      displayName: displayName,
+      displayShortName:
+      (json['displayShortName'] as String?)?.trim().isNotEmpty == true
+          ? json['displayShortName'] as String
+          : displayName,
       databaseId: json['databaseId'] as String,
-      teamAssignmentsEventsCollectionId: json['teamAssignmentsEventsCollectionId'] as String,
+      teamAssignmentsEventsCollectionId:
+      json['teamAssignmentsEventsCollectionId'] as String,
       eventsCollectionId: json['eventsCollectionId'] as String,
       auditLogsCollectionId: json['auditLogsCollectionId'] as String,
       logoLink: json['logoLink'] as String,
@@ -36,8 +45,10 @@ class FlightSchoolUserView {
     return {
       'id': id,
       'displayName': displayName,
+      'displayShortName': displayShortName,
       'databaseId': databaseId,
-      'teamAssignmentsEventsCollectionId': teamAssignmentsEventsCollectionId,
+      'teamAssignmentsEventsCollectionId':
+      teamAssignmentsEventsCollectionId,
       'eventsCollectionId': eventsCollectionId,
       'auditLogsCollectionId': auditLogsCollectionId,
       'logoLink': logoLink,
@@ -48,6 +59,7 @@ class FlightSchoolUserView {
   FlightSchoolUserView copyWith({
     String? id,
     String? displayName,
+    String? displayShortName,
     String? databaseId,
     String? teamAssignmentsEventsCollectionId,
     String? eventsCollectionId,
@@ -58,10 +70,16 @@ class FlightSchoolUserView {
     return FlightSchoolUserView(
       id: id ?? this.id,
       displayName: displayName ?? this.displayName,
+      displayShortName:
+      displayShortName ?? this.displayShortName,
       databaseId: databaseId ?? this.databaseId,
-      teamAssignmentsEventsCollectionId: teamAssignmentsEventsCollectionId ?? this.teamAssignmentsEventsCollectionId,
-      eventsCollectionId: eventsCollectionId ?? this.eventsCollectionId,
-      auditLogsCollectionId: auditLogsCollectionId ?? this.auditLogsCollectionId,
+      teamAssignmentsEventsCollectionId:
+      teamAssignmentsEventsCollectionId ??
+          this.teamAssignmentsEventsCollectionId,
+      eventsCollectionId:
+      eventsCollectionId ?? this.eventsCollectionId,
+      auditLogsCollectionId:
+      auditLogsCollectionId ?? this.auditLogsCollectionId,
       logoLink: logoLink ?? this.logoLink,
       adminUserIds: adminUserIds ?? this.adminUserIds,
     );
@@ -69,8 +87,16 @@ class FlightSchoolUserView {
 
   @override
   String toString() {
-    return 'FlightSchool(id: $id, displayName: $displayName, databaseId: $databaseId, '
-        'teamAssignmentsEventsCollectionId: $teamAssignmentsEventsCollectionId, eventsCollectionId: $eventsCollectionId, '
-        'auditLogsCollectionId: $auditLogsCollectionId, logoLink: $logoLink, adminUserIds: $adminUserIds)';
+    return 'FlightSchoolUserView('
+        'id: $id, '
+        'displayName: $displayName, '
+        'displayShortName: $displayShortName, '
+        'databaseId: $databaseId, '
+        'teamAssignmentsEventsCollectionId: $teamAssignmentsEventsCollectionId, '
+        'eventsCollectionId: $eventsCollectionId, '
+        'auditLogsCollectionId: $auditLogsCollectionId, '
+        'logoLink: $logoLink, '
+        'adminUserIds: $adminUserIds'
+        ')';
   }
 }
