@@ -18,7 +18,6 @@ class _AccountViewState extends State<AccountView> {
     Navigator.pushReplacementNamed(context, '/login');
   }
 
-  _switchToAdmin() {}
 
   @override
   Widget build(BuildContext context) {
@@ -29,45 +28,64 @@ class _AccountViewState extends State<AccountView> {
 
     return Scaffold(
       body: SafeArea(
-        minimum: EdgeInsets.all(10),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (userIsAdmin)
-                OutlinedButton(
-                  onPressed:
-                      () => {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BaseAdminView(),
-                          ),
-                        ),
-                      },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text("Switch to ADMIN-Mode"),
-                      SizedBox(width: 8),
-                      Icon(Icons.accessible_forward_outlined),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 50),
-              TextButton(
-                onPressed: _logOut,
-                child: const Text(
-                  "Ausloggen",
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.blueAccent,
-                    decoration: TextDecoration.underline,
-                  ),
+        minimum: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 24),
+            const Text(
+              "Account",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 40),
+
+            OutlinedButton(
+              onPressed: () {},
+              child: const Text("Manage Flight School Memberships"),
+            ),
+
+            const SizedBox(height: 10),
+
+            OutlinedButton(
+              onPressed: () {},
+              child: const Text("Manage Personal Information"),
+            ),
+
+            const SizedBox(height: 10),
+
+            if (userIsAdmin)
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => BaseAdminView()),
+                  );
+                },
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Switch to ADMIN-Mode"),
+                    SizedBox(width: 8),
+                    Icon(Icons.admin_panel_settings_outlined),
+                  ],
                 ),
               ),
-            ],
-          ),
+
+            const Spacer(),
+
+            TextButton(
+              onPressed: _logOut,
+              child: const Text(
+                "Log out",
+                style: TextStyle(
+                  fontSize: 12,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
