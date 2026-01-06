@@ -17,11 +17,16 @@ class BaseAdminView extends StatefulWidget {
 
 class _BaseAdminViewState extends State<BaseAdminView> {
   bool _autoNavigated = false;
+  bool _isBusy = false;
 
   Future<void> _selectFlightSchool(BuildContext context, String id) async {
     final flightSchoolProvider =
     Provider.of<FlightSchoolProvider>(context, listen: false);
 
+
+    setState(() {
+      _isBusy = true;
+    });
     final FlightSchoolModelFlightSchoolView? fs = await FlightSchoolService().getFlightSchool(id);
 
     if (!mounted) return;
@@ -35,6 +40,10 @@ class _BaseAdminViewState extends State<BaseAdminView> {
 
     flightSchoolProvider.setFlightSchool(fs);
 
+
+    setState(() {
+      _isBusy = false;
+    });
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => MainAdminScaffoldView()),
@@ -65,24 +74,42 @@ class _BaseAdminViewState extends State<BaseAdminView> {
     return Scaffold(
       appBar: AppBar(title: const Text("Select Flight School")),
       body: SafeArea(
-        child: ListView.separated(
-          padding: const EdgeInsets.all(12),
-          itemCount: adminFlightSchools.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final fs = adminFlightSchools[index];
+        child: Stack(
+          children: [
+            ListView.separated(
+              padding: const EdgeInsets.all(12),
+              itemCount: adminFlightSchools.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final fs = adminFlightSchools[index];
 
-            return Card(
-              elevation: 2,
-              child: ListTile(
-                title: Text(fs.displayName),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _selectFlightSchool(context, fs.id),
+                return Card(
+                  elevation: 2,
+                  child: ListTile(
+                    title: Text(fs.displayName),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _isBusy ? null : () => _selectFlightSchool(context, fs.id),
+                  ),
+                );
+              },
+            ),
+
+            if (_isBusy)
+              Positioned.fill(
+                child: AbsorbPointer(
+                  absorbing: true,
+                  child: Container(
+                    color: Colors.black.withOpacity(0.2),
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                ),
               ),
-            );
-          },
+          ],
         ),
       ),
     );
+
   }
 }
