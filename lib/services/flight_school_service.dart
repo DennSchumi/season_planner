@@ -35,6 +35,28 @@ class FlightSchoolService {
 
   //TODO: Move remaining methods for FS
 
+  //update Image
+  //update Informations
+
+  Future<bool> updateAdmins({required String flightSchoolId, required List<String> adminUserIds}) async {
+    try {
+      await _database.updateDocument(
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().flightSchoolsCollectionId,
+        documentId: flightSchoolId,
+        data: {
+          'admin_users': adminUserIds,
+        },
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint("updateAdmins failed: $e");
+      return false;
+    }
+  }
+
+
   Future<FlightSchoolModelFlightSchoolView?> getFlightSchool(String id) async {
     try {
       final fsDoc = await _fetchFlightSchoolDoc(id);
