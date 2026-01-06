@@ -12,9 +12,7 @@ class FlightSchoolProvider with ChangeNotifier {
   bool _isReloading = false;
   bool get isReloading => _isReloading;
 
-  // ------------------------------------------------------------
-  // Basis
-  // ------------------------------------------------------------
+  Future<FlightSchoolModelFlightSchoolView?> Function(String id)? _defaultLoader;
 
   void setFlightSchool(FlightSchoolModelFlightSchoolView flightSchool) {
     _flightSchool = flightSchool;
@@ -29,9 +27,13 @@ class FlightSchoolProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ------------------------------------------------------------
-  // Members – manuell ändern (optimistisches UI)
-  // ------------------------------------------------------------
+
+  void setDefaultLoader(
+      Future<FlightSchoolModelFlightSchoolView?> Function(String id) loader,
+      ) {
+    _defaultLoader = loader;
+  }
+
 
   void upsertMember(UserSummary member, {bool reloadInBackground = true}) {
     final fs = _flightSchool;
@@ -67,9 +69,7 @@ class FlightSchoolProvider with ChangeNotifier {
     }
   }
 
-  // ------------------------------------------------------------
-  // Events – manuell ändern (optimistisches UI)
-  // ------------------------------------------------------------
+
 
   void upsertEvent(Event event, {bool reloadInBackground = true}) {
     final fs = _flightSchool;
@@ -107,18 +107,15 @@ class FlightSchoolProvider with ChangeNotifier {
     }
   }
 
-  // ------------------------------------------------------------
-  // Reload – Service wird von außen übergeben
-  // ------------------------------------------------------------
 
-  /// Hartes Reload (await) – z.B. Pull-to-refresh
   Future<void> reloadFlightSchool(
       Future<FlightSchoolModelFlightSchoolView?> Function(String id) loader,
       ) async {
     final id = _flightSchoolId ?? _flightSchool?.id;
     if (id == null || id.isEmpty) return;
-
     if (_isReloading) return;
+
+    _defaultLoader = loader;
 
     _isReloading = true;
     notifyListeners();
@@ -137,13 +134,15 @@ class FlightSchoolProvider with ChangeNotifier {
     }
   }
 
-  /// Fire-and-forget Reload
   void reloadFlightSchoolInBackground([
     Future<FlightSchoolModelFlightSchoolView?> Function(String id)? loader,
   ]) {
-    if (loader == null || _isReloading) return;
+    if (_isReloading) return;
+
+    final effectiveLoader = loader ?? _defaultLoader;
+    if (effectiveLoader == null) return;
 
     // ignore: unawaited_futures
-    reloadFlightSchool(loader);
+    reloadFlightSchool(effectiveLoader);
   }
 }
