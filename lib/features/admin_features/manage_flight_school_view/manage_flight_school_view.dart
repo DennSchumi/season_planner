@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:season_planer/features/admin_features/manage_flight_school_view/manage_admin_user/manage_admin_users_view.dart';
 import 'package:season_planer/features/admin_features/manage_flight_school_view/manage_flight_school_informations/manage_flight_school_informations_view.dart';
 import 'package:season_planer/features/user_features/main_scaffold/main_user_scaffold_view.dart';
 import 'package:season_planer/services/providers/flight_school_provider.dart';
@@ -66,7 +67,7 @@ class _ManageFlightSchoolView extends State<ManageFlightSchoolView>{
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ManageFlightSchoolAdminInfoView(),
+                      builder: (context) => ManageAdminsPage(),
                     ),
                   ),
                 },

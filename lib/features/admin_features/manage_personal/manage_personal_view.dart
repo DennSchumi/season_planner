@@ -268,6 +268,7 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Manage Personnel"),
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Column(

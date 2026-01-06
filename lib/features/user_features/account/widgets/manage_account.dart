@@ -221,7 +221,7 @@ class _ManageAccountViewState extends State<ManageAccountView> {
         lastName: lastName,
         email: email,
         phone: phone,
-        password: password, // nur nötig bei Email-Änderung
+        password: password,
       );
 
       if (!ok) {
