@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_status_enum.dart';
 import 'package:season_planer/data/models/event_model.dart';
 import 'package:season_planer/features/user_features/home/widgets/event_detail_view.dart';
 
+import '../../../../data/enums/membership_status_enum.dart';
+import '../../../../data/models/user_models/flight_school_model_user_view.dart';
+import '../../../../services/providers/user_provider.dart';
 import 'event_card_tile_widget.dart';
 class DirectRequestsWidget extends StatelessWidget {
   final List<Event> events;
@@ -26,6 +30,21 @@ class DirectRequestsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<UserProvider>().user;
+
+    if (user == null) {
+      return const SizedBox(
+        height: 180,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final Map<String, FlightSchoolUserView> fsById = {
+      for (final fs in user.flightSchools) fs.id: fs,
+    };
+
+
+
     if (events.isEmpty) {
       return const SizedBox(
         height: 70,
@@ -51,11 +70,12 @@ class DirectRequestsWidget extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: events.map((event) {
+                  final fs = fsById[event.flightSchoolId];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
                     child: EventCardTile(
                       event: event,
-                      flightSchool: null, // hier bewusst kein FS-Logo
+                      flightSchool: fs,
                       dateText:
                       '${_formatDate(event.startTime)} – ${_formatDate(event.endTime)}',
                       statusColor: _getStatusColor(event),
