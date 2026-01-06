@@ -230,10 +230,7 @@ class _ManageEventsViewState extends State<ManageEventsView> {
                       subtitle: Text(
                         "${e.identifier} • ${_formatDateTime(e.startTime)} – ${_formatDateTime(e.endTime)}",
                       ),
-                      trailing: Text(
-                        e.status.toString().split('.').last,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
+                      trailing: buildTrailing(e),
                       onTap: () {
                           Navigator.push(
                             context,
@@ -291,6 +288,35 @@ class _ManageEventsViewState extends State<ManageEventsView> {
       ),
 
 
+    );
+  }
+
+  final now = DateTime.now();
+
+  Widget buildTrailing(Event e) {
+    if (e.endTime.isBefore(now)) {
+      return const Text(
+        "Past event",
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.grey,
+        ),
+      );
+    }
+
+    if (!e.startTime.isAfter(now) && !e.endTime.isBefore(now)) {
+      return const Text(
+        "Running",
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: Colors.orange,
+        ),
+      );
+    }
+
+    return Text(
+      e.status.name, // besser als toString().split
+      style: const TextStyle(fontWeight: FontWeight.w600),
     );
   }
 
