@@ -315,7 +315,7 @@ class _ManageEventsViewState extends State<ManageEventsView> {
     }
 
     return Text(
-      e.status.name, // besser als toString().split
+      e.status.name,
       style: const TextStyle(fontWeight: FontWeight.w600),
     );
   }
