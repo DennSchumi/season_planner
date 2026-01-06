@@ -245,6 +245,7 @@ class DatabaseService {
           ],
         );
 
+
         final List<TeamMember> teamMembers = teamDocs.documents
             .map((doc) => TeamMember.fromMap(doc.data))
             .toList();
@@ -321,7 +322,8 @@ class DatabaseService {
           queries: [
             Query.or([
               Query.equal("user_id", userID),
-              Query.equal("user_id", "69"),
+              Query.equal("user_id", ""),      
+              Query.isNull("user_id"),
             ])
           ],
         );
