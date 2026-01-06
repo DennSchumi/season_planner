@@ -66,6 +66,7 @@ class _HomeViewState extends State<HomeView> {
       }
     }
 
+
     return Scaffold(
       body: SafeArea(
         minimum: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
