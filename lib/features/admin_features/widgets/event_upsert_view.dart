@@ -25,7 +25,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
   static const List<EventUserStatusEnum> _allowedStatuses = [
     EventUserStatusEnum.open,
     EventUserStatusEnum.pending_user,
-    EventUserStatusEnum.aceppted_flight_school,
+    EventUserStatusEnum.accepted_flight_school,
   ];
 
   final _formKey = GlobalKey<FormState>();
@@ -95,7 +95,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
           s == EventUserStatusEnum.denied_flight_school;
 
   bool _isAccepted(EventUserStatusEnum s) =>
-      s == EventUserStatusEnum.aceppted_flight_school ||
+      s == EventUserStatusEnum.accepted_flight_school ||
           s == EventUserStatusEnum.accepted_user;
 
   bool _isPendingFs(EventUserStatusEnum s) => s == EventUserStatusEnum.pending_flight_school;
@@ -215,7 +215,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
 
     final members = fs.members;
 
-    UserSummary? selected = null; // default: Open Opportunity
+    UserSummary? selected = null;
     EventRoleEnum role = EventRoleEnum.values.first;
 
     final result = await showDialog<TeamMember>(
@@ -328,7 +328,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
     setState(() => _team.add(result));
   }
 
-  // ----------------- team edit popup -----------------
+// ----------------- team edit popup -----------------
 
   Future<void> _openTeamEditDialog({
     required int index,
@@ -340,51 +340,103 @@ class _EventUpsertViewState extends State<EventUpsertView> {
 
     if (_isDenied(currentStatus) && persisted) return;
 
-
     final open = _isOpen(currentStatus);
-
     final pendingFs = _isPendingFs(currentStatus);
     final pendingUser = _isPendingUser(currentStatus);
     final accepted = _isAccepted(currentStatus);
+    final userReqChange =
+        currentStatus == EventUserStatusEnum.user_requests_change;
 
-    // Member ändern:
-    // - erlaubt wenn "open" ODER "nicht persisted" (also local, noch nicht gespeichert)
-    final canPickMember = open || !persisted;
-
-    // Rolle ändern:
-    // - in deinen Regeln: open/pending_user/accepted
-    // - und natürlich auch local
-    final canChangeRole = open || pendingUser || accepted || !persisted;
-
-    // Accept für pending_flight_school:
+    final canPickMember = open || !persisted || userReqChange;
+    final canChangeRole =
+        open || pendingUser || accepted || !persisted || userReqChange;
     final canAcceptPendingFs = pendingFs;
 
     EventRoleEnum role = EventRoleEnum.values.byName(tm.role);
+    String? selectedUserId = _isOpenSlot(tm) ? null : tm.userId;
 
-    // null => Open Opportunity
-    UserSummary? selectedUser = _isOpenSlot(tm)
-        ? null
-        : members.where((m) => m.id == tm.userId).isNotEmpty
-        ? members.firstWhere((m) => m.id == tm.userId)
-        : null;
+    final Map<String, UserSummary> uniqueMembers = {
+      for (final m in members) m.id: m,
+    };
 
     final res = await showDialog<TeamMember?>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setLocal) {
-            final availableMembers = members.where((m) {
+            final availableMembers = uniqueMembers.values.where((m) {
               final alreadyInTeam = _team.any((t) => t.userId == m.id);
-              final isCurrentlySelected = selectedUser?.id == m.id;
+              final isCurrentlySelected = selectedUserId == m.id;
+              if (userReqChange && m.id == tm.userId) return false;
               return !alreadyInTeam || isCurrentlySelected;
             }).toList();
 
+            final dropdownValues = <String?>{
+              null,
+              ...availableMembers.map((m) => m.id),
+            };
+
+            if (!dropdownValues.contains(selectedUserId)) {
+              selectedUserId = null;
+            }
+
             return AlertDialog(
-              title: Text(_resolveName(tm, members)),
+              title: Text(
+                userReqChange
+                    ? "User requested change"
+                    : _resolveName(tm, members),
+              ),
+
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (userReqChange) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Theme.of(ctx)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                        ),
+                        child: RichText(
+                          text: TextSpan(
+                            style: Theme.of(ctx)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(height: 1.4),
+                            children: [
+                              TextSpan(
+                                text: "${_resolveName(tm, members)} ",
+                                style:
+                                const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              const TextSpan(
+                                text:
+                                "requested a change to this assignment.\n\n",
+                              ),
+                              const TextSpan(
+                                text:
+                                "The user is asking to be replaced. You can either turn this position into an ",
+                              ),
+                              const TextSpan(
+                                text: "open opportunity",
+                                style:
+                                TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              const TextSpan(
+                                text:
+                                " or assign another member to this role.",
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
                     if (canAcceptPendingFs)
                       SizedBox(
                         width: double.infinity,
@@ -392,7 +444,11 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                           onPressed: () {
                             Navigator.pop(
                               ctx,
-                              tm.copyWith(status: EventUserStatusEnum.aceppted_flight_school.name),
+                              tm.copyWith(
+                                status: EventUserStatusEnum
+                                    .accepted_flight_school
+                                    .name,
+                              ),
                             );
                           },
                           icon: const Icon(Icons.check),
@@ -402,25 +458,26 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                     if (canAcceptPendingFs) const SizedBox(height: 12),
 
                     if (canPickMember) ...[
-                      DropdownButtonFormField<UserSummary?>(
-                        value: selectedUser, // null = Open Opportunity
+                      DropdownButtonFormField<String?>(
+                        value: selectedUserId,
                         decoration: const InputDecoration(
                           labelText: "Member",
                           border: OutlineInputBorder(),
                         ),
                         items: [
-                          const DropdownMenuItem<UserSummary?>(
+                          const DropdownMenuItem<String?>(
                             value: null,
                             child: Text("Open Opportunity (no member)"),
                           ),
                           ...availableMembers.map(
-                                (m) => DropdownMenuItem<UserSummary?>(
-                              value: m,
+                                (m) => DropdownMenuItem<String?>(
+                              value: m.id,
                               child: Text(m.name),
                             ),
                           ),
                         ],
-                        onChanged: (v) => setLocal(() => selectedUser = v),
+                        onChanged: (v) =>
+                            setLocal(() => selectedUserId = v),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -430,40 +487,30 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                       decoration: InputDecoration(
                         labelText: "Role",
                         border: const OutlineInputBorder(),
-                        helperText: canChangeRole ? null : "Role cannot be changed in this status.",
+                        helperText:
+                        canChangeRole ? null : "Role cannot be changed.",
                       ),
                       items: EventRoleEnum.values
-                          .map((r) => DropdownMenuItem(value: r, child: Text(r.label)))
+                          .map(
+                            (r) =>
+                            DropdownMenuItem(value: r, child: Text(r.label)),
+                      )
                           .toList(),
-                      onChanged: canChangeRole ? (v) => setLocal(() => role = v ?? role) : null,
+                      onChanged: canChangeRole
+                          ? (v) => setLocal(() => role = v ?? role)
+                          : null,
                     ),
-
-                    if (pendingUser)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 10),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text("Waiting for user response…", style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
-                    if (pendingFs)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 10),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text("Waiting for flight school…", style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
                   ],
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text("Close")),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, null),
+                  child: const Text("Close"),
+                ),
                 ElevatedButton(
                   onPressed: () {
-                    if (selectedUser == null) {
-                      // Open Opportunity behalten/setzen
-                      // Wenn tm bereits slot_ hat, behalten. Wenn tm real ist → zu slot machen.
+                    if (selectedUserId == null) {
                       final newSlotId = _isOpenSlot(tm)
                           ? tm.userId
                           : "slot_${DateTime.now().microsecondsSinceEpoch}";
@@ -480,12 +527,13 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                       return;
                     }
 
-                    // User gewählt: solange nicht gespeichert oder open → pending_user
+                    final picked = uniqueMembers[selectedUserId]!;
+
                     Navigator.pop(
                       ctx,
                       tm.copyWith(
-                        userId: selectedUser!.id,
-                        name: selectedUser!.name,
+                        userId: picked.id,
+                        name: picked.name,
                         status: EventUserStatusEnum.pending_user.name,
                         role: role.name,
                       ),
@@ -503,7 +551,9 @@ class _EventUpsertViewState extends State<EventUpsertView> {
     if (res != null) _updateTeamMember(index, res);
   }
 
-  // ----------------- submit -----------------
+
+
+
 
   Future<void> _submit() async {
     if (_saving) return;
@@ -685,7 +735,6 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                   final persisted = _isPersisted(tm);
                   final displayName = _resolveName(tm, fs.members);
 
-                  // ✅ Remove nur sperren wenn persisted + bestimmte Status
                   final removeLocked = persisted && (denied || _isPendingFs(s) || _isPendingUser(s));
 
                   return Opacity(
