@@ -58,7 +58,7 @@ class _EventDetailViewState extends State<EventDetailView> {
     final success = await DatabaseService().changeEventAssignmentStatus(
       user: user,
       event: widget.event,
-      newStatus: EventUserStatusEnum.open,
+      newStatus: EventUserStatusEnum.user_requests_change,
     );
     if (success) {
       final updatedEvents = await DatabaseService().loadUserEvents(user);
@@ -251,7 +251,7 @@ class _EventDetailViewState extends State<EventDetailView> {
               ],
             ),
 
-            const SizedBox(height: 80), // Platz für Bottom Bar
+            const SizedBox(height: 80),
           ],
         ),
       ),
