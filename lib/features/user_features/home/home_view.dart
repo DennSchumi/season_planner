@@ -59,6 +59,7 @@ class _HomeViewState extends State<HomeView> {
           case EventUserStatusEnum.pending_flight_school:
           case EventUserStatusEnum.pending_user:
           case EventUserStatusEnum.denied_flight_school:
+          case EventUserStatusEnum.user_requests_change:
           case EventUserStatusEnum.denied_user:
             pendingOrRequestedEvents.add(event);
             break;

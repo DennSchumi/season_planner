@@ -6,6 +6,7 @@ enum EventUserStatusEnum {
     pending_user,
     denied_user,
     denied_flight_school,
+    user_requests_change,
 }
 
 extension EventUserStatusLabel on EventUserStatusEnum {
@@ -25,6 +26,8 @@ extension EventUserStatusLabel on EventUserStatusEnum {
                 return 'Declined by You';
             case EventUserStatusEnum.denied_flight_school:
                 return 'Declined by Flight School';
+            case EventUserStatusEnum.user_requests_change:
+                return 'User requeststo Change';
         }
     }
 }
@@ -46,6 +49,8 @@ extension EventUserStatusLabelForNewEvent on EventUserStatusEnum {
                 return 'Declined by User';
             case EventUserStatusEnum.denied_flight_school:
                 return 'Declined by Flight School';
+          case EventUserStatusEnum.user_requests_change:
+            return 'User requests to Change';
         }
     }
 }
