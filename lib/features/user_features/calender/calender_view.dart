@@ -21,7 +21,7 @@ class _CalenderView extends State<CalenderView>{
     final user = context.watch<UserProvider>().user!;
     final fsById = { for (final fs in user.flightSchools) fs.id: fs };
     final events = user.events
-        .where((e) => e.assignmentStatus == EventUserStatusEnum.accepted_flight_school)
+        .where((e) => e.assignmentStatus == EventUserStatusEnum.accepted_flight_school || e.assignmentStatus == EventUserStatusEnum.accepted_user)
         .toList();
 
     return Scaffold(
