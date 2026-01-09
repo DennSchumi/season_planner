@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:season_planer/data/models/event_model.dart';
-import 'package:season_planer/data/models/user_models/flight_school_model_user_view.dart';
+
+typedef FlightSchoolResolver = dynamic Function(String flightSchoolId);
 
 class EventsCalendar extends StatefulWidget {
   final List<Event> events;
-  final Map<String, FlightSchoolUserView> fsById;
+  final bool showFlightSchool;
+
+  final FlightSchoolResolver flightSchoolById;
+
   final void Function(Event event)? onEventTap;
 
   const EventsCalendar({
     super.key,
     required this.events,
-    required this.fsById,
+    required this.flightSchoolById,
     this.onEventTap,
+    this.showFlightSchool = true,
   });
 
   @override
@@ -44,6 +49,7 @@ class _EventsCalendarState extends State<EventsCalendar> {
     final start = _startOfWeek(monthFirstDay);
     final nextMonth = DateTime(monthFirstDay.year, monthFirstDay.month + 1, 1);
     final end = _endOfWeek(nextMonth.subtract(const Duration(days: 1)));
+
     final days = <DateTime>[];
     for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
       days.add(d);
@@ -122,10 +128,12 @@ class _EventsCalendarState extends State<EventsCalendar> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
     final days = List<DateTime>.from(_daysForMonthGrid(_visibleMonth));
     while (days.length % 7 != 0) {
       days.add(days.last.add(const Duration(days: 1)));
     }
+
     final weeks = <List<DateTime>>[];
     for (var i = 0; i < days.length; i += 7) {
       weeks.add(days.sublist(i, i + 7));
@@ -172,12 +180,11 @@ class _EventsCalendarState extends State<EventsCalendar> {
                 const laneGap = 4.0;
                 const maxLanesShown = 3;
 
-                const dayHPad = 2.0; // horizontal padding between day cells
+                const dayHPad = 2.0;
                 const dayBorderW = 1.0;
-                const dayInnerMarginH = 2.0; // your inner container margin
+                const dayInnerMarginH = 2.0;
                 const eventOuterPad = dayHPad + dayBorderW + dayInnerMarginH;
-                const eventInnerPad = 2.0; // small inset inside the week row
-                final cellContentW = cellW - (2 * eventOuterPad);
+                const eventInnerPad = 2.0;
 
                 return Column(
                   children: weeks.map((weekDays) {
@@ -187,7 +194,9 @@ class _EventsCalendarState extends State<EventsCalendar> {
 
                     final shownLanes = lanes.length > maxLanesShown ? maxLanesShown : lanes.length;
                     final rowH = dayCellH +
-                        (shownLanes == 0 ? 0 : (shownLanes * laneH + (shownLanes - 1) * laneGap)) +
+                        (shownLanes == 0
+                            ? 0
+                            : (shownLanes * laneH + (shownLanes - 1) * laneGap)) +
                         8;
 
                     return SizedBox(
@@ -224,10 +233,6 @@ class _EventsCalendarState extends State<EventsCalendar> {
                                         child: Container(
                                           margin: const EdgeInsets.symmetric(horizontal: dayInnerMarginH, vertical: 2),
                                           padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.transparent,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
                                           child: Align(
                                             alignment: Alignment.topLeft,
                                             child: Text(
@@ -243,7 +248,6 @@ class _EventsCalendarState extends State<EventsCalendar> {
                               }).toList(),
                             ),
                           ),
-
                           if (lanes.isNotEmpty)
                             Positioned(
                               left: 0,
@@ -267,10 +271,11 @@ class _EventsCalendarState extends State<EventsCalendar> {
                                                 bottom: 0,
                                                 child: _EventBar(
                                                   event: we.event,
-                                                  fs: widget.fsById[we.event.flightSchoolId],
+                                                  flightSchool: widget.flightSchoolById(we.event.flightSchoolId),
                                                   onTap: widget.onEventTap == null ? null : () => widget.onEventTap!(we.event),
                                                   continuesLeft: we.continuesLeft,
                                                   continuesRight: we.continuesRight,
+                                                  showFsName: widget.showFlightSchool,
                                                 ),
                                               ),
                                           ],
@@ -324,7 +329,6 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final label = "${_monthName(month.month)} ${month.year}";
 
     return Row(
@@ -346,22 +350,6 @@ class _Header extends StatelessWidget {
           onPressed: onNext,
           icon: const Icon(Icons.chevron_right),
           tooltip: "Next month",
-        ),
-        const SizedBox(width: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            "Month",
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: cs.onSurfaceVariant,
-              fontSize: 12,
-            ),
-          ),
         ),
       ],
     );
@@ -388,26 +376,52 @@ class _Header extends StatelessWidget {
 
 class _EventBar extends StatelessWidget {
   final Event event;
-  final FlightSchoolUserView? fs;
+  final dynamic flightSchool;
   final VoidCallback? onTap;
   final bool continuesLeft;
   final bool continuesRight;
+  final bool showFsName;
 
   const _EventBar({
     super.key,
     required this.event,
-    required this.fs,
+    required this.flightSchool,
     required this.onTap,
     required this.continuesLeft,
     required this.continuesRight,
+    required this.showFsName
   });
+
+  String _fsLogo(dynamic fs) {
+    if (fs == null) return '';
+    try {
+      final v = (fs as dynamic).logoLink;
+      return (v ?? '').toString();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _fsName(dynamic fs) {
+    if (fs == null) return '';
+    try {
+      final shortName = (fs as dynamic).displayShortName?.toString() ?? '';
+      if (shortName.trim().isNotEmpty) return shortName;
+    } catch (_) {}
+    try {
+      return (fs as dynamic).displayName?.toString() ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final style = _EventBarStyle.from(context, event);
-    final logo = (fs?.logoLink ?? '').toString();
-    final fsName = fs?.displayShortName ?? fs?.displayName ?? "";
+    final style = _EventBarStyle.from(event);
+
+    final logo = _fsLogo(flightSchool);
+    final fsName = _fsName(flightSchool);
 
     final radius = BorderRadius.only(
       topLeft: Radius.circular(continuesLeft ? 4 : 10),
@@ -415,6 +429,8 @@ class _EventBar extends StatelessWidget {
       topRight: Radius.circular(continuesRight ? 4 : 10),
       bottomRight: Radius.circular(continuesRight ? 4 : 10),
     );
+
+    final infoText = showFsName ? "$fsName · ${event.displayName}"   : event.displayName;
 
     return Material(
       color: style.bg,
@@ -448,7 +464,7 @@ class _EventBar extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  fsName.isEmpty ? event.displayName : "$fsName · ${event.displayName}",
+                  infoText,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -469,66 +485,27 @@ class _EventBar extends StatelessWidget {
     );
   }
 }
+
 class _EventBarStyle {
   final Color bg;
   final Color fg;
 
   const _EventBarStyle(this.bg, this.fg);
 
-  static _EventBarStyle from(BuildContext context, Event event) {
+  static _EventBarStyle from(Event event) {
     final palette = <_EventBarStyle>[
-    // Muted Blue
-    _EventBarStyle(
-    Color(0xFFCBD5E1), // slate-300
-    Color(0xFF1E293B), // slate-800
-    ),
-
-    // Muted Green
-    _EventBarStyle(
-    Color(0xFFCCEDE2),
-    Color(0xFF064E3B),
-    ),
-
-    // Muted Purple
-    _EventBarStyle(
-    Color(0xFFD8D5F0),
-    Color(0xFF3C2E7E),
-    ),
-
-    // Muted Orange
-    _EventBarStyle(
-    Color(0xFFF1D4B8),
-    Color(0xFF7C2D12),
-    ),
-
-    // Muted Teal
-    _EventBarStyle(
-    Color(0xFFCFE4E8),
-    Color(0xFF134E4A),
-    ),
-
-    // Muted Rose
-    _EventBarStyle(
-    Color(0xFFE6C9D4),
-    Color(0xFF701A3A),
-    ),
-
-    // Muted Yellow / Sand
-    _EventBarStyle(
-    Color(0xFFE8DFC2),
-    Color(0xFF6B4E16),
-    ),
-
-    // Muted Indigo / Steel
-    _EventBarStyle(
-    Color(0xFFD6DBF2),
-    Color(0xFF2C2F6B),
-    ),
+      _EventBarStyle(Color(0xFFCBD5E1), Color(0xFF1E293B)), // muted blue
+      _EventBarStyle(Color(0xFFCCEDE2), Color(0xFF064E3B)), // muted green
+      _EventBarStyle(Color(0xFFD8D5F0), Color(0xFF3C2E7E)), // muted purple
+      _EventBarStyle(Color(0xFFF1D4B8), Color(0xFF7C2D12)), // muted orange
+      _EventBarStyle(Color(0xFFCFE4E8), Color(0xFF134E4A)), // muted teal
+      _EventBarStyle(Color(0xFFE6C9D4), Color(0xFF701A3A)), // muted rose
+      _EventBarStyle(Color(0xFFE8DFC2), Color(0xFF6B4E16)), // sand
+      _EventBarStyle(Color(0xFFD6DBF2), Color(0xFF2C2F6B)), // indigo/steel
     ];
 
     final h = _stableHash(event.id.isNotEmpty ? event.id : event.displayName);
-    final idx = h % palette.length;
-    return palette[idx];
+    return palette[h % palette.length];
   }
 
   static int _stableHash(String s) {
@@ -544,7 +521,6 @@ class _EventBarStyle {
     return h;
   }
 }
-
 
 class _WeekEvent {
   final Event event;
