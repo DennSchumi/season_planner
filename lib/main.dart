@@ -23,6 +23,7 @@ void main() {
   AuthService().init();
   DatabaseService().init();
   FlightSchoolService().init();
+  //AuthService().logout();
   //AuthService().testLogin();
 }
 
