@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../data/enums/event_user_status_enum.dart';
 import '../../../services/providers/user_provider.dart';
 import '../../widgets/calender_widget.dart';
 import '../home/widgets/event_detail_view.dart';
@@ -15,14 +16,16 @@ class CalenderView extends StatefulWidget{
 
 class _CalenderView extends State<CalenderView>{
 
-
   @override
   Widget build(BuildContext context){
     final user = context.watch<UserProvider>().user!;
     final fsById = { for (final fs in user.flightSchools) fs.id: fs };
+    final events = user.events
+        .where((e) => e.assignmentStatus == EventUserStatusEnum.accepted_flight_school)
+        .toList();
 
     return Scaffold(
-      body: Center(
+      body:SafeArea(child:  Center(
         child: Column(
           children: [
             Center(
@@ -33,7 +36,7 @@ class _CalenderView extends State<CalenderView>{
             ),
             SizedBox(height: 16,),
             EventsCalendar(
-              events: user.events,
+              events:events,
               flightSchoolById: (id) => fsById[id],
               onEventTap: (e) {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailView(event: e)));
@@ -42,6 +45,6 @@ class _CalenderView extends State<CalenderView>{
           ],
         ),
       ),
-    );
+    ));
   }
 }
