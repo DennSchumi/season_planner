@@ -1,6 +1,6 @@
 enum EventUserStatusEnum {
     open,
-    aceppted_flight_school,
+    accepted_flight_school,
     accepted_user,
     pending_flight_school,
     pending_user,
@@ -14,7 +14,7 @@ extension EventUserStatusLabel on EventUserStatusEnum {
         switch (this) {
             case EventUserStatusEnum.open:
                 return 'Open Opportunity';
-            case EventUserStatusEnum.aceppted_flight_school:
+            case EventUserStatusEnum.accepted_flight_school:
                 return 'Accepted by Flight School';
             case EventUserStatusEnum.accepted_user:
                 return 'Accepted by You';
@@ -37,7 +37,7 @@ extension EventUserStatusLabelForNewEvent on EventUserStatusEnum {
         switch (this) {
             case EventUserStatusEnum.open:
                 return 'Open Opportunity';
-            case EventUserStatusEnum.aceppted_flight_school:
+            case EventUserStatusEnum.accepted_flight_school:
                 return 'Accepted by Flight School';
             case EventUserStatusEnum.accepted_user:
                 return 'Accepted by User';

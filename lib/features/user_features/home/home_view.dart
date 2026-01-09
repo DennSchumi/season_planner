@@ -53,7 +53,7 @@ class _HomeViewState extends State<HomeView> {
             publicRequests.add(event);
             break;
           case EventUserStatusEnum.accepted_user:
-          case EventUserStatusEnum.aceppted_flight_school:
+          case EventUserStatusEnum.accepted_flight_school:
             acceptedEvents.add(event);
             break;
           case EventUserStatusEnum.pending_flight_school:

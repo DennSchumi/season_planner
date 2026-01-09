@@ -521,7 +521,7 @@ class _BottomActionBar extends StatelessWidget {
         ),
       );
     } else if (status == EventUserStatusEnum.accepted_user ||
-        status == EventUserStatusEnum.aceppted_flight_school) {
+        status == EventUserStatusEnum.accepted_flight_school) {
       content = OutlinedButton.icon(
         onPressed: onChange,
         icon: const Icon(Icons.swap_horiz),
