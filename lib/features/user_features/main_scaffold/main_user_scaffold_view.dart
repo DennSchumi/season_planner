@@ -27,19 +27,19 @@ class _MainUserScaffoldState extends State<MainUserScaffoldView> {
 
   List<Widget> get widgetList => <Widget>[
     HomeView(
-      isLoading: isLoading,
-      hasConnection: hasConnection,
-      lastUpdated: lastUpdated,
+      isLoading: _isLoading,
+      hasConnection: _hasConnection,
+      lastUpdated: _lastUpdated,
     ),
     CurrentEventView(
-      isLoading: isLoading,
-      hasConnection: hasConnection,
-      lastUpdated: lastUpdated,
+      isLoading: _isLoading,
+      hasConnection: _hasConnection,
+      lastUpdated: _lastUpdated,
     ),
     CalenderView(
-      isLoading: isLoading,
-      hasConnection: hasConnection,
-      lastUpdated: lastUpdated,
+      isLoading: _isLoading,
+      hasConnection: _hasConnection,
+      lastUpdated: _lastUpdated,
     ),
     AccountView(),
   ];
@@ -51,7 +51,7 @@ class _MainUserScaffoldState extends State<MainUserScaffoldView> {
     _selectedIndex = widget.selected_index ?? 0;
     _loadUser();
 
-    _refreshTimer = Timer.periodic(Duration(seconds: 10), (timer) {
+    _refreshTimer = Timer.periodic(Duration(seconds: 60), (timer) {
       _loadUser();
     });
   }
