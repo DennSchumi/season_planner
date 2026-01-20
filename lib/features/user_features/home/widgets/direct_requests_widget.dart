@@ -78,7 +78,7 @@ class DirectRequestsWidget extends StatelessWidget {
                       flightSchool: fs,
                       dateText:
                       '${_formatDate(event.startTime)} – ${_formatDate(event.endTime)}',
-                      statusColor: _getStatusColor(event),
+                      status: event.status,
                       onTap: () {
                         Navigator.push(
                           context,

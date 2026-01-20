@@ -13,18 +13,7 @@ class YourEventsWidget extends StatelessWidget {
 
   const YourEventsWidget({super.key, required this.events});
 
-  Color _getStatusColor(Event event) {
-    switch (event.status) {
-      case EventStatusEnum.scheduled:
-        return Colors.green;
-      case EventStatusEnum.provisional:
-        return Colors.orange;
-      case EventStatusEnum.canceled:
-        return Colors.red;
-      default:
-        return Colors.white;
-    }
-  }
+
 
   String _formatDate(DateTime date) => '${date.day}.${date.month}.${date.year}';
 
@@ -52,7 +41,6 @@ class YourEventsWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [Text('Your upcoming Events')]),
             Center(child: Text('No events found')),
           ],
         ),
@@ -64,8 +52,6 @@ class YourEventsWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Your upcoming Events'),
-          const SizedBox(height: 10),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -79,7 +65,7 @@ class YourEventsWidget extends StatelessWidget {
                       flightSchool: fs,
                       dateText:
                       '${_formatDate(event.startTime)} – ${_formatDate(event.endTime)}',
-                      statusColor: _getStatusColor(event),
+                      status: event.status,
                       onTap: () {
                         Navigator.push(
                           context,

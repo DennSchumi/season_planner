@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:season_planer/data/enums/event_status_enum.dart';
 
 import '../../../../data/models/event_model.dart';
 import '../../../../data/models/user_models/flight_school_model_user_view.dart';
@@ -7,7 +8,7 @@ class EventCardTile extends StatelessWidget {
   final Event event;
   final FlightSchoolUserView? flightSchool;
   final String dateText;
-  final Color statusColor;
+  final EventStatusEnum status;
   final VoidCallback onTap;
 
   const EventCardTile({
@@ -15,9 +16,22 @@ class EventCardTile extends StatelessWidget {
     required this.event,
     required this.flightSchool,
     required this.dateText,
-    required this.statusColor,
+    required this.status,
     required this.onTap,
   });
+
+  String _getStatusText(EventStatusEnum status) {
+    switch (status) {
+      case EventStatusEnum.scheduled:
+        return EventStatusEnum.scheduled.label;
+      case EventStatusEnum.provisional:
+        return EventStatusEnum.canceled.label;
+      case EventStatusEnum.canceled:
+        return EventStatusEnum.canceled.label;
+      default:
+        return "none";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,21 +104,16 @@ class EventCardTile extends StatelessWidget {
                             icon: Icons.place_outlined,
                             text: event.location!,
                           ),
+                        _InfoChip(
+                          icon: Icons.question_answer_outlined,
+                          text: _getStatusText(status),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
 
-              Container(
-                margin: const EdgeInsets.only(left: 8, top: 4),
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
             ],
           ),
         ),
