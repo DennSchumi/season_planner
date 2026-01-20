@@ -60,7 +60,6 @@ class RequestsOpportunitiesWidget extends StatelessWidget {
     }
   }
 
-
   String _formatDate(DateTime date) =>
       '${date.day}.${date.month}.${date.year}';
 
@@ -126,42 +125,41 @@ class RequestsOpportunitiesWidget extends StatelessWidget {
                   );
                 },
               ),
-
-              Positioned(
-                right: 10,
-                top: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getTypeColor(event).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _getTypeColor(event)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _getTypeIcon(event),
-                        size: 14,
-                        color: _getTypeColor(event),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _getTypeLabel(event),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+              if (event.assignmentStatus != EventUserStatusEnum.pending_flight_school)
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getTypeColor(event).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _getTypeColor(event)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getTypeIcon(event),
+                          size: 14,
                           color: _getTypeColor(event),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          _getTypeLabel(event),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: _getTypeColor(event),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         );
-
       },
     );
   }
