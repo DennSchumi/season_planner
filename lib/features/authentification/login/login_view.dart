@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:season_planer/services/auth_service.dart';
-
+import '../../../services/database_service.dart';
 import '../register/register_view.dart';
-// Importiere deine Forgot-Password View (oder ersetze die Navigation weiter unten)
-// import '../forgot_password/forgot_password_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -23,7 +21,6 @@ class _LoginViewState extends State<LoginView> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  String _errorMessage = '';
 
   @override
   void dispose() {
@@ -42,25 +39,13 @@ class _LoginViewState extends State<LoginView> {
   }
 
   void navigateForgotPassword() {
-    // Option 1: Named Route
-    // Navigator.pushNamed(context, '/forgot-password');
-
-    // Option 2: Direkt auf eine View (wenn du eine hast)
-    // Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordView()));
-
-    // Placeholder: Snackbar, damit du siehst, dass der Button geht
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Forgot Password: Route noch nicht verknüpft.')),
+      const SnackBar(content: Text('Forgot Password: Route not yet implemented.')),
     );
   }
 
   Future<void> handleLogin() async {
-    // Tastatur schließen
     FocusScope.of(context).unfocus();
-
-    setState(() {
-      _errorMessage = '';
-    });
 
     if (!_formKey.currentState!.validate()) return;
 
@@ -73,12 +58,28 @@ class _LoginViewState extends State<LoginView> {
 
     try {
       await AuthService().login(email, password);
+
+      final user = await DatabaseService().getUserInformation();
+
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/main');
+
+      if (user != null) {
+        Navigator.pushReplacementNamed(context, '/main');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login failed: Please check E-mail and Password.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Login failed: ${e.toString()}'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -88,19 +89,19 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
+
   String? _validateEmail(String? value) {
     final v = (value ?? '').trim();
-    if (v.isEmpty) return 'Bitte E-Mail eingeben';
-    // simple email check
+    if (v.isEmpty) return 'Please enter your email.';
     final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-    if (!emailRegex.hasMatch(v)) return 'Bitte eine gültige E-Mail eingeben';
+    if (!emailRegex.hasMatch(v)) return 'Please enter a valid email address.';
     return null;
   }
 
   String? _validatePassword(String? value) {
     final v = value ?? '';
-    if (v.isEmpty) return 'Bitte Passwort eingeben';
-    if (v.length < 6) return 'Mindestens 6 Zeichen';
+    if (v.isEmpty) return 'Please enter your password.';
+    if (v.length < 6) return 'Password must be at least 6 characters.';
     return null;
   }
 
@@ -145,7 +146,7 @@ class _LoginViewState extends State<LoginView> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          "Wellcome to the SeasonPlanner",
+                          "Welcome to SeasonPlanner",
                           textAlign: TextAlign.center,
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w700,
@@ -153,7 +154,7 @@ class _LoginViewState extends State<LoginView> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          "Login to continue!",
+                          "Log in to continue.",
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.textTheme.bodyMedium?.color?.withOpacity(0.75),
@@ -161,9 +162,7 @@ class _LoginViewState extends State<LoginView> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 20),
-
                     Card(
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -184,7 +183,7 @@ class _LoginViewState extends State<LoginView> {
                                 textInputAction: TextInputAction.next,
                                 autofillHints: const [AutofillHints.email],
                                 decoration: const InputDecoration(
-                                  labelText: "E-Mail",
+                                  labelText: "Email",
                                   prefixIcon: Icon(Icons.email_outlined),
                                 ),
                                 validator: _validateEmail,
@@ -192,9 +191,7 @@ class _LoginViewState extends State<LoginView> {
                                   FocusScope.of(context).requestFocus(_passwordFocus);
                                 },
                               ),
-
                               const SizedBox(height: 12),
-
                               TextFormField(
                                 controller: passwordController,
                                 focusNode: _passwordFocus,
@@ -221,10 +218,7 @@ class _LoginViewState extends State<LoginView> {
                                 validator: _validatePassword,
                                 onFieldSubmitted: (_) => handleLogin(),
                               ),
-
                               const SizedBox(height: 10),
-
-                              // Forgot password link
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
@@ -232,28 +226,7 @@ class _LoginViewState extends State<LoginView> {
                                   child: const Text("Forgot password?"),
                                 ),
                               ),
-
-                              // Error message
-                              if (_errorMessage.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: cs.errorContainer.withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Text(
-                                    _errorMessage,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: cs.onErrorContainer,
-                                    ),
-                                  ),
-                                ),
-                              ],
-
                               const SizedBox(height: 12),
-
-                              // Login button
                               SizedBox(
                                 height: 50,
                                 child: FilledButton(
@@ -267,15 +240,12 @@ class _LoginViewState extends State<LoginView> {
                                       : const Text("Login"),
                                 ),
                               ),
-
                               const SizedBox(height: 12),
-
-                              // Register link
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    "No Account?",
+                                    "Don't have an account?",
                                     style: theme.textTheme.bodyMedium,
                                   ),
                                   TextButton(
@@ -289,7 +259,6 @@ class _LoginViewState extends State<LoginView> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 18),
                     Text(
                       "© ${DateTime.now().year} SeasonPlanner",
