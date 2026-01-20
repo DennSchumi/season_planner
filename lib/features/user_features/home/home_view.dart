@@ -184,10 +184,14 @@ class _HomeViewState extends State<HomeView> {
               length: tabs.length,
               child: Column(
                 children: [
-                  const TabBar(
-                    tabs: tabs,
-                    isScrollable: true,
+                  Align(
+                    alignment: Alignment.center,
+                    child: TabBar(
+                      tabs: tabs,
+                      isScrollable: false,
+                    ),
                   ),
+
                   Expanded(
                     child: TabBarView(
                       children: [
