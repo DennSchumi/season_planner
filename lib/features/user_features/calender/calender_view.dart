@@ -7,12 +7,22 @@ import '../../../services/providers/user_provider.dart';
 import '../../widgets/calender_widget.dart';
 import '../home/widgets/event_detail_view.dart';
 
-class CalenderView extends StatefulWidget{
-  const CalenderView({super.key});
+class CalenderView extends StatefulWidget {
+  final bool isLoading;
+  final bool hasConnection;
+  final DateTime? lastUpdated;
+
+  const CalenderView({
+    super.key,
+    required this.isLoading,
+    required this.hasConnection,
+    required this.lastUpdated,
+  });
 
   @override
   _CalenderView createState() => _CalenderView();
 }
+
 
 class _CalenderView extends State<CalenderView>{
 
@@ -28,12 +38,40 @@ class _CalenderView extends State<CalenderView>{
       body:SafeArea(child:  Center(
         child: Column(
           children: [
-            Center(
-              child: Text(
-                'Kalender',
-                style: TextStyle(fontSize: 26),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: Center(child:   Text(
+                  'Calendar',
+                  style: TextStyle(fontSize: 26),
+                ),)),
+
+                Row(
+                  children: [
+                    if (widget.isLoading)
+                      Icon(Icons.sync, color: Colors.blue)
+                    else if (widget.hasConnection)
+                      Icon(Icons.check_circle, color: Colors.green)
+                    else
+                      Icon(Icons.error, color: Colors.red),
+                    SizedBox(width: 8),
+                    if (widget.lastUpdated != null)
+                      Text(
+                        widget.hasConnection
+                            ? 'Updated: ${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}'
+                            : 'No connection · Last: ${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(fontSize: 12, color: widget.hasConnection ? Colors.grey : Colors.redAccent),
+                      )
+                    else
+                      Text(
+                        'No data available',
+                        style: TextStyle(fontSize: 12, color: Colors.redAccent),
+                      ),
+                  ],
+                ),
+              ],
             ),
+
             SizedBox(height: 16,),
             EventsCalendar(
               events:events,

@@ -12,11 +12,21 @@ import 'package:season_planer/services/providers/user_provider.dart';
 import '../../../data/models/event_model.dart';
 
 class HomeView extends StatefulWidget {
-  const HomeView({super.key});
+  final bool isLoading;
+  final bool hasConnection;
+  final DateTime? lastUpdated;
+
+  const HomeView({
+    super.key,
+    required this.isLoading,
+    required this.hasConnection,
+    required this.lastUpdated,
+  });
 
   @override
   _HomeViewState createState() => _HomeViewState();
 }
+
 
 class _HomeViewState extends State<HomeView> {
   Set<String> selectedFlightSchools = {};
@@ -74,14 +84,45 @@ class _HomeViewState extends State<HomeView> {
         child:SingleChildScrollView(
           child:
         Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Center(
-              child: Text(
-                'Hallo ${user.name ?? "Gast"}',
-                style: TextStyle(fontSize: 26),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Hallo ${user.name ?? "Gast"}',
+                      style: TextStyle(fontSize: 26),
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.isLoading)
+                      Icon(Icons.sync, color: Colors.blue)
+                    else if (widget.hasConnection)
+                      Icon(Icons.check_circle, color: Colors.green)
+                    else
+                      Icon(Icons.error, color: Colors.red),
+                    SizedBox(width: 8),
+                    if (widget.lastUpdated != null)
+                      Text(
+                        widget.hasConnection
+                            ? 'Updated: ${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}'
+                            : 'No connection · Last: ${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(fontSize: 12, color: widget.hasConnection ? Colors.grey : Colors.redAccent),
+                      )
+                    else
+                      Text(
+                        'No data available',
+                        style: TextStyle(fontSize: 12, color: Colors.redAccent),
+                      ),
+                  ],
+                )
+              ],
             ),
+
             SizedBox(height: 16,),
             if(user.flightSchools.length>1)
               FlightSchoolSelector(
