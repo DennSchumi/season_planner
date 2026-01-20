@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planer/data/enums/event_user_status_enum.dart';
-import 'package:season_planer/features/user_features/home/widgets/direct_requests_widget.dart';
 import 'package:season_planer/features/user_features/home/widgets/flight_school_selector_widget.dart';
-import 'package:season_planer/features/user_features/home/widgets/open_opportunities_widget.dart';
+import 'package:season_planer/features/user_features/home/widgets/requests_open_opportunities_widget.dart';
 import 'package:season_planer/features/user_features/home/widgets/your_events_widget.dart';
 import 'package:season_planer/services/database_service.dart';
 import 'package:season_planer/services/providers/user_provider.dart';
@@ -27,11 +26,14 @@ class HomeView extends StatefulWidget {
   _HomeViewState createState() => _HomeViewState();
 }
 
-
 class _HomeViewState extends State<HomeView> {
   Set<String> selectedFlightSchools = {};
   bool _initializedSelection = false;
 
+  static const List<Tab> tabs = <Tab>[
+    Tab(text: 'Your Events'),
+    Tab(text: 'Requests & Opportunities'),
+  ];
 
   @override
   void initState() {
@@ -51,9 +53,11 @@ class _HomeViewState extends State<HomeView> {
       selectedFlightSchools = user.flightSchools.map((fs) => fs.id).toSet();
       _initializedSelection = true;
     }
+
     final List<Event> publicRequests = [];
     final List<Event> acceptedEvents = [];
     final List<Event> pendingOrRequestedEvents = [];
+    final List<Event> userChangeRequests = [];
     DateTime dateTimeNow = DateTime.now();
 
     for (final event in user.events) {
@@ -66,10 +70,12 @@ class _HomeViewState extends State<HomeView> {
           case EventUserStatusEnum.accepted_flight_school:
             acceptedEvents.add(event);
             break;
+          case EventUserStatusEnum.user_requests_change:
+            userChangeRequests.add(event);
+            break;
           case EventUserStatusEnum.pending_flight_school:
           case EventUserStatusEnum.pending_user:
           case EventUserStatusEnum.denied_flight_school:
-          case EventUserStatusEnum.user_requests_change:
           case EventUserStatusEnum.denied_user:
             pendingOrRequestedEvents.add(event);
             break;
@@ -77,55 +83,94 @@ class _HomeViewState extends State<HomeView> {
       }
     }
 
-
     return Scaffold(
-      body: SafeArea(
-        minimum: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
-        child:SingleChildScrollView(
-          child:
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      'Hallo ${user.name ?? "Gast"}',
-                      style: TextStyle(fontSize: 26),
-                    ),
-                  ),
+            Expanded(
+              child:  Text(
+                  'Hallo ${user.name ?? "Gast"}',
+                  style: TextStyle(fontSize: 22),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.isLoading)
-                      Icon(Icons.sync, color: Colors.blue)
-                    else if (widget.hasConnection)
-                      Icon(Icons.check_circle, color: Colors.green)
-                    else
-                      Icon(Icons.error, color: Colors.red),
-                    SizedBox(width: 8),
-                    if (widget.lastUpdated != null)
-                      Text(
-                        widget.hasConnection
-                            ? 'Updated: ${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}'
-                            : 'No connection · Last: ${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}',
-                        style: TextStyle(fontSize: 12, color: widget.hasConnection ? Colors.grey : Colors.redAccent),
-                      )
-                    else
-                      Text(
-                        'No data available',
-                        style: TextStyle(fontSize: 12, color: Colors.redAccent),
+
+            ),
+
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: widget.isLoading
+                      ? const Icon(Icons.sync, color: Colors.blue)
+                      : widget.hasConnection
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : const Icon(Icons.error, color: Colors.red),
+                  tooltip: 'Connection Info',
+                  onPressed: () {
+                    final message = widget.isLoading
+                        ? 'Loading latest data...'
+                        : widget.hasConnection
+                        ? 'Last updated at ${widget.lastUpdated != null ? '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}' : 'unknown'}'
+                        : 'No connection. Last update was at ${widget.lastUpdated != null ? '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}' : 'unknown'}';
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        duration: const Duration(seconds: 3),
                       ),
-                  ],
-                )
+                    );
+                  },
+                ),
               ],
             ),
 
-            SizedBox(height: 16,),
-            if(user.flightSchools.length>1)
-              FlightSchoolSelector(
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  IconButton(
+                    iconSize: 30,
+                    icon: const Icon(Icons.notifications_none),
+                    tooltip: 'Notifications',
+                    onPressed: () {
+                      // TODO: Open notifications page/dialog
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No notifications yet.')),
+                      );
+                    },
+                  ),
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Text(
+                        '1', //TODO:Variable for count
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (user.flightSchools.length > 1)
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: FlightSchoolSelector(
                 flightSchools: user.flightSchools,
                 onSelectionChanged: (Set<String> selected) {
                   setState(() {
@@ -133,17 +178,32 @@ class _HomeViewState extends State<HomeView> {
                   });
                 },
               ),
-
-            Divider(),
-            YourEventsWidget(events: acceptedEvents),
-            Divider(),
-            DirectRequestsWidget(events: pendingOrRequestedEvents),
-            Divider(),
-            OpenOpportunitiesWidget(events: publicRequests),
-          ],
-        ),
+            ),
+          Expanded(
+            child: DefaultTabController(
+              length: tabs.length,
+              child: Column(
+                children: [
+                  const TabBar(
+                    tabs: tabs,
+                    isScrollable: true,
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        YourEventsWidget(
+                          events: [...acceptedEvents, ...userChangeRequests],
+                        ),
+                        RequestsOpportunitiesWidget(events: [...pendingOrRequestedEvents, ...publicRequests]),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        ],
       ),
-    )
     );
   }
 }
