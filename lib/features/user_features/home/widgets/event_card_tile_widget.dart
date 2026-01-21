@@ -48,6 +48,11 @@ class EventCardTile extends StatelessWidget {
           message: 'Confirmed',
           child: Icon(Icons.check_circle, color: Colors.green, size: 20),
         );
+      case EventUserStatusEnum.accepted_flight_school:
+        return Tooltip(
+          message: 'Confirmed',
+          child: Icon(Icons.check_circle, color: Colors.green, size: 20),
+        );
       case EventUserStatusEnum.denied_user:
         return Tooltip(
           message: 'Denied',
@@ -130,10 +135,6 @@ class EventCardTile extends StatelessWidget {
                       spacing: 10,
                       runSpacing: 4,
                       children: [
-                        _InfoChip(
-                          icon: Icons.paragliding,
-                          text: fsName,
-                        ),
                         _InfoChip(
                           icon: Icons.calendar_today_outlined,
                           text: dateText,
