@@ -124,7 +124,7 @@ class _HomeViewState extends State<HomeView> {
               ],
             ),
 
-            Padding(
+            /*Padding(
               padding: const EdgeInsets.only(right: 12.0),
               child: Stack(
                 alignment: Alignment.topRight,
@@ -160,7 +160,7 @@ class _HomeViewState extends State<HomeView> {
                   ),
                 ],
               ),
-            ),
+            ),*/
           ],
         ),
       ),
