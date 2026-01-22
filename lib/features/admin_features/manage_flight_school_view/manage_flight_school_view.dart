@@ -20,7 +20,8 @@ class _ManageFlightSchoolView extends State<ManageFlightSchoolView>{
 
     return Scaffold(
         body: SafeArea(
-          child:Column(
+            minimum: const EdgeInsets.all(10),
+            child:Column(
             children: [
               SizedBox(height: 16),
               ClipOval(
