@@ -745,7 +745,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                         title: Text(displayName),
                         subtitle: Text(
                           "${EventRoleEnum.values.byName(tm.role).label} • "
-                              "${EventUserStatusLabelForNewEvent(EventUserStatusEnum.values.byName(tm.status)).label}",
+                              "${EventUserStatusEnum.values.byName(tm.status).label}",
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
