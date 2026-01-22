@@ -7,7 +7,14 @@ import '../../../services/providers/user_provider.dart';
 import '../../widgets/calender_widget.dart';
 
 class CalenderViewFlightSchool extends StatefulWidget{
-  const CalenderViewFlightSchool({super.key});
+  final bool isLoading;
+  final bool hasConnection;
+  final DateTime? lastUpdated;
+
+  const CalenderViewFlightSchool({super.key, this.isLoading = false,
+    this.hasConnection = true,
+    this.lastUpdated,});
+
 
   @override
   _CalenderViewFlightSchool createState() => _CalenderViewFlightSchool();
@@ -22,15 +29,38 @@ class _CalenderViewFlightSchool extends State<CalenderViewFlightSchool>{
     final fsById = { fs.id };
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Calender"),
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: widget.isLoading
+                ? const Icon(Icons.sync, color: Colors.blue)
+                : widget.hasConnection
+                ? const Icon(Icons.check_circle, color: Colors.green)
+                : const Icon(Icons.error, color: Colors.red),
+            onPressed: () {
+              if (widget.lastUpdated == null) return;
+
+              final time = '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}';
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    widget.hasConnection
+                        ? 'Last update: $time'
+                        : 'Offline · Last update: $time',
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body:SafeArea(child:  Center(
         child: Column(
           children: [
-            Center(
-              child: Text(
-                'Kalender',
-                style: TextStyle(fontSize: 26),
-              ),
-            ),
+
             SizedBox(height: 16,),
             Expanded(
                 child: EventsCalendar(

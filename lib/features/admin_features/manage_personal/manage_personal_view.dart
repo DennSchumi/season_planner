@@ -6,7 +6,18 @@ import 'package:season_planer/services/providers/flight_school_provider.dart' hi
 import 'package:season_planer/data/models/admin_models/user_summary_flight_school_view.dart';
 
 class ManagePersonalView extends StatefulWidget {
-  const ManagePersonalView({super.key});
+  final bool isLoading;
+  final bool hasConnection;
+  final DateTime? lastUpdated;
+
+
+  const ManagePersonalView({
+    super.key,
+    this.isLoading = false,
+    this.hasConnection = true,
+    this.lastUpdated,
+  });
+
 
   @override
   State<ManagePersonalView> createState() => _ManagePersonalViewState();
@@ -40,7 +51,6 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
     return roles.map((e) => e.label).join(", ");
   }
 
-  // ---------------- Invite Dialog ----------------
   Future<void> _openInviteDialog() async {
     final emailCtrl = TextEditingController();
     final Set<EventRoleEnum> selectedRoles = {};
@@ -135,7 +145,6 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
     }
   }
 
-  // ---------------- Change Roles (direkt speichern) ----------------
   Future<void> _editRolesForUser(UserSummary user) async {
     final Set<EventRoleEnum> working = {...user.roles};
 
@@ -204,7 +213,6 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
     }
   }
 
-  // ---------------- Remove member ----------------
   Future<void> _removeMember({required UserSummary user}) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -269,6 +277,30 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
       appBar: AppBar(
         title: const Text("Manage Personnel"),
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: widget.isLoading
+                ? const Icon(Icons.sync, color: Colors.blue)
+                : widget.hasConnection
+                ? const Icon(Icons.check_circle, color: Colors.green)
+                : const Icon(Icons.error, color: Colors.red),
+            onPressed: () {
+              if (widget.lastUpdated == null) return;
+
+              final time = '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}';
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    widget.hasConnection
+                        ? 'Last update: $time'
+                        : 'Offline · Last update: $time',
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(

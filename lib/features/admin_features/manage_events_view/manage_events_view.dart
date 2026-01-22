@@ -9,11 +9,21 @@ import '../../../services/database_service.dart';
 import '../widgets/event_upsert_view.dart';
 
 class ManageEventsView extends StatefulWidget {
-  const ManageEventsView({super.key});
+  final bool isLoading;
+  final bool hasConnection;
+  final DateTime? lastUpdated;
+
+  const ManageEventsView({
+    super.key,
+    required this.isLoading,
+    required this.hasConnection,
+    required this.lastUpdated,
+  });
 
   @override
   State<ManageEventsView> createState() => _ManageEventsViewState();
 }
+
 
 class _ManageEventsViewState extends State<ManageEventsView> {
   final _flightSchoolService = FlightSchoolService();
@@ -117,11 +127,32 @@ class _ManageEventsViewState extends State<ManageEventsView> {
     final statusValues = allEvents.map((e) => e.status).toSet().toList();
 
     return Scaffold(
-      appBar: AppBar(
+      appBar:AppBar(
         title: const Text("Your Events"),
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: widget.isLoading
+                ? const Icon(Icons.sync, color: Colors.blue)
+                : widget.hasConnection
+                ? const Icon(Icons.check_circle, color: Colors.green)
+                : const Icon(Icons.error, color: Colors.red),
+            onPressed: () {
+              if (widget.lastUpdated == null) return;
 
+              final time = '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}';
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    widget.hasConnection
+                        ? 'Last update: $time'
+                        : 'Offline · Last update: $time',
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
       body: SafeArea(
