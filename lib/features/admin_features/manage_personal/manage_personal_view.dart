@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/data/enums/event_role_enum.dart';
-import 'package:season_planer/services/flight_school_service.dart';
-import 'package:season_planer/services/providers/flight_school_provider.dart' hide FlightSchoolService;
-import 'package:season_planer/data/models/admin_models/user_summary_flight_school_view.dart';
+import 'package:season_planner/data/enums/event_role_enum.dart';
+import 'package:season_planner/services/flight_school_service.dart';
+import 'package:season_planner/services/providers/flight_school_provider.dart' hide FlightSchoolService;
+import 'package:season_planner/data/models/admin_models/user_summary_flight_school_view.dart';
 
 class ManagePersonalView extends StatefulWidget {
   final bool isLoading;
@@ -385,19 +385,7 @@ class _ManagePersonalViewState extends State<ManagePersonalView> {
 
                           const SizedBox(width: 10),
 
-                          Flexible(
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Wrap(
-                                alignment: WrapAlignment.end,
-                                spacing: 8,
-                                runSpacing: 6,
-                                children: roles.isEmpty
-                                    ? const [Chip(label: Text("No roles set"))]
-                                    : roles.map((r) => Chip(label: Text(r.label))).toList(),
-                              ),
-                            ),
-                          ),
+
 
                           PopupMenuButton<String>(
                             tooltip: "Actions",

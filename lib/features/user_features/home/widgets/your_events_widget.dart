@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/data/enums/event_status_enum.dart';
-import 'package:season_planer/data/models/event_model.dart';
-import 'package:season_planer/data/models/user_models/flight_school_model_user_view.dart';
-import 'package:season_planer/features/user_features/home/widgets/event_detail_view.dart';
+import 'package:season_planner/data/enums/event_status_enum.dart';
+import 'package:season_planner/data/models/event_model.dart';
+import 'package:season_planner/data/models/user_models/flight_school_model_user_view.dart';
+import 'package:season_planner/features/user_features/home/widgets/event_detail_view.dart';
 
 import '../../../../services/providers/user_provider.dart';
 import 'event_card_tile_widget.dart';

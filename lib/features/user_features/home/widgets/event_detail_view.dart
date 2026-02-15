@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/data/enums/event_user_status_enum.dart';
-import 'package:season_planer/data/models/event_model.dart';
-import 'package:season_planer/services/database_service.dart';
-import 'package:season_planer/services/providers/user_provider.dart';
+import 'package:season_planner/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/data/models/event_model.dart';
+import 'package:season_planner/services/database_service.dart';
+import 'package:season_planner/services/providers/user_provider.dart';
+import 'package:add_2_calendar_new/add_2_calendar_new.dart' as calendar;
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:web/web.dart' as web;
+import 'dart:js_interop';
+
+
 
 import '../../../../data/models/user_models/user_model_userView.dart';
 
@@ -22,9 +29,73 @@ class _EventDetailViewState extends State<EventDetailView> {
   @override
   void initState() {
     super.initState();
-    // Sauber: direkt read() nutzen (kein Future.microtask nötig)
     user = context.read<UserProvider>().user!;
   }
+
+
+  void exportToCalendar(Event myEvent) {
+    if (kIsWeb) {
+      _exportAsICS(myEvent);
+    } else {
+      final calendarEvent = calendar.Event(
+        title: myEvent.displayName,
+        description: myEvent.notes,
+        location: myEvent.location,
+        startDate: myEvent.startTime,
+        endDate: myEvent.endTime,
+        allDay: false,
+      );
+
+      calendar.Add2Calendar.addEvent2Cal(calendarEvent);
+    }
+  }
+
+  void _exportAsICS(Event event) {
+    final startUtc = event.startTime.toUtc();
+    final endUtc = event.endTime.toUtc();
+
+    String formatDate(DateTime dt) =>
+        "${dt.year.toString().padLeft(4, '0')}"
+            "${dt.month.toString().padLeft(2, '0')}"
+            "${dt.day.toString().padLeft(2, '0')}T"
+            "${dt.hour.toString().padLeft(2, '0')}"
+            "${dt.minute.toString().padLeft(2, '0')}"
+            "${dt.second.toString().padLeft(2, '0')}Z";
+
+    final icsContent = '''
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Season Planner//EN
+BEGIN:VEVENT
+UID:${event.id}
+DTSTAMP:${formatDate(DateTime.now().toUtc())}
+DTSTART:${formatDate(startUtc)}
+DTEND:${formatDate(endUtc)}
+SUMMARY:${event.displayName}
+DESCRIPTION:${event.notes}
+LOCATION:${event.location}
+END:VEVENT
+END:VCALENDAR
+''';
+
+    final bytes = utf8.encode(icsContent);
+
+    final blob = web.Blob([bytes.toJS].toJS, web.BlobPropertyBag(type: 'text/calendar'));
+    final url = web.URL.createObjectURL(blob);
+
+    final anchor = web.HTMLAnchorElement()
+      ..href = url
+      ..download = "${event.displayName}.ics";
+
+    web.document.body!.append(anchor);
+    anchor.click();
+    anchor.remove();
+
+    web.URL.revokeObjectURL(url);
+  }
+
+
+
 
   Future<bool> _request() async {
     final success = await DatabaseService().changeEventAssignmentStatus(
@@ -121,6 +192,14 @@ class _EventDetailViewState extends State<EventDetailView> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_today_outlined),
+            tooltip: "Add to calendar",
+            onPressed: () => exportToCalendar(event),
+          ),
+        ],
+
       ),
       bottomNavigationBar: _BottomActionBar(
         status: event.assignmentStatus,
@@ -190,7 +269,7 @@ class _EventDetailViewState extends State<EventDetailView> {
 
             const SizedBox(height: 12),
 
-            _SectionCard(
+            /*_SectionCard(
               title: "Team",
               children: event.team
                   .where((t) => t.name != null && t.name!.isNotEmpty)
@@ -233,7 +312,7 @@ class _EventDetailViewState extends State<EventDetailView> {
                 ),
               )
                   .toList(),
-            ),
+            ),*/
 
 
             const SizedBox(height: 12),
@@ -325,7 +404,7 @@ class _HeaderCard extends StatelessWidget {
                     children: [
                       _Pill(
                         icon: Icons.assignment_ind_outlined,
-                        text: event.assignmentStatus.name,
+                        text: event.assignmentStatus.label(context: EventUserStatusLabelContext.userView),
                       ),
                       _Pill(
                         icon: Icons.badge_outlined,

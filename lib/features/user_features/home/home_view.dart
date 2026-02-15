@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/data/enums/event_user_status_enum.dart';
-import 'package:season_planer/features/user_features/home/widgets/flight_school_selector_widget.dart';
-import 'package:season_planer/features/user_features/home/widgets/requests_open_opportunities_widget.dart';
-import 'package:season_planer/features/user_features/home/widgets/your_events_widget.dart';
-import 'package:season_planer/services/database_service.dart';
-import 'package:season_planer/services/providers/user_provider.dart';
+import 'package:season_planner/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/features/user_features/home/widgets/flight_school_selector_widget.dart';
+import 'package:season_planner/features/user_features/home/widgets/requests_open_opportunities_widget.dart';
+import 'package:season_planner/features/user_features/home/widgets/your_events_widget.dart';
+import 'package:season_planner/services/database_service.dart';
+import 'package:season_planner/services/providers/user_provider.dart';
 
 import '../../../data/models/event_model.dart';
 
@@ -23,7 +22,7 @@ class HomeView extends StatefulWidget {
   });
 
   @override
-  _HomeViewState createState() => _HomeViewState();
+  State<HomeView> createState() => _HomeViewState();
 }
 
 class _HomeViewState extends State<HomeView> {
@@ -43,14 +42,59 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<UserProvider>(context).user;
+    final user = context.watch<UserProvider>().user;
 
     if (user == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (user.flightSchools.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Text(
+            'Hello ${user.name ?? "Guest"}',
+            style: const TextStyle(fontSize: 22),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.flight_outlined,
+                  size: 70,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "You are not assigned to any flight school yet.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Please contact an Flight School Administrator to gain Access",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     if (!_initializedSelection) {
-      selectedFlightSchools = user.flightSchools.map((fs) => fs.id).toSet();
+      selectedFlightSchools =
+          user.flightSchools.map((fs) => fs.id).toSet();
       _initializedSelection = true;
     }
 
@@ -58,26 +102,31 @@ class _HomeViewState extends State<HomeView> {
     final List<Event> acceptedEvents = [];
     final List<Event> pendingOrRequestedEvents = [];
     final List<Event> userChangeRequests = [];
-    DateTime dateTimeNow = DateTime.now();
+
+    final now = DateTime.now();
 
     for (final event in user.events) {
-      if (!event.startTime.isBefore(dateTimeNow) && selectedFlightSchools.contains(event.flightSchoolId)) {
+      if (!event.startTime.isBefore(now) &&
+          selectedFlightSchools.contains(event.flightSchoolId)) {
         switch (event.assignmentStatus) {
-          case EventUserStatusEnum.open:
-            publicRequests.add(event);
-            break;
           case EventUserStatusEnum.accepted_user:
           case EventUserStatusEnum.accepted_flight_school:
             acceptedEvents.add(event);
             break;
+
           case EventUserStatusEnum.user_requests_change:
             userChangeRequests.add(event);
             break;
+
           case EventUserStatusEnum.pending_flight_school:
           case EventUserStatusEnum.pending_user:
           case EventUserStatusEnum.denied_flight_school:
           case EventUserStatusEnum.denied_user:
             pendingOrRequestedEvents.add(event);
+            break;
+
+          case EventUserStatusEnum.open:
+            publicRequests.add(event);
             break;
         }
       }
@@ -89,78 +138,33 @@ class _HomeViewState extends State<HomeView> {
         title: Row(
           children: [
             Expanded(
-              child:  Text(
-                  'Hallo ${user.name ?? "Gast"}',
-                  style: TextStyle(fontSize: 22),
-                ),
-
-            ),
-
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: widget.isLoading
-                      ? const Icon(Icons.sync, color: Colors.blue)
-                      : widget.hasConnection
-                      ? const Icon(Icons.check_circle, color: Colors.green)
-                      : const Icon(Icons.error, color: Colors.red),
-                  tooltip: 'Connection Info',
-                  onPressed: () {
-                    final message = widget.isLoading
-                        ? 'Loading latest data...'
-                        : widget.hasConnection
-                        ? 'Last updated at ${widget.lastUpdated != null ? '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}' : 'unknown'}'
-                        : 'No connection. Last update was at ${widget.lastUpdated != null ? '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}' : 'unknown'}';
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(message),
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-
-            /*Padding(
-              padding: const EdgeInsets.only(right: 12.0),
-              child: Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  IconButton(
-                    iconSize: 30,
-                    icon: const Icon(Icons.notifications_none),
-                    tooltip: 'Notifications',
-                    onPressed: () {
-                      // TODO: Open notifications page/dialog
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No notifications yet.')),
-                      );
-                    },
-                  ),
-                  Positioned(
-                    right: 4,
-                    top: 4,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Text(
-                        '1', //TODO:Variable for count
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Hello ${user.name ?? "Guest"}',
+                style: const TextStyle(fontSize: 22),
               ),
-            ),*/
+            ),
+            IconButton(
+              icon: widget.isLoading
+                  ? const Icon(Icons.sync, color: Colors.blue)
+                  : widget.hasConnection
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : const Icon(Icons.error, color: Colors.red),
+              tooltip: 'Connection Info',
+              onPressed: () {
+                final message = widget.isLoading
+                    ? 'Loading latest data...'
+                    : widget.hasConnection
+                    ? 'Last updated at ${widget.lastUpdated != null ? '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}' : 'unknown'}'
+                    : 'No connection. Last update was at ${widget.lastUpdated != null ? '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}' : 'unknown'}';
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -184,28 +188,32 @@ class _HomeViewState extends State<HomeView> {
               length: tabs.length,
               child: Column(
                 children: [
-                  Align(
-                    alignment: Alignment.center,
-                    child: TabBar(
-                      tabs: tabs,
-                      isScrollable: false,
-                    ),
+                  const TabBar(
+                    tabs: tabs,
+                    isScrollable: false,
                   ),
-
                   Expanded(
                     child: TabBarView(
                       children: [
                         YourEventsWidget(
-                          events: [...acceptedEvents, ...userChangeRequests],
+                          events: [
+                            ...acceptedEvents,
+                            ...userChangeRequests
+                          ],
                         ),
-                        RequestsOpportunitiesWidget(events: [...pendingOrRequestedEvents, ...publicRequests]),
+                        RequestsOpportunitiesWidget(
+                          events: [
+                            ...pendingOrRequestedEvents,
+                            ...publicRequests
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-          )
+          ),
         ],
       ),
     );

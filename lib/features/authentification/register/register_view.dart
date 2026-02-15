@@ -1,6 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
-import 'package:season_planer/services/auth_service.dart';
+import 'package:season_planner/services/auth_service.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -66,8 +66,7 @@ class _RegisterViewState extends State<RegisterView> {
 
   String? _validatePhoneOptional(String? value) {
     final v = (value ?? '').trim();
-    if (v.isEmpty) return null; // optional
-    // Simple, permissive phone validation (digits, spaces, +, -, parentheses)
+    if (v.isEmpty) return null;
     final phoneRegex = RegExp(r'^[0-9+\-\s()]{6,}$');
     if (!phoneRegex.hasMatch(v)) return 'Please enter a valid phone number';
     return null;
@@ -97,7 +96,7 @@ class _RegisterViewState extends State<RegisterView> {
     final firstName = firstNameController.text.trim();
     final lastName = lastNameController.text.trim();
     final email = emailController.text.trim();
-    final password = passwordController.text; // keep as is
+    final password = passwordController.text;
 
     final fullName = '$firstName $lastName'.trim();
 
@@ -111,7 +110,7 @@ class _RegisterViewState extends State<RegisterView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              'Account created. Please check your email to verify/sign in.'),
+              'Account created. You can now Login.'),
         ),
       );
     } catch (e) {
@@ -191,7 +190,6 @@ class _RegisterViewState extends State<RegisterView> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Names row
                           Row(
                             children: [
                               Expanded(

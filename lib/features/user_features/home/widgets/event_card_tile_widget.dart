@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:season_planer/data/enums/event_status_enum.dart';
-import 'package:season_planer/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/data/enums/event_status_enum.dart';
+import 'package:season_planner/data/enums/event_user_status_enum.dart';
 
 import '../../../../data/models/event_model.dart';
 import '../../../../data/models/user_models/flight_school_model_user_view.dart';
@@ -59,6 +59,7 @@ class EventCardTile extends StatelessWidget {
           child: Icon(Icons.cancel, color: Colors.red, size: 20),
         );
       case EventUserStatusEnum.pending_user:
+        return null;
       case EventUserStatusEnum.pending_flight_school:
         return Tooltip(
           message: 'Pending confirmation',

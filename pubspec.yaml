@@ -1,4 +1,4 @@
-name: season_planer
+name: season_planner
 description: "Plan your Season"
 publish_to: 'none'
 version: 0.0.1+1
@@ -15,21 +15,33 @@ dependencies:
   provider: ^6.1.5
   flutter_launcher_icons: ^0.14.3
   image_picker: ^1.1.2
-
-
-
-
-
-flutter_icons:
-  android: true
-  ios: true
-  image_path: "lib/assets/app_icon/app_icon.png"
+  add_2_calendar_new: ^1.0.4
+  web: ^1.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_native_splash: ^2.3.2
 
-  flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  image_path: "lib/assets/app_icon/app_icon.png"
+  android: true
+  ios: true
+  web:
+    generate: true
+  windows:
+    generate: true
+  macos:
+    generate: true
+
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: lib/assets/splash_icon/splash_icon.png
+  android: true
+  ios: true
+  web: true
 
 flutter:
   uses-material-design: true

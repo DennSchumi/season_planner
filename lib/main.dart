@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/services/auth_service.dart';
-import 'package:season_planer/services/database_service.dart';
-import 'package:season_planer/services/flight_school_service.dart';
-import 'package:season_planer/services/providers/flight_school_provider.dart';
-import 'package:season_planer/services/providers/user_provider.dart';
+import 'package:season_planner/services/auth_service.dart';
+import 'package:season_planner/services/database_service.dart';
+import 'package:season_planner/services/flight_school_service.dart';
+import 'package:season_planner/services/providers/flight_school_provider.dart';
+import 'package:season_planner/services/providers/user_provider.dart';
 import 'core/app_router.dart';
 import 'features/authentification/login/login_view.dart';
 import 'features/user_features/main_scaffold/main_user_scaffold_view.dart';

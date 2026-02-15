@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/features/user_features/current_event/current_event_view.dart';
+import 'package:season_planner/features/user_features/current_event/current_event_view.dart';
 import '../../../data/models/user_models/user_model_userView.dart';
 import '../../../services/database_service.dart';
 import '../../../services/providers/user_provider.dart';
@@ -108,7 +108,7 @@ class _MainUserScaffoldState extends State<MainUserScaffoldView> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'HOME'),
           BottomNavigationBarItem(icon: Icon(Icons.access_time_outlined), label: 'EVENT'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'KALENDER'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_circle_outlined), label: 'BENUTZER'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_circle_outlined), label: 'USER'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.amber[800],

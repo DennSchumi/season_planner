@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:season_planer/data/models/user_models/flight_school_model_user_view.dart';
+import 'package:season_planner/data/models/user_models/flight_school_model_user_view.dart';
 
 import '../../data/models/event_model.dart';
 import '../../data/models/user_models/user_model_userView.dart';

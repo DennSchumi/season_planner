@@ -1,6 +1,6 @@
-import 'package:season_planer/data/enums/event_role_enum.dart';
-import 'package:season_planer/data/enums/event_status_enum.dart';
-import 'package:season_planer/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/data/enums/event_role_enum.dart';
+import 'package:season_planner/data/enums/event_status_enum.dart';
+import 'package:season_planner/data/enums/event_user_status_enum.dart';
 
 class Event {
   final String id;

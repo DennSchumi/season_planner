@@ -1,4 +1,4 @@
-import 'package:season_planer/data/enums/event_role_enum.dart';
+import 'package:season_planner/data/enums/event_role_enum.dart';
 
 class UserSummary {
   final String id;

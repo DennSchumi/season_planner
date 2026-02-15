@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:season_planer/data/models/user_models/user_model_userView.dart';
+import 'package:season_planner/data/models/user_models/user_model_userView.dart';
 
 class AppState{
   static final AppState _instance = AppState._internal();

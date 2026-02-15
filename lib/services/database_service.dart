@@ -1,13 +1,13 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/data/enums/event_role_enum.dart';
-import 'package:season_planer/data/enums/event_user_status_enum.dart';
-import 'package:season_planer/data/enums/membership_status_enum.dart';
-import 'package:season_planer/data/models/event_model.dart';
-import 'package:season_planer/data/models/user_models/flight_school_model_user_view.dart';
-import 'package:season_planer/data/models/user_models/user_model_userView.dart';
-import 'package:season_planer/services/auth_service.dart';
+import 'package:season_planner/data/enums/event_role_enum.dart';
+import 'package:season_planner/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/data/enums/membership_status_enum.dart';
+import 'package:season_planner/data/models/event_model.dart';
+import 'package:season_planner/data/models/user_models/flight_school_model_user_view.dart';
+import 'package:season_planner/data/models/user_models/user_model_userView.dart';
+import 'package:season_planner/services/auth_service.dart';
 
 import '../core/appwrite_config.dart';
 import '../data/enums/event_status_enum.dart';
@@ -39,8 +39,6 @@ class DatabaseService {
 
 
 
-  /// Sucht das Membership-Dokument des aktuellen Users zur Flugschule
-  /// und setzt status von invited -> active.
   Future<bool> acceptMembership({
     required String flightSchoolId,
   }) async {
@@ -131,13 +129,11 @@ class DatabaseService {
     try {
       final account = Account(client);
 
-      // 1) Name (Appwrite Account.name)
       final fullName = "${firstName.trim()} ${lastName.trim()}".trim();
       if (fullName.isNotEmpty) {
         await account.updateName(name: fullName);
       }
 
-      // 2) Email ändern (falls anders)
       final current = await account.get();
       final currentEmail = current.email;
 

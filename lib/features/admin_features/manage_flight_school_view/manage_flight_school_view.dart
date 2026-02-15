@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/features/admin_features/manage_flight_school_view/manage_admin_user/manage_admin_users_view.dart';
-import 'package:season_planer/features/admin_features/manage_flight_school_view/manage_flight_school_informations/manage_flight_school_informations_view.dart';
-import 'package:season_planer/features/user_features/main_scaffold/main_user_scaffold_view.dart';
-import 'package:season_planer/services/providers/flight_school_provider.dart';
+import 'package:season_planner/features/admin_features/manage_flight_school_view/manage_admin_user/manage_admin_users_view.dart';
+import 'package:season_planner/features/admin_features/manage_flight_school_view/manage_flight_school_informations/manage_flight_school_informations_view.dart';
+import 'package:season_planner/features/user_features/main_scaffold/main_user_scaffold_view.dart';
+import 'package:season_planner/services/providers/flight_school_provider.dart';
 
 class ManageFlightSchoolView extends StatefulWidget{
   const ManageFlightSchoolView({super.key});
@@ -95,7 +95,7 @@ class _ManageFlightSchoolView extends State<ManageFlightSchoolView>{
                   children: const [
                     Text("Switch to USER-Mode"),
                     SizedBox(width: 8),
-                    Icon(Icons.accessible_forward_outlined),
+                    Icon(Icons.supervised_user_circle_outlined),
                   ],
                 ),
               ),

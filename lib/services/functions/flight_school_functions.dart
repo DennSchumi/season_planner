@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/enums.dart';
-import 'package:season_planer/core/appwrite_config.dart';
+import 'package:season_planner/core/appwrite_config.dart';
 
 class FlightSchoolFunctions {
   final Functions functions;

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:season_planer/data/models/admin_models/flight_school_model_flight_school_view.dart';
-import 'package:season_planer/data/models/admin_models/user_summary_flight_school_view.dart';
-import 'package:season_planer/services/flight_school_service.dart';
-import 'package:season_planer/services/providers/user_provider.dart';
-import 'package:season_planer/services/providers/flight_school_provider.dart';
+import 'package:season_planner/data/models/admin_models/flight_school_model_flight_school_view.dart';
+import 'package:season_planner/data/models/admin_models/user_summary_flight_school_view.dart';
+import 'package:season_planner/services/flight_school_service.dart';
+import 'package:season_planner/services/providers/user_provider.dart';
+import 'package:season_planner/services/providers/flight_school_provider.dart';
 
 class ManageAdminsPage extends StatefulWidget {
   const ManageAdminsPage({super.key});

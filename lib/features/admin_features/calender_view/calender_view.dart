@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/services/providers/flight_school_provider.dart';
+import 'package:season_planner/services/providers/flight_school_provider.dart';
 
 import '../../../services/providers/user_provider.dart';
 import '../../widgets/calender_widget.dart';

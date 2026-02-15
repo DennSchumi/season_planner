@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/features/admin_features/calender_view/calender_view.dart';
-import 'package:season_planer/features/admin_features/manage_events_view/manage_events_view.dart';
-import 'package:season_planer/features/admin_features/manage_flight_school_view/manage_flight_school_view.dart';
-import 'package:season_planer/features/admin_features/manage_personal/manage_personal_view.dart';
+import 'package:season_planner/features/admin_features/calender_view/calender_view.dart';
+import 'package:season_planner/features/admin_features/manage_events_view/manage_events_view.dart';
+import 'package:season_planner/features/admin_features/manage_flight_school_view/manage_flight_school_view.dart';
+import 'package:season_planner/features/admin_features/manage_personal/manage_personal_view.dart';
 
 import '../../../data/models/user_models/user_model_userView.dart';
 import '../../../services/database_service.dart';

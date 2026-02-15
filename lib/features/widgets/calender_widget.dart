@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:season_planer/data/models/event_model.dart';
+import 'package:season_planner/data/models/event_model.dart';
 
 typedef FlightSchoolResolver = dynamic Function(String flightSchoolId);
 

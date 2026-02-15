@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/features/user_features/account/account_view.dart';
-import 'package:season_planer/services/database_service.dart';
-import 'package:season_planer/services/providers/user_provider.dart';
+import 'package:season_planner/features/user_features/account/account_view.dart';
+import 'package:season_planner/services/database_service.dart';
+import 'package:season_planner/services/providers/user_provider.dart';
 
 import '../../../../data/models/user_models/user_model_userView.dart';
 

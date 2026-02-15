@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planer/data/models/event_model.dart';
-import 'package:season_planer/data/enums/event_status_enum.dart';
-import 'package:season_planer/data/enums/event_role_enum.dart';
-import 'package:season_planer/data/enums/event_user_status_enum.dart';
-import 'package:season_planer/services/providers/flight_school_provider.dart';
-import 'package:season_planer/data/models/admin_models/user_summary_flight_school_view.dart';
+import 'package:season_planner/data/models/event_model.dart';
+import 'package:season_planner/data/enums/event_status_enum.dart';
+import 'package:season_planner/data/enums/event_role_enum.dart';
+import 'package:season_planner/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/services/providers/flight_school_provider.dart';
+import 'package:season_planner/data/models/admin_models/user_summary_flight_school_view.dart';
 
 class EventUpsertView extends StatefulWidget {
   final Event? initialEvent;
@@ -735,7 +735,6 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                   final persisted = _isPersisted(tm);
                   final displayName = _resolveName(tm, fs.members);
 
-                  final removeLocked = persisted && (denied || _isPendingFs(s) || _isPendingUser(s));
 
                   return Opacity(
                     opacity: (denied && persisted) ? 0.5 : 1.0,
@@ -745,7 +744,8 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                         title: Text(displayName),
                         subtitle: Text(
                           "${EventRoleEnum.values.byName(tm.role).label} • "
-                              "${EventUserStatusEnum.values.byName(tm.status).label}",
+                              "${EventUserStatusEnum.values.byName(tm.status).label(context: EventUserStatusLabelContext.defaultView)}",
+
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -763,7 +763,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                             ),
                             IconButton(
                               tooltip: "Remove",
-                              onPressed: removeLocked ? null : () => _removeTeamMember(index),
+                              onPressed: () => _removeTeamMember(index),
                               icon: const Icon(Icons.delete_outline),
                             ),
                           ],

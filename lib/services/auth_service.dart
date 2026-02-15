@@ -1,6 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
-import 'package:season_planer/core/appwrite_config.dart';
+import 'package:season_planner/core/appwrite_config.dart';
 
 class AuthService {
   final Client client = Client()
@@ -34,15 +34,6 @@ Future<void> testLogin() async {
         email: email,
         password: password,
         name: name,
-      );
-
-      final database = Databases(client);
-
-      await database.createDocument(
-        databaseId: AppwriteConfig().mainDatabaseId,
-        collectionId: AppwriteConfig().usersCollectionID,
-        documentId: user.$id,
-        data: {"id": user.$id},
       );
 
       return user;

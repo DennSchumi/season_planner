@@ -1,5 +1,5 @@
-import 'package:season_planer/data/enums/event_role_enum.dart';
-import 'package:season_planer/data/models/event_model.dart';
+import 'package:season_planner/data/enums/event_role_enum.dart';
+import 'package:season_planner/data/models/event_model.dart';
 
 class EventAssignment {
   final String userId;

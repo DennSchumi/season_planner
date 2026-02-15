@@ -1,7 +1,7 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:season_planer/services/database_service.dart';
-import 'package:season_planer/services/functions/flight_school_functions.dart';
+import 'package:season_planner/services/database_service.dart';
+import 'package:season_planner/services/functions/flight_school_functions.dart';
 
 import '../core/appwrite_config.dart';
 import '../data/enums/event_role_enum.dart';
