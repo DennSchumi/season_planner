@@ -15,7 +15,7 @@ class ManageAdminsPage extends StatefulWidget {
 }
 
 class _ManageAdminsPageState extends State<ManageAdminsPage> {
-  FlightSchoolService fsService = FlightSchoolService();
+  final FlightSchoolService fsService = FlightSchoolService();
   bool _busy = false;
 
   Future<void> _setBusy(bool v) async {
@@ -23,11 +23,11 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
     setState(() => _busy = v);
   }
 
+  bool _isSelf(String userId, String currentUserId) =>
+      userId == currentUserId;
 
-
-  bool _isSelf(String userId, String currentUserId) => userId == currentUserId;
-
-  UserSummary? _memberById(FlightSchoolModelFlightSchoolView fs, String userId) {
+  UserSummary? _memberById(
+      FlightSchoolModelFlightSchoolView fs, String userId) {
     try {
       return fs.members.firstWhere((m) => m.id == userId);
     } catch (_) {
@@ -46,7 +46,8 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("Remove admin"),
-        content: const Text("Do you really want to remove admin rights?"),
+        content:
+        const Text("Do you really want to remove admin rights?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -63,19 +64,29 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
     if (ok != true) return;
 
     await _setBusy(true);
+
     try {
-      final updatedAdmins = List<String>.from(fs.adminUserIds)..remove(adminId);
+      final updatedAdmins =
+      List<String>.from(fs.adminUserIds)..remove(adminId);
+
+      final cleanedAdmins = updatedAdmins.toSet().toList();
+
+      if (!mounted) return;
 
       context.read<FlightSchoolProvider>().setFlightSchool(
-        fs.copyWith(adminUserIds: updatedAdmins),
+        fs.copyWith(adminUserIds: cleanedAdmins),
       );
 
       await fsService.updateAdmins(
         flightSchoolId: fs.id,
-        adminUserIds: updatedAdmins,
+        adminUserIds: cleanedAdmins,
       );
 
-      context.read<FlightSchoolProvider>().reloadFlightSchoolInBackground();
+      if (!mounted) return;
+
+      context
+          .read<FlightSchoolProvider>()
+          .reloadFlightSchoolInBackground();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -87,19 +98,30 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
     }
   }
 
-  Future<void> _openAddAdminDialog(FlightSchoolModelFlightSchoolView fs) async {
+  Future<void> _openAddAdminDialog(
+      FlightSchoolModelFlightSchoolView fs) async {
     final currentUser = context.read<UserProvider>().user;
     if (currentUser == null) return;
 
-    final candidates = fs.members
+    // 🔒 Members deduplizieren
+    final uniqueMembers = <String, UserSummary>{};
+    for (final m in fs.members) {
+      uniqueMembers[m.id] = m;
+    }
+
+    final candidates = uniqueMembers.values
         .where((m) => !fs.adminUserIds.contains(m.id))
         .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
 
     if (candidates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No members available to add as admin.")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+              Text("No members available to add as admin.")),
+        );
+      }
       return;
     }
 
@@ -117,7 +139,8 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: candidates.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, __) =>
+                  const Divider(height: 1),
                   itemBuilder: (_, i) {
                     final m = candidates[i];
                     final checked = selectedIds.contains(m.id);
@@ -133,9 +156,12 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
                           }
                         });
                       },
-                      title: Text(m.name.isEmpty ? "Unnamed user" : m.name),
-                      subtitle: Text(m.mail.isEmpty ? "—" : m.mail),
-                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(
+                          m.name.isEmpty ? "Unnamed user" : m.name),
+                      subtitle:
+                      Text(m.mail.isEmpty ? "—" : m.mail),
+                      controlAffinity:
+                      ListTileControlAffinity.leading,
                     );
                   },
                 ),
@@ -161,11 +187,14 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
     if (result == null || result.isEmpty) return;
 
     await _setBusy(true);
+
     try {
-      final updatedAdmins = {
+      final updatedAdmins = <String>{
         ...fs.adminUserIds,
         ...result,
       }.toList();
+
+      if (!mounted) return;
 
       context.read<FlightSchoolProvider>().setFlightSchool(
         fs.copyWith(adminUserIds: updatedAdmins),
@@ -176,7 +205,11 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
         adminUserIds: updatedAdmins,
       );
 
-      context.read<FlightSchoolProvider>().reloadFlightSchoolInBackground();
+      if (!mounted) return;
+
+      context
+          .read<FlightSchoolProvider>()
+          .reloadFlightSchoolInBackground();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -190,16 +223,19 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final fs = context.watch<FlightSchoolProvider>().flightSchool;
-    final currentUser = context.watch<UserProvider>().user;
+    final fs =
+        context.watch<FlightSchoolProvider>().flightSchool;
+    final currentUser =
+        context.watch<UserProvider>().user;
 
     if (fs == null || currentUser == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
     }
 
     final currentUserId = currentUser.id;
 
-    final admins = List<String>.from(fs.adminUserIds);
+    final admins = fs.adminUserIds.toSet().toList(); // 🔒 dedupe
     admins.sort((a, b) {
       if (a == currentUserId) return -1;
       if (b == currentUserId) return 1;
@@ -215,7 +251,8 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
         actions: [
           IconButton(
             tooltip: "Add admin",
-            onPressed: _busy ? null : () => _openAddAdminDialog(fs),
+            onPressed:
+            _busy ? null : () => _openAddAdminDialog(fs),
             icon: const Icon(Icons.person_add_alt_1),
           ),
         ],
@@ -224,20 +261,20 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
         child: Stack(
           children: [
             ListView(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              padding:
+              const EdgeInsets.fromLTRB(12, 12, 12, 12),
               children: [
                 _HeaderInfo(fs: fs),
                 const SizedBox(height: 12),
-
                 Text(
                   "Admins (${admins.length})",
                   style: Theme.of(context)
                       .textTheme
                       .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w800),
+                      ?.copyWith(
+                      fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
-
                 if (admins.isEmpty)
                   const Card(
                     child: Padding(
@@ -247,14 +284,18 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
                   )
                 else
                   ...admins.map((adminId) {
-                    final member = _memberById(fs, adminId);
-                    final isSelf = _isSelf(adminId, currentUserId);
+                    final member =
+                    _memberById(fs, adminId);
+                    final isSelf =
+                    _isSelf(adminId, currentUserId);
 
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
+                      padding:
+                      const EdgeInsets.only(bottom: 8),
                       child: _AdminTile(
                         userId: adminId,
-                        name: member?.name ?? "Unknown user",
+                        name: member?.name ??
+                            "Unknown user",
                         mail: member?.mail ?? "—",
                         isSelf: isSelf,
                         onRemove: isSelf || _busy
@@ -262,32 +303,37 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
                             : () => _removeAdmin(
                           fs: fs,
                           adminId: adminId,
-                          currentUserId: currentUserId,
+                          currentUserId:
+                          currentUserId,
                         ),
                       ),
                     );
                   }).toList(),
-
                 const SizedBox(height: 80),
               ],
             ),
-
             if (_busy)
               Positioned.fill(
                 child: AbsorbPointer(
                   absorbing: true,
                   child: Container(
-                    color: Colors.black.withOpacity(0.18),
-                    child: const Center(child: CircularProgressIndicator()),
+                    color:
+                    Colors.black.withOpacity(0.18),
+                    child: const Center(
+                        child:
+                        CircularProgressIndicator()),
                   ),
                 ),
               ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _busy ? null : () => _openAddAdminDialog(fs),
-        icon: const Icon(Icons.admin_panel_settings_outlined),
+      floatingActionButton:
+      FloatingActionButton.extended(
+        onPressed:
+        _busy ? null : () => _openAddAdminDialog(fs),
+        icon: const Icon(
+            Icons.admin_panel_settings_outlined),
         label: const Text("Add admin"),
       ),
     );
