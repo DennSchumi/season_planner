@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:season_planner/services/auth_service.dart';
-import '../../../services/database_service.dart';
+import 'package:season_planner/services/database_service.dart';
 import '../register/register_view.dart';
 
 class LoginView extends StatefulWidget {

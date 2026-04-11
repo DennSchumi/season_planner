@@ -6,7 +6,7 @@ import 'package:season_planner/services/flight_school_service.dart';
 import 'package:season_planner/services/providers/flight_school_provider.dart';
 import 'package:season_planner/services/providers/user_provider.dart';
 import 'core/app_router.dart';
-import 'features/authentification/login/login_view.dart';
+import 'core/features/authentification/login/login_view.dart';
 import 'user/features/main_scaffold/main_user_scaffold_view.dart';
 
 void main() {
