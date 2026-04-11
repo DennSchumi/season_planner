@@ -1,5 +1,5 @@
-import 'package:season_planner/data/enums/event_role_enum.dart';
-import '../../enums/membership_status_enum.dart';
+import 'package:season_planner/core/data/enums/event_role_enum.dart';
+import '../../../core/data/enums/membership_status_enum.dart';
 
 class FlightSchoolUserView {
   final String id;

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:season_planner/data/enums/event_status_enum.dart';
-import 'package:season_planner/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/core/data/enums/event_status_enum.dart';
+import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 
-import '../../../../data/models/event_model.dart';
-import '../../../../data/models/user_models/flight_school_model_user_view.dart';
+import '../../../../core/data/models/event_model.dart';
+import '../../../../user/data/models/flight_school_model_user_view.dart';
 
 class EventCardTile extends StatelessWidget {
   final Event event;

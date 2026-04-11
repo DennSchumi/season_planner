@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../data/enums/event_user_status_enum.dart';
+import '../../../core/data/enums/event_user_status_enum.dart';
 import '../../../services/providers/user_provider.dart';
 import '../../widgets/calender_widget.dart';
 import '../home/widgets/event_detail_view.dart';

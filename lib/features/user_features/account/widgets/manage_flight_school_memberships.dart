@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:season_planner/data/enums/membership_status_enum.dart';
-import 'package:season_planner/data/models/user_models/flight_school_model_user_view.dart';
+import 'package:season_planner/core/data/enums/membership_status_enum.dart';
+import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 import 'package:season_planner/services/providers/user_provider.dart';
 
 import '../../../../services/database_service.dart';

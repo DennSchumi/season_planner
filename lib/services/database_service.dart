@@ -1,18 +1,18 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planner/data/enums/event_role_enum.dart';
-import 'package:season_planner/data/enums/event_user_status_enum.dart';
-import 'package:season_planner/data/enums/membership_status_enum.dart';
-import 'package:season_planner/data/models/event_model.dart';
-import 'package:season_planner/data/models/user_models/flight_school_model_user_view.dart';
-import 'package:season_planner/data/models/user_models/user_model_userView.dart';
+import 'package:season_planner/core/data/enums/event_role_enum.dart';
+import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/core/data/enums/membership_status_enum.dart';
+import 'package:season_planner/core/data/models/event_model.dart';
+import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
+import 'package:season_planner/user/data/models/user_model_userView.dart';
 import 'package:season_planner/services/auth_service.dart';
 
 import '../core/appwrite_config.dart';
-import '../data/enums/event_status_enum.dart';
-import '../data/models/admin_models/flight_school_model_flight_school_view.dart';
-import '../data/models/admin_models/user_summary_flight_school_view.dart';
+import '../core/data/enums/event_status_enum.dart';
+import '../fsAdmin/data/models/flight_school_model_flight_school_view.dart';
+import 'package:season_planner/fsAdmin/data/models/user_summary_flight_school_view.dart';
 import 'providers/flight_school_provider.dart';
 import 'functions/flight_school_functions.dart';
 

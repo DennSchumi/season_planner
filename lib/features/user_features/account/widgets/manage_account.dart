@@ -4,7 +4,7 @@ import 'package:season_planner/features/user_features/account/account_view.dart'
 import 'package:season_planner/services/database_service.dart';
 import 'package:season_planner/services/providers/user_provider.dart';
 
-import '../../../../data/models/user_models/user_model_userView.dart';
+import '../../../../user/data/models/user_model_userView.dart';
 
 class ManageAccountView extends StatefulWidget {
   const ManageAccountView({super.key});

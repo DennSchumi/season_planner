@@ -1,5 +1,5 @@
-import 'package:season_planner/data/models/admin_models/user_summary_flight_school_view.dart';
-import 'package:season_planner/data/models/event_model.dart';
+import 'user_summary_flight_school_view.dart';
+import 'package:season_planner/core/data/models/event_model.dart';
 
 class FlightSchoolModelFlightSchoolView {
   final String id;

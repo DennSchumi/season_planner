@@ -4,12 +4,12 @@ import 'package:season_planner/services/database_service.dart';
 import 'package:season_planner/services/functions/flight_school_functions.dart';
 
 import '../core/appwrite_config.dart';
-import '../data/enums/event_role_enum.dart';
-import '../data/enums/event_status_enum.dart';
-import '../data/enums/event_user_status_enum.dart';
-import '../data/models/admin_models/flight_school_model_flight_school_view.dart';
-import '../data/models/admin_models/user_summary_flight_school_view.dart';
-import '../data/models/event_model.dart';
+import '../core/data/enums/event_role_enum.dart';
+import '../core/data/enums/event_status_enum.dart';
+import '../core/data/enums/event_user_status_enum.dart';
+import '../fsAdmin/data/models/flight_school_model_flight_school_view.dart';
+import 'package:season_planner/fsAdmin/data/models/user_summary_flight_school_view.dart';
+import '../core/data/models/event_model.dart';
 
 class FlightSchoolService {
   final Client client = Client()

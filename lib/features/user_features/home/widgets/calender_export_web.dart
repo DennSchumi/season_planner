@@ -1,7 +1,7 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'dart:convert';
-import 'package:season_planner/data/models/event_model.dart';
+import 'package:season_planner/core/data/models/event_model.dart';
 
 void exportEventAsICS(Event event) {
   final startUtc = event.startTime.toUtc();

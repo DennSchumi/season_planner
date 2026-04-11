@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planner/data/models/event_model.dart';
-import 'package:season_planner/data/enums/event_status_enum.dart';
-import 'package:season_planner/data/enums/event_role_enum.dart';
-import 'package:season_planner/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/core/data/models/event_model.dart';
+import 'package:season_planner/core/data/enums/event_status_enum.dart';
+import 'package:season_planner/core/data/enums/event_role_enum.dart';
+import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/services/providers/flight_school_provider.dart';
-import 'package:season_planner/data/models/admin_models/user_summary_flight_school_view.dart';
+import 'package:season_planner/fsAdmin/data/models/user_summary_flight_school_view.dart';
 
 class EventUpsertView extends StatefulWidget {
   final Event? initialEvent;

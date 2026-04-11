@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:season_planner/data/models/user_models/flight_school_model_user_view.dart';
+import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 
 class FlightSchoolSelector extends StatefulWidget {
   final List<FlightSchoolUserView> flightSchools;

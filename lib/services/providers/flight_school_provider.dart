@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 
-import 'package:season_planner/data/models/admin_models/flight_school_model_flight_school_view.dart';
-import 'package:season_planner/data/models/admin_models/user_summary_flight_school_view.dart';
-import 'package:season_planner/data/models/event_model.dart';
+import 'package:season_planner/fsAdmin/data/models/flight_school_model_flight_school_view.dart';
+import 'package:season_planner/fsAdmin/data/models/user_summary_flight_school_view.dart';
+import 'package:season_planner/core/data/models/event_model.dart';
 
 class FlightSchoolProvider with ChangeNotifier {
   FlightSchoolModelFlightSchoolView? _flightSchool;

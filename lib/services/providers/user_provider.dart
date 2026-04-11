@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:season_planner/data/models/user_models/flight_school_model_user_view.dart';
+import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 
-import '../../data/models/event_model.dart';
-import '../../data/models/user_models/user_model_userView.dart';
+import '../../core/data/models/event_model.dart';
+import '../../user/data/models/user_model_userView.dart';
 
 class UserProvider with ChangeNotifier {
   UserModelUserView? _user;
