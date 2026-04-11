@@ -2,14 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planner/features/admin_features/calender_view/calender_view.dart';
-import 'package:season_planner/features/admin_features/manage_events_view/manage_events_view.dart';
-import 'package:season_planner/features/admin_features/manage_flight_school_view/manage_flight_school_view.dart';
-import 'package:season_planner/features/admin_features/manage_personal/manage_personal_view.dart';
+import 'package:season_planner/fsAdmin/features/calender_view/calender_view.dart';
+import 'package:season_planner/fsAdmin/features/manage_events_view/manage_events_view.dart';
+import 'package:season_planner/fsAdmin/features/manage_flight_school_view/manage_flight_school_view.dart';
+import 'package:season_planner/fsAdmin/features/manage_personal/manage_personal_view.dart';
 
 import '../../../user/data/models/user_model_userView.dart';
 import '../../../services/database_service.dart';
-import '../../../services/providers/flight_school_provider.dart';
 import '../../../services/providers/user_provider.dart';
 
 class MainAdminScaffoldView extends StatefulWidget {

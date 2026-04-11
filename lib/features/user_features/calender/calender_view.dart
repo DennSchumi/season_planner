@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/data/enums/event_user_status_enum.dart';
 import '../../../services/providers/user_provider.dart';
-import '../../widgets/calender_widget.dart';
+import 'package:season_planner/core/widgets/calender_widget.dart';
 import '../home/widgets/event_detail_view.dart';
 
 class CalenderView extends StatefulWidget {
