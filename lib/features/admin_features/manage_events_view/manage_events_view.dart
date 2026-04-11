@@ -195,7 +195,7 @@ class _ManageEventsViewState extends State<ManageEventsView> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<dynamic>(
-                          initialValue: _statusFilter,
+                          value: _statusFilter,
                           decoration: const InputDecoration(
                             labelText: "Status",
                             border: OutlineInputBorder(),
