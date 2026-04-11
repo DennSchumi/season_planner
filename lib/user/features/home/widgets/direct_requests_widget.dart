@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
-import 'package:season_planner/features/user_features/home/widgets/event_detail_view.dart';
+import 'package:season_planner/user/features/home/widgets/event_detail_view.dart';
 
 import '../../../../core/data/enums/membership_status_enum.dart';
 import '../../../../user/data/models/flight_school_model_user_view.dart';

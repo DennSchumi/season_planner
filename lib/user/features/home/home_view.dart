@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
-import 'package:season_planner/features/user_features/home/widgets/flight_school_selector_widget.dart';
-import 'package:season_planner/features/user_features/home/widgets/requests_open_opportunities_widget.dart';
-import 'package:season_planner/features/user_features/home/widgets/your_events_widget.dart';
+import 'package:season_planner/user/features/home/widgets/flight_school_selector_widget.dart';
+import 'package:season_planner/user/features//home/widgets/requests_open_opportunities_widget.dart';
+import 'package:season_planner/user/features/home/widgets/your_events_widget.dart';
 import 'package:season_planner/services/database_service.dart';
 import 'package:season_planner/services/providers/user_provider.dart';
 

@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../../../user/data/models/user_model_userView.dart';
 
-import './calender_export_stub.dart'
+import 'calender_export_stub.dart'
 if (dart.library.html) '././calender_export_web.dart';
 
 class EventDetailView extends StatefulWidget {

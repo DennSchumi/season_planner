@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planner/features/user_features/current_event/current_event_view.dart';
+import 'package:season_planner/user/features/current_event/current_event_view.dart';
 import '../../../user/data/models/user_model_userView.dart';
 import '../../../services/database_service.dart';
 import '../../../services/providers/user_provider.dart';

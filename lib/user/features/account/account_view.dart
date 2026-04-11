@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/fsAdmin/features/base_admin_view.dart';
-import 'package:season_planner/features/user_features/account/widgets/manage_account.dart';
-import 'package:season_planner/features/user_features/account/widgets/manage_flight_school_memberships.dart';
+import 'package:season_planner/user/features/account/widgets/manage_account.dart';
+import 'package:season_planner/user/features/account/widgets/manage_flight_school_memberships.dart';
 import 'package:season_planner/services/auth_service.dart';
 
 import '../../../services/providers/user_provider.dart';
