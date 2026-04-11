@@ -6,7 +6,7 @@ import 'package:season_planner/user/features/home/widgets/event_detail_view.dart
 
 import '../../../../core/data/enums/membership_status_enum.dart';
 import '../../../../user/data/models/flight_school_model_user_view.dart';
-import '../../../../services/providers/user_provider.dart';
+import '../../../user_provider.dart';
 import 'event_card_tile_widget.dart';
 class DirectRequestsWidget extends StatelessWidget {
   final List<Event> events;

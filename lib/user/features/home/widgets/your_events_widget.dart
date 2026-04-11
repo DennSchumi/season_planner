@@ -5,7 +5,7 @@ import 'package:season_planner/core/data/models/event_model.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 import 'package:season_planner/user/features/home/widgets/event_detail_view.dart';
 
-import '../../../../services/providers/user_provider.dart';
+import '../../../user_provider.dart';
 import 'event_card_tile_widget.dart';
 
 class YourEventsWidget extends StatelessWidget {

@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:season_planner/fsAdmin/data/models/flight_school_model_flight_school_view.dart';
 import 'package:season_planner/fsAdmin/features/main_scaffold/main_admin_scaffold_view.dart';
 import 'package:season_planner/services/flight_school_service.dart';
-import 'package:season_planner/services/providers/flight_school_provider.dart';
-import 'package:season_planner/services/providers/user_provider.dart';
+import 'package:season_planner/fsAdmin/flight_school_provider.dart';
+import 'package:season_planner/user/user_provider.dart';
 import '../../user/data/models/flight_school_model_user_view.dart';
 
 class BaseAdminView extends StatefulWidget {

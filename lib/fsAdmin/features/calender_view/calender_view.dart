@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planner/services/providers/flight_school_provider.dart';
+import 'package:season_planner/fsAdmin/flight_school_provider.dart';
 import 'package:season_planner/core/widgets/calender_widget.dart';
 class CalenderViewFlightSchool extends StatefulWidget{
   final bool isLoading;

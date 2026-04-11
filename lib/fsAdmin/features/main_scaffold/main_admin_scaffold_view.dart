@@ -9,7 +9,7 @@ import 'package:season_planner/fsAdmin/features/manage_personal/manage_personal_
 
 import '../../../user/data/models/user_model_userView.dart';
 import '../../../services/database_service.dart';
-import '../../../services/providers/user_provider.dart';
+import '../../../user/user_provider.dart';
 
 class MainAdminScaffoldView extends StatefulWidget {
   final int? selected_index;

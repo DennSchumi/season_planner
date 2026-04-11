@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:season_planner/user/features/current_event/current_event_view.dart';
 import '../../../user/data/models/user_model_userView.dart';
 import '../../../services/database_service.dart';
-import '../../../services/providers/user_provider.dart';
+import '../../user_provider.dart';
 import '../account/account_view.dart';
 import '../calender/calender_view.dart';
 import '../home/home_view.dart';

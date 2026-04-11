@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_role_enum.dart';
 import 'package:season_planner/services/flight_school_service.dart';
-import 'package:season_planner/services/providers/flight_school_provider.dart' hide FlightSchoolService;
+import 'package:season_planner/fsAdmin/flight_school_provider.dart' hide FlightSchoolService;
 import 'package:season_planner/fsAdmin/data/models/user_summary_flight_school_view.dart';
 
 class ManagePersonalView extends StatefulWidget {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
-import 'package:season_planner/services/providers/user_provider.dart';
+import 'package:season_planner/user/user_provider.dart';
 
 class CurrentEventView extends StatefulWidget {
   final bool isLoading;

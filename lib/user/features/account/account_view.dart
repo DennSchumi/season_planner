@@ -5,7 +5,7 @@ import 'package:season_planner/user/features/account/widgets/manage_account.dart
 import 'package:season_planner/user/features/account/widgets/manage_flight_school_memberships.dart';
 import 'package:season_planner/services/auth_service.dart';
 
-import '../../../services/providers/user_provider.dart';
+import '../../user_provider.dart';
 
 class AccountView extends StatefulWidget {
   const AccountView({super.key});

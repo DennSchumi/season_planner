@@ -13,7 +13,7 @@ import '../core/appwrite_config.dart';
 import '../core/data/enums/event_status_enum.dart';
 import '../fsAdmin/data/models/flight_school_model_flight_school_view.dart';
 import 'package:season_planner/fsAdmin/data/models/user_summary_flight_school_view.dart';
-import 'providers/flight_school_provider.dart';
+import '../fsAdmin/flight_school_provider.dart';
 import 'functions/flight_school_functions.dart';
 
 class DatabaseService {
