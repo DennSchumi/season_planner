@@ -1,6 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
-import 'package:season_planner/services/auth_service.dart';
+import 'package:season_planner/core/services/auth_service.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planner/services/auth_service.dart';
+import 'package:season_planner/core/services/auth_service.dart';
 import 'package:season_planner/services/database_service.dart';
 import 'package:season_planner/services/flight_school_service.dart';
 import 'package:season_planner/fsAdmin/flight_school_provider.dart';

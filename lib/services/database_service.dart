@@ -7,7 +7,7 @@ import 'package:season_planner/core/data/enums/membership_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 import 'package:season_planner/user/data/models/user_model_userView.dart';
-import 'package:season_planner/services/auth_service.dart';
+import 'package:season_planner/core/services/auth_service.dart';
 
 import '../core/appwrite_config.dart';
 import '../core/data/enums/event_status_enum.dart';
