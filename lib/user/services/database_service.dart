@@ -14,6 +14,7 @@ import '../../fsAdmin/flight_school_provider.dart';
 
 
 
+
 class DatabaseService {
   final Client client = Client()
       .setEndpoint(AppwriteConfig().appwriteEnpoint)
