@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/fsAdmin/data/models/user_summary_flight_school_view.dart';
 import 'package:season_planner/fsAdmin/data/models/flight_school_model_flight_school_view.dart';
-import 'package:season_planner/services/flight_school_service.dart';
+import 'package:season_planner/fsAdmin/services/flight_school_service.dart';
 import 'package:season_planner/user/user_provider.dart';
 import 'package:season_planner/fsAdmin/flight_school_provider.dart';
 

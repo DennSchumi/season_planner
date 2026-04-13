@@ -8,7 +8,7 @@ import 'package:season_planner/fsAdmin/features/manage_flight_school_view/manage
 import 'package:season_planner/fsAdmin/features/manage_personal/manage_personal_view.dart';
 
 import '../../../user/data/models/user_model_userView.dart';
-import '../../../services/database_service.dart';
+import '../../../user/services/database_service.dart';
 import '../../../user/user_provider.dart';
 
 class MainAdminScaffoldView extends StatefulWidget {

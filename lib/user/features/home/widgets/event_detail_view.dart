@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
-import 'package:season_planner/services/database_service.dart';
+import 'package:season_planner/user/services/database_service.dart';
 import 'package:season_planner/user/user_provider.dart';
 import 'package:add_2_calendar_new/add_2_calendar_new.dart' as calendar;
 import 'package:flutter/foundation.dart' show kIsWeb;

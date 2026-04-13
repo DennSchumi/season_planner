@@ -9,12 +9,12 @@ import 'package:season_planner/user/data/models/flight_school_model_user_view.da
 import 'package:season_planner/user/data/models/user_model_userView.dart';
 import 'package:season_planner/core/services/auth_service.dart';
 
-import '../core/appwrite_config.dart';
-import '../core/data/enums/event_status_enum.dart';
-import '../fsAdmin/data/models/flight_school_model_flight_school_view.dart';
+import '../../core/appwrite_config.dart';
+import '../../core/data/enums/event_status_enum.dart';
+import '../../fsAdmin/data/models/flight_school_model_flight_school_view.dart';
 import 'package:season_planner/fsAdmin/data/models/user_summary_flight_school_view.dart';
-import '../fsAdmin/flight_school_provider.dart';
-import 'functions/flight_school_functions.dart';
+import '../../fsAdmin/flight_school_provider.dart';
+import '../../fsAdmin/services/flight_school_functions.dart';
 
 class DatabaseService {
   final Client client = Client()

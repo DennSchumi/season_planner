@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:season_planner/core/services/auth_service.dart';
-import 'package:season_planner/services/database_service.dart';
+import 'package:season_planner/user/services/database_service.dart';
 
 import 'core/AppState.dart';
 import 'core/features/authentification/login/login_view.dart';

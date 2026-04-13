@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/user/features/account/account_view.dart';
-import 'package:season_planner/services/database_service.dart';
+import 'package:season_planner/user/services/database_service.dart';
 import 'package:season_planner/user/user_provider.dart';
 
 import '../../../../user/data/models/user_model_userView.dart';
