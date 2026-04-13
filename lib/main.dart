@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planner/services/auth_service.dart';
-import 'package:season_planner/services/database_service.dart';
-import 'package:season_planner/services/flight_school_service.dart';
-import 'package:season_planner/services/providers/flight_school_provider.dart';
-import 'package:season_planner/services/providers/user_provider.dart';
+import 'package:season_planner/core/services/auth_service.dart';
+import 'package:season_planner/user/services/database_service.dart';
+import 'package:season_planner/fsAdmin/services/flight_school_service.dart';
+import 'package:season_planner/fsAdmin/flight_school_provider.dart';
+import 'package:season_planner/user/user_provider.dart';
 import 'core/app_router.dart';
-import 'features/authentification/login/login_view.dart';
-import 'features/user_features/main_scaffold/main_user_scaffold_view.dart';
+import 'core/features/authentification/login/login_view.dart';
+import 'user/features/main_scaffold/main_user_scaffold_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

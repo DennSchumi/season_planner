@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:season_planner/services/auth_service.dart';
-import 'package:season_planner/services/database_service.dart';
+import 'package:season_planner/core/services/auth_service.dart';
+import 'package:season_planner/user/services/database_service.dart';
 
 import 'core/AppState.dart';
-import 'features/authentification/login/login_view.dart';
+import 'core/features/authentification/login/login_view.dart';
 
 class BaseView extends StatefulWidget {
   const BaseView({super.key});
