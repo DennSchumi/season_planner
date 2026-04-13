@@ -9,4 +9,5 @@ class AppwriteConfig{
   String flightSchoolLogosId = "695be45800189fad45f0";
 
   String flightSchoolFunctionsId = "695a659000312dc45be3";
+  String userFunctionsID = "69dcb668003e432eb30e";
 }

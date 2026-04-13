@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/user/features/current_event/current_event_view.dart';
+import 'package:season_planner/user/services/user_service.dart';
 import '../../../user/data/models/user_model_userView.dart';
 import '../../services/database_service.dart';
 import '../../user_provider.dart';
@@ -61,7 +62,7 @@ class _MainUserScaffoldState extends State<MainUserScaffoldView> {
       _isLoading = true;
     });
     try {
-      final user = await DatabaseService().getUserInformation();
+      final user = await UserService().loadUserInformation();
       if (user != null) {
         Provider.of<UserProvider>(context, listen: false).setUser(user);
         setState(() {

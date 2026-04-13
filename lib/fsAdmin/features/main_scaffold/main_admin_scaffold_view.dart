@@ -6,6 +6,7 @@ import 'package:season_planner/fsAdmin/features/calender_view/calender_view.dart
 import 'package:season_planner/fsAdmin/features/manage_events_view/manage_events_view.dart';
 import 'package:season_planner/fsAdmin/features/manage_flight_school_view/manage_flight_school_view.dart';
 import 'package:season_planner/fsAdmin/features/manage_personal/manage_personal_view.dart';
+import 'package:season_planner/user/services/user_service.dart';
 
 import '../../../user/data/models/user_model_userView.dart';
 import '../../../user/services/database_service.dart';
@@ -91,7 +92,7 @@ class _MainAdminScaffoldState extends State<MainAdminScaffoldView> {
 
 
   Future<UserModelUserView?> _getUserInformation() {
-    return DatabaseService().getUserInformation();
+    return UserService().loadUserInformation();
   }
 
   void _startAutoRefresh() {

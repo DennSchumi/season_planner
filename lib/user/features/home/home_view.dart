@@ -8,6 +8,7 @@ import 'package:season_planner/user/services/database_service.dart';
 import 'package:season_planner/user/user_provider.dart';
 
 import '../../../core/data/models/event_model.dart';
+import '../../services/user_service.dart';
 
 class HomeView extends StatefulWidget {
   final bool isLoading;
@@ -37,7 +38,6 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
-    DatabaseService().getUserInformation();
   }
 
   @override

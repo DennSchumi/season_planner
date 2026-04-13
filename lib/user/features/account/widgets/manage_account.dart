@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/user/features/account/account_view.dart';
 import 'package:season_planner/user/services/database_service.dart';
+import 'package:season_planner/user/services/user_service.dart';
 import 'package:season_planner/user/user_provider.dart';
 
 import '../../../../user/data/models/user_model_userView.dart';
@@ -231,7 +232,7 @@ class _ManageAccountViewState extends State<ManageAccountView> {
 
       if (!mounted) return;
 
-      final refreshed = await _service.getUserInformation();
+      final refreshed = await UserService().loadUserInformation();
       if (refreshed != null) {
         context.read<UserProvider>().setUser(refreshed);
         setState(() {

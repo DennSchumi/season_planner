@@ -8,7 +8,7 @@ export async function handleRequest({ req, res, log }) {
   log(`flightSchoolServices: ${method} ${path}`);
 
 // GET 
-if (path === "/members") {
+if (path === "admin/members") {
   if (method !== "GET") return methodNotAllowed(res, ["GET"]);
 
   const flightSchoolId = req.query?.flightSchoolId;
@@ -19,7 +19,7 @@ if (path === "/members") {
 }
 
 //POST 
-if (path === "/members/invite") {
+if (path === "admin/members/invite") {
   if (method !== "POST") {
     return methodNotAllowed(res, ["POST"]);
   }

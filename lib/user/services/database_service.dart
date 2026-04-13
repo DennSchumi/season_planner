@@ -269,7 +269,7 @@ class DatabaseService {
 
 
 
-  Future<UserModelUserView?> getUserInformation() async {
+  Future<UserModelUserView?> getAUserInformation() async {
     try {
       final user = await AuthService().getCurrentUser();
       if (user == null) return null;
