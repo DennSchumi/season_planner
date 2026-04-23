@@ -613,8 +613,6 @@ class _EventUpsertViewState extends State<EventUpsertView> {
           location: "",
           team: const <TeamMember>[],
           notes: "",
-          role: EventRoleEnum.values.first,
-          assignmentStatus: EventUserStatusEnum.values.first,
         );
 
     final updated = base.copyWith(

@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planner/core/data/enums/event_status_enum.dart';
-import 'package:season_planner/core/data/models/event_model.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 import 'package:season_planner/user/features/home/widgets/event_detail_view.dart';
 
+import '../../../../core/data/models/event_assigment_model.dart';
 import '../../../user_provider.dart';
 import 'event_card_tile_widget.dart';
 
 class YourEventsWidget extends StatelessWidget {
-  final List<Event> events;
+  final List<EventAssignment> assignments;
 
-  const YourEventsWidget({super.key, required this.events});
+  const YourEventsWidget({
+    super.key,
+    required this.assignments,
+  });
 
-
-
-  String _formatDate(DateTime date) => '${date.day}.${date.month}.${date.year}';
+  String _formatDate(DateTime date) =>
+      '${date.day}.${date.month}.${date.year}';
 
   @override
   Widget build(BuildContext context) {
@@ -29,13 +30,11 @@ class YourEventsWidget extends StatelessWidget {
       );
     }
 
-    final flightSchools = user.flightSchools;
-
     final Map<String, FlightSchoolUserView> fsById = {
-      for (final fs in flightSchools) fs.id: fs,
+      for (final fs in user.flightSchools) fs.id: fs,
     };
 
-    if (events.isEmpty) {
+    if (assignments.isEmpty) {
       return const SizedBox(
         height: 50,
         child: Column(
@@ -55,13 +54,14 @@ class YourEventsWidget extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               child: Column(
-                children: events.map((event) {
+                children: assignments.map((assignment) {
+                  final event = assignment.event;
                   final fs = fsById[event.flightSchoolId];
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8.0),
                     child: EventCardTile(
-                      event: event,
+                      assignment: assignment,
                       flightSchool: fs,
                       dateText:
                       '${_formatDate(event.startTime)} – ${_formatDate(event.endTime)}',
@@ -70,7 +70,9 @@ class YourEventsWidget extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => EventDetailView(event: event),
+                            builder: (_) => EventDetailView(
+                              assignment: assignment,
+                            ),
                           ),
                         );
                       },

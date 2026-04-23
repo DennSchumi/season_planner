@@ -212,6 +212,7 @@ class DatabaseService {
     }
   }
 
+  /*
   Future<List<Event>> loadUserEvents(UserModelUserView user) async {
     final List<Event> allEvents = [];
 
@@ -266,9 +267,9 @@ class DatabaseService {
     return allEvents;
   }
 
+*/
 
-
-
+/* Deprecated
   Future<UserModelUserView?> getAUserInformation() async {
     try {
       final user = await AuthService().getCurrentUser();
@@ -368,7 +369,7 @@ class DatabaseService {
       return null;
     }
   }
-
+*/
   Future<Event> createEventWithTeam({
     required BuildContext context,
     required Event event,

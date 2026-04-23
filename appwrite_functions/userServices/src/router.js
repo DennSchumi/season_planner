@@ -1,6 +1,6 @@
 import { json, badRequest, notFound, methodNotAllowed, jsonBody } from "./utils/http.js";
 
-import { getUserProfile } from "./services/user.service.js";
+import { getUserProfile,createApplication } from "./services/user.service.js";
 
 export async function handleRequest({ req, res, log }) {
   const method = (req.method || "GET").toUpperCase();
@@ -22,9 +22,7 @@ if (path === "/user/profile") {
   const result = await getUserProfile(userId);
   return json(res, result);
 }
-  // =========================
-  // /user/events
-  // =========================
+
   if (path === "/user/events") {
     if (method === "GET") {
       // handle get events
@@ -33,24 +31,43 @@ if (path === "/user/profile") {
     return methodNotAllowed(res, ["GET"]);
   }
 
-  // =========================
-  // /user/applications
-  // =========================
-  if (path === "/user/applications") {
-    if (method === "GET") {
-      // handle get applications
-    }
 
-    if (method === "POST") {
-      // handle create application
-    }
+if (path === "/user/applications") {
+  const userId = req.headers["x-appwrite-user-id"] || req.query?.userId;
 
-    if (method === "DELETE") {
-      // handle withdraw/delete application
-    }
-
-    return methodNotAllowed(res, ["GET", "POST", "DELETE"]);
+  if (!userId) {
+    return badRequest(res, "Missing userId");
   }
+
+  if (method === "GET") {
+    const result = await getUserApplications(userId);
+    return json(res, result);
+  }
+
+  if (method === "POST") {
+    const body = await jsonBody(req);
+
+    if (!body.teamAssignmentEventId) {
+      return badRequest(res, "teamAssignmentEventId required");
+    }
+
+    const result = await createApplication(userId, body.teamAssignmentEventId);
+    return json(res, result);
+  }
+
+  if (method === "DELETE") {
+    const body = await jsonBody(req);
+
+    if (!body.applicationId) {
+      return badRequest(res, "applicationId required");
+    }
+
+    const result = await withdrawApplication(userId, body.applicationId);
+    return json(res, result);
+  }
+
+  return methodNotAllowed(res, ["GET", "POST", "DELETE"]);
+}
 
   // =========================
   // /user/assignment-requests

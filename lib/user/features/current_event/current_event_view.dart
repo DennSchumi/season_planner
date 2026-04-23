@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
-import 'package:season_planner/core/data/models/event_model.dart';
+import 'package:season_planner/core/data/models/event_assigment_model.dart';
 import 'package:season_planner/user/user_provider.dart';
 
 class CurrentEventView extends StatefulWidget {
@@ -33,18 +33,17 @@ class _CurrentEventViewState extends State<CurrentEventView> {
 
     final now = DateTime.now();
 
-    final events = user.events
+    final assignments = user.assignments
         .where(
-          (e) =>
-      (e.assignmentStatus == EventUserStatusEnum.accepted_user ||
-          e.assignmentStatus ==
-              EventUserStatusEnum.accepted_flight_school) &&
-          e.endTime.isAfter(now),
+          (a) =>
+      (a.status == EventUserStatusEnum.accepted_user ||
+          a.status == EventUserStatusEnum.accepted_flight_school) &&
+          a.event.endTime.isAfter(now),
     )
         .toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+      ..sort((a, b) => a.event.startTime.compareTo(b.event.startTime));
 
-    return events.isEmpty
+    return assignments.isEmpty
         ? Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -62,14 +61,18 @@ class _CurrentEventViewState extends State<CurrentEventView> {
       ),
     )
         : PageView.builder(
-      itemCount: events.length,
+      itemCount: assignments.length,
       itemBuilder: (context, index) {
-        final event = events[index];
+        final assignment = assignments[index];
+        final event = assignment.event;
+
         final isOngoing =
             event.startTime.isBefore(now) && event.endTime.isAfter(now);
         final daysUntil = event.startTime.difference(now).inDays;
+
         final fs = user.flightSchools
             .firstWhere((fs) => fs.id == event.flightSchoolId);
+
         final fsName =
             fs.displayShortName ?? fs.displayName ?? 'Flight School';
         final fsLogo = fs.logoLink ?? '';
@@ -92,7 +95,7 @@ class _CurrentEventViewState extends State<CurrentEventView> {
                 _HeaderCard(
                   fsName: fsName,
                   fsLogoLink: fsLogo,
-                  event: event,
+                  assignment: assignment,
                 ),
                 const SizedBox(height: 12),
                 _SectionCard(
@@ -121,7 +124,7 @@ class _CurrentEventViewState extends State<CurrentEventView> {
                     _InfoRow(
                       icon: Icons.account_circle_outlined,
                       label: 'Your role',
-                      value: event.role.label,
+                      value: assignment.role.label,
                     ),
                     if (event.location.isNotEmpty)
                       _InfoRow(
@@ -144,8 +147,7 @@ class _CurrentEventViewState extends State<CurrentEventView> {
                       : event.team
                       .map(
                         (t) => Padding(
-                      padding:
-                      const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
                           const Icon(Icons.person_outline,
@@ -224,18 +226,15 @@ class _CurrentEventViewState extends State<CurrentEventView> {
   }
 }
 
-
-
-
 class _HeaderCard extends StatelessWidget {
   final String fsName;
   final String fsLogoLink;
-  final Event event;
+  final EventAssignment assignment;
 
   const _HeaderCard({
     required this.fsName,
     required this.fsLogoLink,
-    required this.event,
+    required this.assignment,
   });
 
   @override
@@ -263,9 +262,10 @@ class _HeaderCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      Icon(Icons.flight,
-                          color: cs.onSurfaceVariant),
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.flight,
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -291,11 +291,13 @@ class _HeaderCard extends StatelessWidget {
                     children: [
                       _Pill(
                         icon: Icons.assignment_ind_outlined,
-                        text:event.assignmentStatus.label(context: EventUserStatusLabelContext.userView)
+                        text: assignment.status.label(
+                          context: EventUserStatusLabelContext.userView,
                         ),
+                      ),
                       _Pill(
                         icon: Icons.badge_outlined,
-                        text: event.role.label,
+                        text: assignment.role.label,
                       ),
                     ],
                   ),
@@ -398,7 +400,10 @@ class _Pill extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _Pill({required this.icon, required this.text});
+  const _Pill({
+    required this.icon,
+    required this.text,
+  });
 
   @override
   Widget build(BuildContext context) {

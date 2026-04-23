@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:season_planner/core/data/models/event_assigment_model.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 
 import '../core/data/models/event_model.dart';
@@ -23,9 +24,9 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateEvents(List<Event> events) {
+  void updateEvents(List<EventAssignment> eventAssignments) {
     if (_user == null) return;
-    _user = _user!.copyWith(events: events);
+    _user = _user!.copyWith(assignments: eventAssignments);
     notifyListeners();
   }
 

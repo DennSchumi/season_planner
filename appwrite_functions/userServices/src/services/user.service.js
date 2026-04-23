@@ -1,5 +1,5 @@
 import { createAppwrite } from "../../src/appwrite/client.js";
-import { Query } from "node-appwrite";
+import { Query, ID } from "node-appwrite";
 
 const MAIN_DATABASE_ID = process.env.MAIN_DATABASE_ID;
 const USERS_COLLECTION_ID = process.env.USERS_COLLECTION_ID;
@@ -45,6 +45,237 @@ export async function getUserProfile(userId) {
     ok: true,
     user: mapAuthUser(authUser),
     flightSchools,
+  };
+}
+
+export async function getUserApplications(userId) {
+  if (!userId || typeof userId !== "string") {
+    throw new Error("userId is required");
+  }
+
+  const mainUserDoc = await getMainUserDocument(userId);
+  if (!mainUserDoc) {
+    return {
+      ok: false,
+      error: "USER_DOCUMENT_NOT_FOUND",
+    };
+  }
+
+  const memberships = getMembershipsFromUserDocument(mainUserDoc);
+  const applications = [];
+
+  for (const membership of memberships) {
+    const fs = membership?.flightSchools;
+    if (!fs) continue;
+
+    const databaseId = fs.database_id;
+    const positionApplicationsCollectionId = fs.position_applications_id;
+
+    if (!databaseId || !positionApplicationsCollectionId) continue;
+
+    const docs = await loadUserApplications({
+      databaseId,
+      positionApplicationsCollectionId,
+      currentUserId: userId,
+    });
+
+    applications.push(
+      ...docs.map((app) => ({
+        ...app,
+        flightSchoolId: fs.$id,
+      }))
+    );
+  }
+
+  return {
+    ok: true,
+    applications,
+  };
+}
+
+export async function createApplication(userId, teamAssignmentEventId) {
+  if (!userId || typeof userId !== "string") {
+    throw new Error("userId is required");
+  }
+
+  if (!teamAssignmentEventId || typeof teamAssignmentEventId !== "string") {
+    throw new Error("teamAssignmentEventId is required");
+  }
+
+  const authUser = await getAuthUserById(userId);
+  if (!authUser) {
+    return {
+      ok: false,
+      error: "USER_NOT_FOUND",
+    };
+  }
+
+  const mainUserDoc = await getMainUserDocument(userId);
+  if (!mainUserDoc) {
+    return {
+      ok: false,
+      error: "USER_DOCUMENT_NOT_FOUND",
+    };
+  }
+
+  const memberships = getMembershipsFromUserDocument(mainUserDoc);
+
+  for (const membership of memberships) {
+    const fs = membership?.flightSchools;
+    if (!fs) continue;
+
+    const databaseId = fs.database_id;
+    const teamAssignmentsCollectionId = fs.team_assigments_events_id;
+    const positionApplicationsCollectionId = fs.position_applications_id;
+    const allowedRoles = Array.isArray(membership.roles)
+      ? membership.roles.map(String)
+      : [];
+
+    if (!databaseId || !teamAssignmentsCollectionId || !positionApplicationsCollectionId) {
+      continue;
+    }
+
+    const slot = await findTeamAssignmentById({
+      databaseId,
+      teamAssignmentsCollectionId,
+      teamAssignmentEventId,
+    });
+
+    if (!slot) {
+      continue;
+    }
+
+    const slotData = getDocumentData(slot);
+    const slotRole = String(slotData.role ?? "");
+    const slotStatus = String(slotData.status ?? "");
+    const slotUserId = normalizeUserId(slotData.user_id);
+
+    if (!allowedRoles.includes(slotRole)) {
+      return {
+        ok: false,
+        error: "ROLE_NOT_ALLOWED",
+      };
+    }
+
+    if (!isOpenOpportunity(slotUserId, slotStatus)) {
+      return {
+        ok: false,
+        error: "POSITION_NOT_OPEN",
+      };
+    }
+
+    const existingApplications = await databases.listDocuments(
+      databaseId,
+      positionApplicationsCollectionId,
+      [
+        Query.equal("user_id", [userId]),
+        Query.equal("team_assignment_event", [teamAssignmentEventId]),
+        Query.limit(10),
+      ]
+    );
+
+    const activeDuplicate = (existingApplications.documents ?? []).find((doc) => {
+      const data = getDocumentData(doc);
+      const status = String(data.status ?? "").toLowerCase();
+      return status !== "withdrawn" && status !== "rejected";
+    });
+
+    if (activeDuplicate) {
+      return {
+        ok: false,
+        error: "APPLICATION_ALREADY_EXISTS",
+      };
+    }
+
+    const created = await databases.createDocument(
+      databaseId,
+      positionApplicationsCollectionId,
+      ID.unique(),
+      {
+        user_id: userId,
+        team_assignment_event: teamAssignmentEventId,
+        status: "pending",
+      }
+    );
+
+    return {
+      ok: true,
+      application: mapApplicationDocument(created),
+    };
+  }
+
+  return {
+    ok: false,
+    error: "TEAM_ASSIGNMENT_NOT_FOUND",
+  };
+}
+
+export async function withdrawApplication(userId, applicationId) {
+  if (!userId || typeof userId !== "string") {
+    throw new Error("userId is required");
+  }
+
+  if (!applicationId || typeof applicationId !== "string") {
+    throw new Error("applicationId is required");
+  }
+
+  const mainUserDoc = await getMainUserDocument(userId);
+  if (!mainUserDoc) {
+    return {
+      ok: false,
+      error: "USER_DOCUMENT_NOT_FOUND",
+    };
+  }
+
+  const memberships = getMembershipsFromUserDocument(mainUserDoc);
+
+  for (const membership of memberships) {
+    const fs = membership?.flightSchools;
+    if (!fs) continue;
+
+    const databaseId = fs.database_id;
+    const positionApplicationsCollectionId = fs.position_applications_id;
+
+    if (!databaseId || !positionApplicationsCollectionId) continue;
+
+    const application = await findApplicationById({
+      databaseId,
+      positionApplicationsCollectionId,
+      applicationId,
+    });
+
+    if (!application) {
+      continue;
+    }
+
+    const appData = getDocumentData(application);
+    const ownerId = normalizeUserId(appData.user_id);
+
+    if (ownerId !== userId) {
+      return {
+        ok: false,
+        error: "APPLICATION_NOT_OWNED_BY_USER",
+      };
+    }
+
+    const updated = await databases.updateDocument(
+      databaseId,
+      positionApplicationsCollectionId,
+      applicationId,
+      {
+        status: "withdrawn",
+      }
+    );
+
+    return {
+      ok: true,
+      application: mapApplicationDocument(updated),
+    };
+  }
+
+  return {
+    ok: false,
+    error: "APPLICATION_NOT_FOUND",
   };
 }
 
@@ -304,6 +535,7 @@ function categorizeAssignments({
       role,
       status,
       flowType: getAssignmentFlowType(status),
+      userId,
     };
 
     const isOwnAssignment = userId === currentUserId;
@@ -363,19 +595,6 @@ function mapApplicationDocument(doc) {
   const teamAssignmentRef =
     data.team_assignment_event ?? data.teamAssignmentEvent;
 
-  const role =
-    teamAssignmentRef && typeof teamAssignmentRef === "object"
-      ? String(teamAssignmentRef.role ?? "")
-      : "";
-
-  const eventRef =
-    teamAssignmentRef &&
-    typeof teamAssignmentRef === "object" &&
-    teamAssignmentRef.events &&
-    typeof teamAssignmentRef.events === "object"
-      ? teamAssignmentRef.events
-      : null;
-
   return {
     id: doc.$id,
     userId: normalizeUserId(data.user_id),
@@ -383,13 +602,40 @@ function mapApplicationDocument(doc) {
     teamAssignmentEventId:
       teamAssignmentRef && typeof teamAssignmentRef === "object"
         ? teamAssignmentRef.$id ?? null
-        : null,
-    role,
-    eventId: eventRef?.$id ?? null,
-    eventDisplayName: eventRef?.display_name ?? "",
+        : typeof teamAssignmentRef === "string"
+          ? teamAssignmentRef
+          : null,
     createdAt: doc.$createdAt ?? null,
     updatedAt: doc.$updatedAt ?? null,
   };
+}
+
+async function findTeamAssignmentById({
+  databaseId,
+  teamAssignmentsCollectionId,
+  teamAssignmentEventId,
+}) {
+  const result = await databases.listDocuments(
+    databaseId,
+    teamAssignmentsCollectionId,
+    [Query.equal("$id", [teamAssignmentEventId]), Query.limit(1)]
+  );
+
+  return result.documents?.[0] ?? null;
+}
+
+async function findApplicationById({
+  databaseId,
+  positionApplicationsCollectionId,
+  applicationId,
+}) {
+  const result = await databases.listDocuments(
+    databaseId,
+    positionApplicationsCollectionId,
+    [Query.equal("$id", [applicationId]), Query.limit(1)]
+  );
+
+  return result.documents?.[0] ?? null;
 }
 
 // Statuslogik

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:season_planner/core/data/enums/event_status_enum.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
-import 'package:season_planner/core/data/models/event_model.dart';
+import 'package:season_planner/core/data/models/event_assigment_model.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 
 class EventCardTile extends StatelessWidget {
-  final Event event;
+  final EventAssignment assignment;
   final FlightSchoolUserView? flightSchool;
   final String dateText;
   final EventStatusEnum status;
@@ -13,7 +13,7 @@ class EventCardTile extends StatelessWidget {
 
   const EventCardTile({
     super.key,
-    required this.event,
+    required this.assignment,
     required this.flightSchool,
     required this.dateText,
     required this.status,
@@ -34,37 +34,31 @@ class EventCardTile extends StatelessWidget {
   }
 
   Widget? _buildAssignmentIndicator(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    switch (event.assignmentStatus) {
+    switch (assignment.status) {
       case EventUserStatusEnum.user_requests_change:
-        return Tooltip(
+        return const Tooltip(
           message: 'Change requested',
           child: Icon(Icons.change_circle, color: Colors.orange, size: 20),
         );
       case EventUserStatusEnum.accepted_user:
-        return Tooltip(
-          message: 'Confirmed',
-          child: Icon(Icons.check_circle, color: Colors.green, size: 20),
-        );
       case EventUserStatusEnum.accepted_flight_school:
-        return Tooltip(
+        return const Tooltip(
           message: 'Confirmed',
           child: Icon(Icons.check_circle, color: Colors.green, size: 20),
         );
       case EventUserStatusEnum.denied_user:
-        return Tooltip(
+      case EventUserStatusEnum.denied_flight_school:
+        return const Tooltip(
           message: 'Denied',
           child: Icon(Icons.cancel, color: Colors.red, size: 20),
         );
-      case EventUserStatusEnum.pending_user:
-        return null;
       case EventUserStatusEnum.pending_flight_school:
-        return Tooltip(
+        return const Tooltip(
           message: 'Pending confirmation',
           child: Icon(Icons.hourglass_top, color: Colors.blueGrey, size: 20),
         );
-      default:
+      case EventUserStatusEnum.pending_user:
+      case EventUserStatusEnum.open:
         return null;
     }
   }
@@ -73,6 +67,7 @@ class EventCardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final fs = flightSchool;
+    final event = assignment.event;
     final logo = (fs?.logoLink ?? '').toString();
     final fsName = fs?.displayShortName ?? fs?.displayName ?? 'Flight School';
 
@@ -110,6 +105,17 @@ class EventCardTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      fsName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
                     Row(
                       children: [
                         Expanded(
@@ -139,14 +145,18 @@ class EventCardTile extends StatelessWidget {
                           icon: Icons.calendar_today_outlined,
                           text: dateText,
                         ),
-                        if ((event.location ?? '').toString().isNotEmpty)
+                        if (event.location.isNotEmpty)
                           _InfoChip(
                             icon: Icons.place_outlined,
-                            text: event.location!,
+                            text: event.location,
                           ),
                         _InfoChip(
                           icon: Icons.question_answer_outlined,
                           text: _getStatusText(status),
+                        ),
+                        _InfoChip(
+                          icon: Icons.badge_outlined,
+                          text: assignment.role.label,
                         ),
                       ],
                     ),

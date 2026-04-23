@@ -7,9 +7,12 @@ import 'package:season_planner/core/data/enums/event_role_enum.dart';
 import 'package:season_planner/core/data/enums/event_status_enum.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/enums/membership_status_enum.dart';
+import 'package:season_planner/core/data/models/event_application_model.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 import 'package:season_planner/user/data/models/user_model_userView.dart';
+
+import '../../core/data/models/event_assigment_model.dart';
 
 class UserService {
   final Client client = Client()
@@ -27,9 +30,35 @@ class UserService {
     functions = Functions(client);
   }
 
+  Future<bool> createApplication(String teamAssignmentEventId) async {
+    try {
+      final exec = await functions.createExecution(
+        functionId: AppwriteConfig().userFunctionsID,
+        method: ExecutionMethod.pOST,
+        path: '/user/applications',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: jsonEncode({
+          'teamAssignmentEventId': teamAssignmentEventId,
+        }),
+      );
+
+      print(exec.responseBody);
+
+      if ((exec.responseBody).isEmpty) return false;
+
+      final Map<String, dynamic> body = jsonDecode(exec.responseBody);
+      return body['ok'] == true;
+    } catch (e, st) {
+      print('createApplication error: $e');
+      print(st);
+      return false;
+    }
+  }
+
   Future<UserModelUserView?> loadUserInformation() async {
     try {
-
       final exec = await functions.createExecution(
         functionId: AppwriteConfig().userFunctionsID,
         method: ExecutionMethod.gET,
@@ -50,16 +79,15 @@ class UserService {
       }
 
       final userJson = Map<String, dynamic>.from(body['user'] ?? {});
-      final flightSchoolsJson =
-      (body['flightSchools'] as List? ?? const [])
+      final flightSchoolsJson = (body['flightSchools'] as List? ?? const [])
           .map((e) => Map<String, dynamic>.from(e as Map))
           .toList();
 
-      final flightSchools = flightSchoolsJson
-          .map(_mapFlightSchoolUserView)
-          .toList();
-
-      final events = _flattenEventsFromFlightSchools(flightSchoolsJson);
+      final flightSchools = flightSchoolsJson.map(_mapFlightSchoolUserView).toList();
+      final assignments =
+      _flattenAssignmentsFromFlightSchools(flightSchoolsJson);
+      final applications =
+      _flattenApplicationsFromFlightSchools(flightSchoolsJson);
 
       return UserModelUserView(
         id: (userJson['id'] ?? '').toString(),
@@ -67,7 +95,8 @@ class UserService {
         mail: (userJson['email'] ?? '').toString(),
         phone: (userJson['phone'] ?? '').toString(),
         flightSchools: flightSchools,
-        events: events,
+        assignments: assignments,
+        applications: applications,
       );
     } catch (e, st) {
       print('loadUserInformation error: $e');
@@ -78,7 +107,7 @@ class UserService {
 
   FlightSchoolUserView _mapFlightSchoolUserView(Map<String, dynamic> fs) {
     return FlightSchoolUserView(
-      id: fs['id']!.toString(),
+      id: (fs['id'] ?? '').toString(),
       displayName: (fs['displayName'] ?? '').toString(),
       displayShortName: (fs['displayShortName'] ?? '').toString(),
       membershipStatus: _parseMembershipStatus(fs['membershipStatus']),
@@ -96,10 +125,10 @@ class UserService {
     );
   }
 
-  List<Event> _flattenEventsFromFlightSchools(
+  List<EventAssignment> _flattenAssignmentsFromFlightSchools(
       List<Map<String, dynamic>> flightSchoolsJson,
       ) {
-    final List<Event> allEvents = [];
+    final List<EventAssignment> allAssignments = [];
 
     for (final fs in flightSchoolsJson) {
       final flightSchoolId = (fs['id'] ?? '').toString();
@@ -120,11 +149,13 @@ class UserService {
           final eventJson = eventsById[eventId];
           if (eventJson == null) continue;
 
-          allEvents.add(_mapEvent(
-            eventJson: eventJson,
-            itemJson: itemMap,
-            flightSchoolId: flightSchoolId,
-          ));
+          allAssignments.add(
+            _mapAssignment(
+              eventJson: eventJson,
+              itemJson: itemMap,
+              flightSchoolId: flightSchoolId,
+            ),
+          );
         }
       }
 
@@ -133,22 +164,41 @@ class UserService {
       addItems(fs['openOpportunities'] as List? ?? const []);
     }
 
-    return allEvents;
+    return allAssignments;
   }
 
-  Event _mapEvent({
+  List<PositionApplication> _flattenApplicationsFromFlightSchools(
+      List<Map<String, dynamic>> flightSchoolsJson,
+      ) {
+    final List<PositionApplication> allApplications = [];
+
+    for (final fs in flightSchoolsJson) {
+      final applications = fs['applications'] as List? ?? const [];
+
+      for (final application in applications) {
+        final map = Map<String, dynamic>.from(application as Map);
+        allApplications.add(PositionApplication.fromMap(map));
+      }
+    }
+
+    return allApplications;
+  }
+
+  EventAssignment _mapAssignment({
     required Map<String, dynamic> eventJson,
     required Map<String, dynamic> itemJson,
     required String flightSchoolId,
   }) {
     final team = (eventJson['team'] as List? ?? const [])
-        .map((member) => TeamMember.fromMap(
-      Map<String, dynamic>.from(member as Map),
-    ))
+        .map(
+          (member) => TeamMember.fromMap(
+        Map<String, dynamic>.from(member as Map),
+      ),
+    )
         .toList();
 
-    return Event(
-      id: (itemJson['id'] ?? '').toString(),
+    final event = Event(
+      id: (eventJson['id'] ?? '').toString(),
       flightSchoolId: flightSchoolId,
       identifier: (eventJson['identifier'] ?? '').toString(),
       status: _parseEventStatus(eventJson['status']),
@@ -158,8 +208,14 @@ class UserService {
       location: (eventJson['location'] ?? '').toString(),
       notes: (eventJson['notes'] ?? '').toString(),
       team: team,
+    );
+
+    return EventAssignment(
+      id: (itemJson['id'] ?? '').toString(),
+      userId: (itemJson['userId'] ?? '').toString(),
+      event: event,
       role: _parseEventRole(itemJson['role']) ?? EventRoleEnum.values.first,
-      assignmentStatus: _parseEventUserStatus(itemJson['status']),
+      status: _parseEventUserStatus(itemJson['status']),
     );
   }
 
@@ -188,4 +244,6 @@ class UserService {
       return null;
     }
   }
+
+  Future<bool> changeAssignmentStatus({required String teamAssignmentEventId, required EventUserStatusEnum newStatus}) async {return false;}
 }

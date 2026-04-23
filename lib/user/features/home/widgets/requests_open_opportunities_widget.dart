@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:season_planner/core/data/enums/event_status_enum.dart';
+import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/enums/membership_status_enum.dart';
-import 'package:season_planner/core/data/models/event_model.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 import 'package:season_planner/user/features/home/widgets/event_detail_view.dart';
 import 'package:season_planner/user/user_provider.dart';
-import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/core/data/models/event_assigment_model.dart';
 import 'event_card_tile_widget.dart';
 
 class RequestsOpportunitiesWidget extends StatelessWidget {
-  final List<Event> events;
+  final List<EventAssignment> assignments;
 
-  const RequestsOpportunitiesWidget({super.key, required this.events});
+  const RequestsOpportunitiesWidget({
+    super.key,
+    required this.assignments,
+  });
 
-  String _getTypeLabel(Event event) {
-    switch (event.assignmentStatus) {
+  String _getTypeLabel(EventAssignment assignment) {
+    switch (assignment.status) {
       case EventUserStatusEnum.open:
         return 'Open Opportunity';
       case EventUserStatusEnum.pending_user:
@@ -29,8 +31,8 @@ class RequestsOpportunitiesWidget extends StatelessWidget {
     }
   }
 
-  Color _getTypeColor(Event event) {
-    switch (event.assignmentStatus) {
+  Color _getTypeColor(EventAssignment assignment) {
+    switch (assignment.status) {
       case EventUserStatusEnum.open:
         return Colors.blue;
       case EventUserStatusEnum.pending_user:
@@ -44,8 +46,8 @@ class RequestsOpportunitiesWidget extends StatelessWidget {
     }
   }
 
-  IconData _getTypeIcon(Event event) {
-    switch (event.assignmentStatus) {
+  IconData _getTypeIcon(EventAssignment assignment) {
+    switch (assignment.status) {
       case EventUserStatusEnum.open:
         return Icons.public;
       case EventUserStatusEnum.pending_user:
@@ -77,16 +79,17 @@ class RequestsOpportunitiesWidget extends StatelessWidget {
       for (final fs in user.flightSchools) fs.id: fs,
     };
 
-    final visibleEvents = events.where((event) {
+    final visibleAssignments = assignments.where((assignment) {
+      final event = assignment.event;
       final fs = fsById[event.flightSchoolId];
       if (fs == null) return false;
 
       if (fs.membershipStatus != MembershipStatusEnum.active) return false;
 
-      return fs.availableRoles.contains(event.role);
+      return fs.availableRoles.contains(assignment.role);
     }).toList();
 
-    if (visibleEvents.isEmpty) {
+    if (visibleAssignments.isEmpty) {
       return const SizedBox(
         height: 70,
         child: Column(
@@ -100,9 +103,10 @@ class RequestsOpportunitiesWidget extends StatelessWidget {
 
     return ListView.builder(
       shrinkWrap: true,
-      itemCount: visibleEvents.length,
+      itemCount: visibleAssignments.length,
       itemBuilder: (context, index) {
-        final event = visibleEvents[index];
+        final assignment = visibleAssignments[index];
+        final event = assignment.event;
         final fs = fsById[event.flightSchoolId];
 
         return Padding(
@@ -110,7 +114,7 @@ class RequestsOpportunitiesWidget extends StatelessWidget {
           child: Stack(
             children: [
               EventCardTile(
-                event: event,
+                assignment: assignment,
                 flightSchool: fs,
                 dateText:
                 '${_formatDate(event.startTime)} – ${_formatDate(event.endTime)}',
@@ -119,37 +123,42 @@ class RequestsOpportunitiesWidget extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => EventDetailView(event: event),
+                      builder: (_) => EventDetailView(
+                        assignment: assignment,
+                      ),
                     ),
                   );
                 },
               ),
-              if (event.assignmentStatus != EventUserStatusEnum.pending_flight_school)
+              if (assignment.status != EventUserStatusEnum.pending_flight_school)
                 Positioned(
                   right: 10,
                   top: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: _getTypeColor(event).withOpacity(0.15),
+                      color: _getTypeColor(assignment).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _getTypeColor(event)),
+                      border: Border.all(color: _getTypeColor(assignment)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          _getTypeIcon(event),
+                          _getTypeIcon(assignment),
                           size: 14,
-                          color: _getTypeColor(event),
+                          color: _getTypeColor(assignment),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _getTypeLabel(event),
+                          _getTypeLabel(assignment),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: _getTypeColor(event),
+                            color: _getTypeColor(assignment),
                           ),
                         ),
                       ],

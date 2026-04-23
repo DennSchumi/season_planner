@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
+import 'package:season_planner/core/data/models/event_assigment_model.dart';
 import 'package:season_planner/user/features/home/widgets/flight_school_selector_widget.dart';
 import 'package:season_planner/user/features//home/widgets/requests_open_opportunities_widget.dart';
 import 'package:season_planner/user/features/home/widgets/your_events_widget.dart';
@@ -98,35 +99,37 @@ class _HomeViewState extends State<HomeView> {
       _initializedSelection = true;
     }
 
-    final List<Event> publicRequests = [];
-    final List<Event> acceptedEvents = [];
-    final List<Event> pendingOrRequestedEvents = [];
-    final List<Event> userChangeRequests = [];
+    final List<EventAssignment> publicRequests = [];
+    final List<EventAssignment> acceptedEvents = [];
+    final List<EventAssignment> pendingOrRequestedEvents = [];
+    final List<EventAssignment> userChangeRequests = [];
 
     final now = DateTime.now();
 
-    for (final event in user.events) {
+    for (final assignment in user.assignments) {
+      final event = assignment.event;
+
       if (!event.startTime.isBefore(now) &&
           selectedFlightSchools.contains(event.flightSchoolId)) {
-        switch (event.assignmentStatus) {
+        switch (assignment.status) {
           case EventUserStatusEnum.accepted_user:
           case EventUserStatusEnum.accepted_flight_school:
-            acceptedEvents.add(event);
+            acceptedEvents.add(assignment);
             break;
 
           case EventUserStatusEnum.user_requests_change:
-            userChangeRequests.add(event);
+            userChangeRequests.add(assignment);
             break;
 
           case EventUserStatusEnum.pending_flight_school:
           case EventUserStatusEnum.pending_user:
           case EventUserStatusEnum.denied_flight_school:
           case EventUserStatusEnum.denied_user:
-            pendingOrRequestedEvents.add(event);
+            pendingOrRequestedEvents.add(assignment);
             break;
 
           case EventUserStatusEnum.open:
-            publicRequests.add(event);
+            publicRequests.add(assignment);
             break;
         }
       }
@@ -196,13 +199,13 @@ class _HomeViewState extends State<HomeView> {
                     child: TabBarView(
                       children: [
                         YourEventsWidget(
-                          events: [
+                          assignments: [
                             ...acceptedEvents,
                             ...userChangeRequests
                           ],
                         ),
                         RequestsOpportunitiesWidget(
-                          events: [
+                          assignments: [
                             ...pendingOrRequestedEvents,
                             ...publicRequests
                           ],

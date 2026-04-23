@@ -1,5 +1,7 @@
-import 'package:season_planner/core/data/models/event_model.dart';
+import 'package:season_planner/core/data/models/event_application_model.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
+
+import '../../../core/data/models/event_assigment_model.dart';
 
 class UserModelUserView {
   final String id;
@@ -7,35 +9,43 @@ class UserModelUserView {
   final String mail;
   final String phone;
   final List<FlightSchoolUserView> flightSchools;
-  final List<Event> events;
+  final List<EventAssignment> assignments;
+  final List<PositionApplication> applications;
 
-  // Constructor
-  UserModelUserView({
+  const UserModelUserView({
     required this.id,
     required this.name,
     required this.mail,
     required this.phone,
     required this.flightSchools,
-    required this.events,
+    required this.assignments,
+    required this.applications,
   });
 
-  // Factory method to create an instance from a JSON object
   factory UserModelUserView.fromJson(Map<String, dynamic> json) {
     return UserModelUserView(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      mail: json['mail'] as String,
-      phone: json['phone'] as String,
-      flightSchools: (json['flightSchools'] as List)
-          .map((fs) => FlightSchoolUserView.fromJson(fs))
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      mail: (json['mail'] ?? '').toString(),
+      phone: (json['phone'] ?? '').toString(),
+      flightSchools: (json['flightSchools'] as List? ?? const [])
+          .map((fs) => FlightSchoolUserView.fromJson(
+        Map<String, dynamic>.from(fs as Map),
+      ))
           .toList(),
-      events: (json['events'] as List)
-          .map((e) => Event.fromJson(e))
+      assignments: (json['assignments'] as List? ?? const [])
+          .map((a) => EventAssignment.fromJson(
+        Map<String, dynamic>.from(a as Map),
+      ))
+          .toList(),
+      applications: (json['applications'] as List? ?? const [])
+          .map((a) => PositionApplication.fromMap(
+        Map<String, dynamic>.from(a as Map),
+      ))
           .toList(),
     );
   }
 
-  // Convert object to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -43,18 +53,19 @@ class UserModelUserView {
       'mail': mail,
       'phone': phone,
       'flightSchools': flightSchools.map((fs) => fs.toJson()).toList(),
-      'events': events.map((e) => e.toJson()).toList(),
+      'assignments': assignments.map((a) => a.toJson()).toList(),
+      'applications': applications.map((a) => a.toMap()).toList(),
     };
   }
 
-  // Copy method to update specific fields
   UserModelUserView copyWith({
     String? id,
     String? name,
     String? mail,
     String? phone,
     List<FlightSchoolUserView>? flightSchools,
-    List<Event>? events,
+    List<EventAssignment>? assignments,
+    List<PositionApplication>? applications,
   }) {
     return UserModelUserView(
       id: id ?? this.id,
@@ -62,23 +73,33 @@ class UserModelUserView {
       mail: mail ?? this.mail,
       phone: phone ?? this.phone,
       flightSchools: flightSchools ?? this.flightSchools,
-      events: events ?? this.events,
+      assignments: assignments ?? this.assignments,
+      applications: applications ?? this.applications,
     );
   }
 
   static UserModelUserView empty() {
-    return UserModelUserView(
+    return const UserModelUserView(
       id: '',
       name: '',
       mail: '',
       phone: '',
       flightSchools: [],
-      events: [],
+      assignments: [],
+      applications: [],
     );
   }
+
   @override
   String toString() {
-    return 'UserModel(id: $id, name: $name, mail: $mail, phone: $phone, '
-        'flightSchools: $flightSchools, events: $events)';
+    return 'UserModelUserView('
+        'id: $id, '
+        'name: $name, '
+        'mail: $mail, '
+        'phone: $phone, '
+        'flightSchools: $flightSchools, '
+        'assignments: $assignments, '
+        'applications: $applications'
+        ')';
   }
 }

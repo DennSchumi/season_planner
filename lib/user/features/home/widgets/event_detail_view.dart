@@ -2,20 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
-import 'package:season_planner/user/services/database_service.dart';
+import 'package:season_planner/user/services/user_service.dart';
 import 'package:season_planner/user/user_provider.dart';
 import 'package:add_2_calendar_new/add_2_calendar_new.dart' as calendar;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import '../../../../core/data/models/event_assigment_model.dart';
 import '../../../../user/data/models/user_model_userView.dart';
-
 import 'calender_export_stub.dart'
 if (dart.library.html) '././calender_export_web.dart';
 
 class EventDetailView extends StatefulWidget {
-  final Event event;
+  final EventAssignment assignment;
 
-  const EventDetailView({super.key, required this.event});
+  const EventDetailView({
+    super.key,
+    required this.assignment,
+  });
 
   @override
   State<EventDetailView> createState() => _EventDetailViewState();
@@ -30,64 +33,57 @@ class _EventDetailViewState extends State<EventDetailView> {
     user = context.read<UserProvider>().user!;
   }
 
-  void exportToCalendar(Event myEvent) {
+  void exportToCalendar(Event event) {
     if (kIsWeb) {
-      exportEventAsICS(myEvent);
+      exportEventAsICS(event);
       return;
     }
 
     final calendarEvent = calendar.Event(
-      title: myEvent.displayName,
-      description: myEvent.notes,
-      location: myEvent.location,
-      startDate: myEvent.startTime,
-      endDate: myEvent.endTime,
+      title: event.displayName,
+      description: event.notes,
+      location: event.location,
+      startDate: event.startTime,
+      endDate: event.endTime,
       allDay: false,
     );
 
     calendar.Add2Calendar.addEvent2Cal(calendarEvent);
   }
 
+  Future<bool> _reloadUser() async {
+    final updatedUser = await UserService().loadUserInformation();
+    if (!mounted || updatedUser == null) return false;
+
+    context.read<UserProvider>().setUser(updatedUser);
+    return true;
+  }
+
   Future<bool> _request() async {
-    final success = await DatabaseService().changeEventAssignmentStatus(
-      user: user,
-      event: widget.event,
-      newStatus: EventUserStatusEnum.pending_flight_school,
-    );
-    if (success) {
-      final updatedEvents = await DatabaseService().loadUserEvents(user);
-      if (!mounted) return false;
-      context.read<UserProvider>().updateEvents(updatedEvents);
-    }
-    return success;
+    final success = await UserService().createApplication(widget.assignment.id);
+    if (!success) return false;
+
+    return _reloadUser();
   }
 
   Future<bool> _accept() async {
-    final success = await DatabaseService().changeEventAssignmentStatus(
-      user: user,
-      event: widget.event,
+    final success = await UserService().changeAssignmentStatus(
+      teamAssignmentEventId: widget.assignment.id,
       newStatus: EventUserStatusEnum.accepted_user,
     );
-    if (success) {
-      final updatedEvents = await DatabaseService().loadUserEvents(user);
-      if (!mounted) return false;
-      context.read<UserProvider>().updateEvents(updatedEvents);
-    }
-    return success;
+
+    if (!success) return false;
+    return _reloadUser();
   }
 
   Future<bool> _change() async {
-    final success = await DatabaseService().changeEventAssignmentStatus(
-      user: user,
-      event: widget.event,
+    final success = await UserService().changeAssignmentStatus(
+      teamAssignmentEventId: widget.assignment.id,
       newStatus: EventUserStatusEnum.user_requests_change,
     );
-    if (success) {
-      final updatedEvents = await DatabaseService().loadUserEvents(user);
-      if (!mounted) return false;
-      context.read<UserProvider>().updateEvents(updatedEvents);
-    }
-    return success;
+
+    if (!success) return false;
+    return _reloadUser();
   }
 
   void _showActionDialog({
@@ -111,13 +107,17 @@ class _EventDetailViewState extends State<EventDetailView> {
     final userFromProvider = context.watch<UserProvider>().user;
 
     if (userFromProvider == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    final event = userFromProvider.events.firstWhere(
-          (e) => e.id == widget.event.id,
-      orElse: () => widget.event,
+    final assignment = userFromProvider.assignments.firstWhere(
+          (a) => a.id == widget.assignment.id,
+      orElse: () => widget.assignment,
     );
+
+    final event = assignment.event;
 
     final flightSchools = userFromProvider.flightSchools;
     final fs = flightSchools.cast<dynamic>().firstWhere(
@@ -150,7 +150,7 @@ class _EventDetailViewState extends State<EventDetailView> {
         ],
       ),
       bottomNavigationBar: _BottomActionBar(
-        status: event.assignmentStatus,
+        status: assignment.status,
         onRequest: () => _showActionDialog(
           title: "Request assignment",
           message: "Do you want to request this assignment?",
@@ -174,7 +174,7 @@ class _EventDetailViewState extends State<EventDetailView> {
             _HeaderCard(
               fsName: fsName,
               fsLogoLink: fsLogoLink,
-              event: event,
+              assignment: assignment,
             ),
             const SizedBox(height: 12),
             _SectionCard(
@@ -203,63 +203,16 @@ class _EventDetailViewState extends State<EventDetailView> {
                 _InfoRow(
                   icon: Icons.account_circle_outlined,
                   label: "Your role",
-                  value: event.role.label,
+                  value: assignment.role.label,
                 ),
-                if ((event.location ?? "").toString().isNotEmpty)
+                if (event.location.toString().isNotEmpty)
                   _InfoRow(
                     icon: Icons.place_outlined,
                     label: "Location",
-                    value: (event.location ?? "").toString(),
+                    value: event.location,
                   ),
               ],
             ),
-            const SizedBox(height: 12),
-
-            /*_SectionCard(
-              title: "Team",
-              children: event.team
-                  .where((t) => t.name != null && t.name!.isNotEmpty)
-                  .isEmpty
-                  ? [
-                const Padding(
-                  padding: EdgeInsets.only(top: 4),
-                  child: Text(
-                    "No team members assigned.",
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                ),
-              ]
-                  : event.team
-                  .where((t) => t.name != null && t.name!.isNotEmpty)
-                  .map(
-                    (t) => Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person_outline, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          t.name!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        t.role,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-                  .toList(),
-            ),*/
-
             const SizedBox(height: 12),
             _SectionCard(
               title: "Notes",
@@ -282,24 +235,26 @@ class _EventDetailViewState extends State<EventDetailView> {
 
   static String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year} '
-        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+        '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
   }
 }
 
 class _HeaderCard extends StatelessWidget {
   final String fsName;
   final String fsLogoLink;
-  final Event event;
+  final EventAssignment assignment;
 
   const _HeaderCard({
     required this.fsName,
     required this.fsLogoLink,
-    required this.event,
+    required this.assignment,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final event = assignment.event;
 
     return Card(
       elevation: 0,
@@ -347,13 +302,13 @@ class _HeaderCard extends StatelessWidget {
                     children: [
                       _Pill(
                         icon: Icons.assignment_ind_outlined,
-                        text: event.assignmentStatus.label(
+                        text: assignment.status.label(
                           context: EventUserStatusLabelContext.userView,
                         ),
                       ),
                       _Pill(
                         icon: Icons.badge_outlined,
-                        text: event.role.label,
+                        text: assignment.role.label,
                       ),
                     ],
                   ),
@@ -457,7 +412,10 @@ class _Pill extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _Pill({required this.icon, required this.text});
+  const _Pill({
+    required this.icon,
+    required this.text,
+  });
 
   @override
   Widget build(BuildContext context) {

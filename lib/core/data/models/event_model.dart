@@ -2,6 +2,8 @@ import 'package:season_planner/core/data/enums/event_role_enum.dart';
 import 'package:season_planner/core/data/enums/event_status_enum.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 
+import 'package:season_planner/core/data/enums/event_status_enum.dart';
+
 class Event {
   final String id;
   final String flightSchoolId;
@@ -18,10 +20,7 @@ class Event {
 
   final String notes;
 
-  final EventRoleEnum role;
-  final EventUserStatusEnum assignmentStatus;
-
-  Event({
+  const Event({
     required this.id,
     required this.flightSchoolId,
     required this.identifier,
@@ -32,11 +31,8 @@ class Event {
     required this.location,
     required this.team,
     required this.notes,
-    required this.role,
-    required this.assignmentStatus,
   });
 
-  /// JSON für App-interne Serialisierung (nicht 1:1 Appwrite)
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
       id: (json['id'] ?? '').toString(),
@@ -50,12 +46,7 @@ class Event {
       team: (json['team'] as List? ?? const [])
           .map((e) => TeamMember.fromMap(e as Map<String, dynamic>))
           .toList(),
-
-      /// ✅ Notes als String
       notes: (json['notes'] ?? '').toString(),
-
-      role: EventRoleEnum.values.byName(json['role']),
-      assignmentStatus: EventUserStatusEnum.values.byName(json['assignmentStatus']),
     );
   }
 
@@ -70,11 +61,7 @@ class Event {
       'displayName': displayName,
       'location': location,
       'team': team.map((t) => t.toMap()).toList(),
-
       'notes': notes,
-
-      'role': role.name,
-      'assignmentStatus': assignmentStatus.name,
     };
   }
 
@@ -89,8 +76,6 @@ class Event {
     String? location,
     List<TeamMember>? team,
     String? notes,
-    EventRoleEnum? role,
-    EventUserStatusEnum? assignmentStatus,
   }) {
     return Event(
       id: id ?? this.id,
@@ -103,18 +88,23 @@ class Event {
       location: location ?? this.location,
       team: team ?? this.team,
       notes: notes ?? this.notes,
-      role: role ?? this.role,
-      assignmentStatus: assignmentStatus ?? this.assignmentStatus,
     );
   }
 
   @override
   String toString() {
-    return 'Event(id: $id, flightSchoolId: $flightSchoolId, identifier: $identifier, '
-        'status: $status, startTime: $startTime, endTime: $endTime, '
-        'displayName: $displayName, location: $location, '
-        'team: ${team.length}, notes: $notes, '
-        'role: $role, assignmentStatus: $assignmentStatus)';
+    return 'Event('
+        'id: $id, '
+        'flightSchoolId: $flightSchoolId, '
+        'identifier: $identifier, '
+        'status: $status, '
+        'startTime: $startTime, '
+        'endTime: $endTime, '
+        'displayName: $displayName, '
+        'location: $location, '
+        'team: ${team.length}, '
+        'notes: $notes'
+        ')';
   }
 }
 
