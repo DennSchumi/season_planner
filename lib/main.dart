@@ -16,6 +16,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => FlightSchoolProvider())
+
       ],
       child: const MyApp(),
     ),
