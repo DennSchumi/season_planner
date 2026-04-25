@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/enums.dart';
 import '../../core/appwrite_config.dart';
+import '../../core/data/models/event_model.dart';
 
 class FlightSchoolFunctions {
   final Functions functions;
@@ -102,6 +103,34 @@ class FlightSchoolFunctions {
         "membershipId": membershipId,
         "roles": roles,
       }),
+    );
+
+    return jsonDecode(exec.responseBody);
+  }
+
+  Future<dynamic> createNewEvent({ required Event event}) async {
+    final exec = await functions.createExecution(
+        functionId: AppwriteConfig().flightSchoolFunctionsId,
+      method: ExecutionMethod.pOST,
+      path: '/admin/events',
+      headers:  {'content-type': 'application/json'},
+      body: jsonEncode({
+        "event": event.toJson()
+      })
+    );
+
+    return jsonDecode(exec.responseBody);
+  }
+
+  Future<dynamic> updateEvent({required Event event}) async {
+    final exec = await functions.createExecution(
+        functionId: AppwriteConfig().flightSchoolFunctionsId,
+      method: ExecutionMethod.pATCH,
+      path:  '/admin/events',
+        headers:  {'content-type': 'application/json'},
+        body: jsonEncode({
+          "event": event.toJson()
+        })
     );
 
     return jsonDecode(exec.responseBody);

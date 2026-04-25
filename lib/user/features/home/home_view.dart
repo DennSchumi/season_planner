@@ -123,6 +123,7 @@ class _HomeViewState extends State<HomeView> {
 
           case EventUserStatusEnum.pending_flight_school:
           case EventUserStatusEnum.pending_user:
+          case EventUserStatusEnum.removed:
           case EventUserStatusEnum.denied_flight_school:
           case EventUserStatusEnum.denied_user:
             pendingOrRequestedEvents.add(assignment);

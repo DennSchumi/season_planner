@@ -13,6 +13,8 @@ import {
   updateFlightSchoolAdmins,
   removeMemberFromFlightSchool,
   updateMemberRoles,
+  updateEvent,
+  createNewEvent,
 } from "./services/flightSchool.service.js";
 
 export async function handleRequest({ req, res, log }) {
@@ -31,9 +33,28 @@ export async function handleRequest({ req, res, log }) {
       return badRequest(res, "Missing query param: flightSchoolId");
     }
 
-    const result = await getFlightSchoolAdminView({ flightSchoolId });
+    const result = await getFlightSchoolAdminView({ flightSchoolId});
     return json(res, result);
   }
+
+if (path === "/admin/events") {
+  if (method === "POST") {
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const event = body?.event;
+
+    const result = await createNewEvent({ event });
+    return json(res, result);
+  }
+
+  if(method == "PATCH"){
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const event = body?.event;
+
+    const result = await updateEvent({ event });
+
+   return json(res, result);
+  }
+}
 
   if (path === "/admin/members") {
     if (method === "GET") {

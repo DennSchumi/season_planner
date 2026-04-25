@@ -3,8 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:season_planner/fsAdmin/services/flight_school_functions.dart';
 
 import '../../core/appwrite_config.dart';
+import '../../core/data/models/event_model.dart';
 import '../data/models/flight_school_model_flight_school_view.dart';
-import 'package:season_planner/fsAdmin/data/models/user_summary_flight_school_view.dart';
 
 class FlightSchoolService {
   final Client client = Client()
@@ -45,7 +45,6 @@ class FlightSchoolService {
       final res = await flightSchoolFunctions.getFlightSchoolAdminView(
         flightSchoolId: id,
       );
-
       if (res["ok"] != true) return null;
 
       final fs = Map<String, dynamic>.from(res["flightSchool"]);
@@ -99,6 +98,26 @@ class FlightSchoolService {
 
     if (res["ok"] != true) {
       throw Exception("Invite failed: ${res.toString()}");
+    }
+  }
+
+  Future<bool> createEvent({required Event event}) async {
+    try{
+      final res = await flightSchoolFunctions.createNewEvent(event: event);
+      return res["ok"] == true;
+    }catch(e) {
+      debugPrint("createNewEvent failed: $e");
+      return false;
+    }
+  }
+
+  Future<bool> updateEvent({required Event event}) async {
+    try{
+      final res = await flightSchoolFunctions.updateEvent(event: event);
+      return res["ok"] == true;
+    }catch(e){
+      debugPrint("updateEvent failed: $e");
+      return false;
     }
   }
 }

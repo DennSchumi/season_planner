@@ -109,22 +109,23 @@ class Event {
 }
 
 class TeamMember {
+  final String id;
   final String userId;
   final String name;
   final String role;
   final String status;
 
   const TeamMember({
+    required this.id,
     required this.userId,
     required this.name,
     required this.role,
     required this.status,
   });
 
-
-
   factory TeamMember.fromMap(Map<String, dynamic> map) {
     return TeamMember(
+      id: (map['id'] ?? map['\$id'] ?? '').toString(),
       userId: (map['user_id'] ?? map['userId'] ?? '').toString(),
       name: (map['name'] ?? map['display_name'] ?? '').toString(),
       role: (map['role'] ?? '').toString(),
@@ -134,6 +135,7 @@ class TeamMember {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'user_id': userId,
       'name': name,
       'role': role,
@@ -142,12 +144,14 @@ class TeamMember {
   }
 
   TeamMember copyWith({
+    String? id,
     String? userId,
     String? name,
     String? role,
     String? status,
   }) {
     return TeamMember(
+      id: id ?? this.id,
       userId: userId ?? this.userId,
       name: name ?? this.name,
       role: role ?? this.role,
@@ -175,13 +179,14 @@ class TeamMember {
 
   @override
   String toString() {
-    return 'TeamMember(userId: $userId, name: $name, role: $role, status: $status)';
+    return 'TeamMember(id: $id, userId: $userId, name: $name, role: $role, status: $status)';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is TeamMember &&
+        other.id == id &&
         other.userId == userId &&
         other.name == name &&
         other.role == role &&
@@ -189,5 +194,5 @@ class TeamMember {
   }
 
   @override
-  int get hashCode => Object.hash(userId, name, role, status);
+  int get hashCode => Object.hash(id, userId, name, role, status);
 }

@@ -274,10 +274,11 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                 ElevatedButton(
                   onPressed: () {
                     if (selected == null) {
-                      final slotId = "slot_${DateTime.now().microsecondsSinceEpoch}";
+                      final slotId = "";
                       Navigator.pop(
                         ctx,
                         TeamMember(
+                          id: "",
                           userId: slotId,
                           name: "Open Opportunity",
                           role: role.name,
@@ -290,6 +291,7 @@ class _EventUpsertViewState extends State<EventUpsertView> {
                     Navigator.pop(
                       ctx,
                       TeamMember(
+                        id: "",
                         userId: selected!.id,
                         name: selected!.name,
                         role: role.name,

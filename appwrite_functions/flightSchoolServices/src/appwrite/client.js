@@ -10,11 +10,10 @@ function requireEnv(name) {
 }
 
 export function createAppwrite(overrides = {}) {
-  // entweder aus overrides oder aus env
   const endpoint =
     overrides.endpoint ??
     process.env.APPWRITE_ENDPOINT ??
-    process.env.APPWRITE_FUNCTION_API_ENDPOINT; // je nach Runtime
+    process.env.APPWRITE_FUNCTION_API_ENDPOINT; 
 
   const projectId =
     overrides.projectId ??

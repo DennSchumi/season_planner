@@ -28,6 +28,8 @@ class _BaseAdminViewState extends State<BaseAdminView> {
     });
     final FlightSchoolModelFlightSchoolView? fs = await FlightSchoolService().getFlightSchool(id);
 
+    print(fs);
+
     if (!mounted) return;
 
     if (fs == null) {

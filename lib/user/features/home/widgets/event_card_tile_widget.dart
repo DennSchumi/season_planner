@@ -47,6 +47,7 @@ class EventCardTile extends StatelessWidget {
           child: Icon(Icons.check_circle, color: Colors.green, size: 20),
         );
       case EventUserStatusEnum.denied_user:
+      case EventUserStatusEnum.removed:
       case EventUserStatusEnum.denied_flight_school:
         return const Tooltip(
           message: 'Denied',

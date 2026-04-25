@@ -269,9 +269,8 @@ class _ManageEventsViewState extends State<ManageEventsView> {
                               builder: (_) => EventUpsertView(
                                 initialEvent: e,
                                 onSave: (updated) async {
-                                  final db = DatabaseService();
-                                  await db.updateEventWithTeam(
-                                    context: context,
+                                  final fss = FlightSchoolService();
+                                  await fss.updateEvent(
                                     event: updated,
                                   );
                                   context.read<FlightSchoolProvider>().reloadFlightSchoolInBackground(
@@ -302,9 +301,8 @@ class _ManageEventsViewState extends State<ManageEventsView> {
               builder: (_) => EventUpsertView(
                 initialEvent: null,
                 onSave: (event) async {
-                  final db = DatabaseService();
-                  await db.createEventWithTeam(
-                    context: context,
+                  final fss = FlightSchoolService();
+                  await fss.createEvent(
                     event: event,
                   );
                   context.read<FlightSchoolProvider>().reloadFlightSchoolInBackground(

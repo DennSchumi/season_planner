@@ -7,6 +7,7 @@ enum EventUserStatusEnum {
   denied_user,
   denied_flight_school,
   user_requests_change,
+  removed
 }
 
 enum EventUserStatusLabelContext {
@@ -49,6 +50,8 @@ extension EventUserStatusLabelX on EventUserStatusEnum {
         return 'Declined by Flight School';
       case EventUserStatusEnum.user_requests_change:
         return 'User requests to Change';
+      case EventUserStatusEnum.removed:
+        return 'Removed';
     }
   }
 
@@ -56,6 +59,8 @@ extension EventUserStatusLabelX on EventUserStatusEnum {
     switch (this) {
       case EventUserStatusEnum.user_requests_change:
         return 'You requested a Change';
+      case EventUserStatusEnum.removed:
+        return 'You were removed from this event';
       default:
         return _defaultLabel();
     }
@@ -69,6 +74,8 @@ extension EventUserStatusLabelX on EventUserStatusEnum {
         return 'Accepted';
       case EventUserStatusEnum.user_requests_change:
         return 'Change';
+      case EventUserStatusEnum.removed:
+        return 'Removed';
       default:
         return _defaultLabel();
     }
@@ -80,11 +87,14 @@ extension EventUserStatusLabelX on EventUserStatusEnum {
         return 'Waiting for confirmation from the flight school.';
       case EventUserStatusEnum.denied_user:
         return 'You have declined this request.';
+      case EventUserStatusEnum.removed:
+        return 'This assignment was removed from the event.';
       default:
         return _defaultLabel();
     }
   }
 }
+
 
 
 

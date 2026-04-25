@@ -18,14 +18,16 @@ class UserSummary {
   });
 
   factory UserSummary.fromJson(Map<String, dynamic> json) {
-    final rawRoles = json['roles'];
+    final membership = json['membership'] as Map<String, dynamic>? ?? {};
+
+    final rawRoles = membership['roles'];
 
     return UserSummary(
-      id: (json['id'] ?? '').toString(),
+      id: (json['userId'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
       mail: (json['mail'] ?? json['email'] ?? '').toString(),
       phone: (json['phone'] ?? '').toString(),
-      membershipId: (json['membershipId'] ?? '').toString(),
+      membershipId: (membership['id'] ?? '').toString(),
       roles: parseRoles(rawRoles),
     );
   }

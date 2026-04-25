@@ -35,23 +35,29 @@ class FlightSchoolModelFlightSchoolView {
 
   factory FlightSchoolModelFlightSchoolView.fromJson(Map<String, dynamic> json) {
     return FlightSchoolModelFlightSchoolView(
-      id: json['id'] as String,
-      displayName: json['displayName'] as String,
-      displayShortName:  json['displayShortName'] as String,
-      databaseId: json['databaseId'] as String,
-      teamAssignmentsEventsCollectionId: json['teamAssignmentsEventsCollectionId'] as String,
-      eventsCollectionId: json['eventsCollectionId'] as String,
-      auditLogsCollectionId: json['auditLogsCollectionId'] as String,
-      logoLink: json['logoLink'] as String,
-      logoId: json['logoid'] as String,
-      adminUserIds: List<String>.from(json['adminUserIds'] ?? []),
+      id: json['id'] as String? ?? '',
+      displayName: json['displayName'] as String? ?? '',
+      displayShortName: json['displayShortName'] as String? ?? '',
+      databaseId: json['databaseId'] as String? ?? '',
+      teamAssignmentsEventsCollectionId:
+      json['teamAssignmentsEventsCollectionId'] as String? ?? '',
+      eventsCollectionId: json['eventsCollectionId'] as String? ?? '',
+      auditLogsCollectionId: json['auditLogsCollectionId'] as String? ?? '',
+      logoLink: json['logoLink'] as String? ?? '',
+      logoId: json['logoId'] as String? ?? '',
+      adminUserIds: (json['adminUserIds'] as List? ?? [])
+          .map((e) => e.toString())
+          .toList(),
       members: (json['members'] as List? ?? [])
-          .map((m) => UserSummary.fromJson(m as Map<String, dynamic>))
+          .map((m) => UserSummary.fromJson(Map<String, dynamic>.from(m)))
           .toList(),
       events: (json['events'] as List? ?? [])
-          .map((e) => Event.fromJson(e as Map<String, dynamic>))
+          .map((e) => Event.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
-      settings: (json['settings'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+      settings: (json['settings'] as Map?)?.map(
+            (key, value) => MapEntry(key.toString(), value),
+      ) ??
+          <String, dynamic>{},
     );
   }
 
