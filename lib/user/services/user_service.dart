@@ -44,7 +44,6 @@ class UserService {
         }),
       );
 
-      print(exec.responseBody);
 
       if ((exec.responseBody).isEmpty) return false;
 
@@ -67,6 +66,7 @@ class UserService {
           'content-type': 'application/json',
         },
       );
+
 
       final rawBody = exec.responseBody;
       if (rawBody.isEmpty) return null;
@@ -100,7 +100,6 @@ class UserService {
       );
     } catch (e, st) {
       print('loadUserInformation error: $e');
-      print(st);
       return null;
     }
   }
@@ -246,4 +245,6 @@ class UserService {
   }
 
   Future<bool> changeAssignmentStatus({required String teamAssignmentEventId, required EventUserStatusEnum newStatus}) async {return false;}
+
+  Future<dynamic> withdrawApplication(String id) async {}
 }

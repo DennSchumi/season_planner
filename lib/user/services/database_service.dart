@@ -397,7 +397,6 @@ class DatabaseService {
       flightSchoolId: fs.id,
     );
 
-    print(created.team);
 
     for (final tm in created.team) {
       await _database.createDocument(

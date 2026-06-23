@@ -7,6 +7,9 @@ import 'package:season_planner/user/user_provider.dart';
 import 'package:add_2_calendar_new/add_2_calendar_new.dart' as calendar;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import 'package:season_planner/core/data/enums/application_status_enum.dart';
+import 'package:season_planner/core/data/models/event_application_model.dart';
+
 import '../../../../core/data/models/event_assigment_model.dart';
 import '../../../../user/data/models/user_model_userView.dart';
 import 'calender_export_stub.dart'
@@ -14,11 +17,15 @@ if (dart.library.html) '././calender_export_web.dart';
 
 class EventDetailView extends StatefulWidget {
   final EventAssignment assignment;
+  final PositionApplication? application;
 
   const EventDetailView({
     super.key,
     required this.assignment,
+    this.application,
   });
+
+  bool get isApplicationView => application != null;
 
   @override
   State<EventDetailView> createState() => _EventDetailViewState();
@@ -49,6 +56,16 @@ class _EventDetailViewState extends State<EventDetailView> {
     );
 
     calendar.Add2Calendar.addEvent2Cal(calendarEvent);
+  }
+
+  Future<bool> _withdrawApplication() async {
+    final application = widget.application;
+    if (application == null) return false;
+
+    final success = await UserService().withdrawApplication(application.id);
+    if (!success) return false;
+
+    return _reloadUser();
   }
 
   Future<bool> _reloadUser() async {
@@ -151,6 +168,8 @@ class _EventDetailViewState extends State<EventDetailView> {
       ),
       bottomNavigationBar: _BottomActionBar(
         status: assignment.status,
+        isApplication: widget.application != null,
+        applicationStatus: widget.application?.status,
         onRequest: () => _showActionDialog(
           title: "Request assignment",
           message: "Do you want to request this assignment?",
@@ -165,6 +184,11 @@ class _EventDetailViewState extends State<EventDetailView> {
           title: "Request change",
           message: "Do you want to request a change to this assignment?",
           action: _change,
+        ),
+        onWithdrawApplication: () => _showActionDialog(
+          title: "Withdraw application",
+          message: "Do you want to withdraw this application?",
+          action: _withdrawApplication,
         ),
       ),
       body: SafeArea(
@@ -449,15 +473,22 @@ class _Pill extends StatelessWidget {
 
 class _BottomActionBar extends StatelessWidget {
   final EventUserStatusEnum status;
+  final bool isApplication;
+  final ApplicationStatusEnum? applicationStatus;
+
   final VoidCallback onRequest;
   final VoidCallback onAccept;
   final VoidCallback onChange;
+  final VoidCallback? onWithdrawApplication;
 
   const _BottomActionBar({
     required this.status,
     required this.onRequest,
     required this.onAccept,
     required this.onChange,
+    this.isApplication = false,
+    this.applicationStatus,
+    this.onWithdrawApplication,
   });
 
   @override
@@ -466,7 +497,35 @@ class _BottomActionBar extends StatelessWidget {
 
     Widget content;
 
-    if (status == EventUserStatusEnum.open) {
+    if (isApplication) {
+      if (applicationStatus == ApplicationStatusEnum.pending) {
+        content = OutlinedButton.icon(
+          onPressed: onWithdrawApplication,
+          icon: const Icon(Icons.undo),
+          label: const Text("Withdraw application"),
+        );
+      } else if (applicationStatus == ApplicationStatusEnum.withdrawn) {
+        content = _StatusBox(
+          icon: Icons.undo,
+          text: "Application withdrawn",
+          color: Colors.grey,
+        );
+      } else if (applicationStatus == ApplicationStatusEnum.accepted) {
+        content = _StatusBox(
+          icon: Icons.check_circle_outline,
+          text: "Application accepted",
+          color: Colors.green,
+        );
+      } else if (applicationStatus == ApplicationStatusEnum.rejected) {
+        content = _StatusBox(
+          icon: Icons.block,
+          text: "Application rejected",
+          color: Colors.red,
+        );
+      } else {
+        content = const SizedBox.shrink();
+      }
+    } else if (status == EventUserStatusEnum.open) {
       content = FilledButton.icon(
         onPressed: onRequest,
         icon: const Icon(Icons.send_outlined),
@@ -479,28 +538,10 @@ class _BottomActionBar extends StatelessWidget {
         label: const Text("Accept"),
       );
     } else if (status == EventUserStatusEnum.pending_flight_school) {
-      content = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(14),
-          border: BorderSide(color: cs.outlineVariant).toBorder(),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.hourglass_top, size: 18, color: cs.onSurfaceVariant),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                "Waiting for flight school to accept",
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: cs.onSurface,
-                ),
-              ),
-            ),
-          ],
-        ),
+      content = _StatusBox(
+        icon: Icons.hourglass_top,
+        text: "Waiting for flight school to accept",
+        color: cs.onSurfaceVariant,
       );
     } else if (status == EventUserStatusEnum.accepted_user ||
         status == EventUserStatusEnum.accepted_flight_school) {
@@ -518,6 +559,47 @@ class _BottomActionBar extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
         child: content,
+      ),
+    );
+  }
+}
+
+class _StatusBox extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color color;
+
+  const _StatusBox({
+    required this.icon,
+    required this.text,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+        border: BorderSide(color: cs.outlineVariant).toBorder(),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

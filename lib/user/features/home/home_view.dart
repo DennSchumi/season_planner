@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/models/event_assigment_model.dart';
+import 'package:season_planner/user/features/home/widgets/application_change_widget.dart';
 import 'package:season_planner/user/features/home/widgets/flight_school_selector_widget.dart';
-import 'package:season_planner/user/features//home/widgets/requests_open_opportunities_widget.dart';
+import 'package:season_planner/user/features/home/widgets/requests_open_opportunities_widget.dart';
 import 'package:season_planner/user/features/home/widgets/your_events_widget.dart';
-import 'package:season_planner/user/services/database_service.dart';
 import 'package:season_planner/user/user_provider.dart';
-
-import '../../../core/data/models/event_model.dart';
-import '../../services/user_service.dart';
 
 class HomeView extends StatefulWidget {
   final bool isLoading;
@@ -35,11 +32,6 @@ class _HomeViewState extends State<HomeView> {
     Tab(text: 'Your Events'),
     Tab(text: 'Requests & Opportunities'),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +65,7 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  "You are not assigned to any flight school yet.",
+                  'You are not assigned to any flight school yet.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 18,
@@ -82,7 +74,7 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  "Please contact an Flight School Administrator to gain Access",
+                  'Please contact a Flight School Administrator to gain access.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.black54),
                 ),
@@ -94,47 +86,59 @@ class _HomeViewState extends State<HomeView> {
     }
 
     if (!_initializedSelection) {
-      selectedFlightSchools =
-          user.flightSchools.map((fs) => fs.id).toSet();
+      selectedFlightSchools = user.flightSchools.map((fs) => fs.id).toSet();
       _initializedSelection = true;
     }
 
-    final List<EventAssignment> publicRequests = [];
-    final List<EventAssignment> acceptedEvents = [];
-    final List<EventAssignment> pendingOrRequestedEvents = [];
-    final List<EventAssignment> userChangeRequests = [];
+    final acceptedEvents = <EventAssignment>[];
+    final requestsAndOpportunities = <EventAssignment>[];
+    final changeRequests = <EventAssignment>[];
 
     final now = DateTime.now();
+    final seenAssignmentIds = <String>{};
 
     for (final assignment in user.assignments) {
+      if (assignment.id.isNotEmpty && !seenAssignmentIds.add(assignment.id)) {
+        continue;
+      }
+
       final event = assignment.event;
 
-      if (!event.startTime.isBefore(now) &&
-          selectedFlightSchools.contains(event.flightSchoolId)) {
-        switch (assignment.status) {
-          case EventUserStatusEnum.accepted_user:
-          case EventUserStatusEnum.accepted_flight_school:
-            acceptedEvents.add(assignment);
-            break;
+      if (event.startTime.isBefore(now)) continue;
+      if (!selectedFlightSchools.contains(event.flightSchoolId)) continue;
 
-          case EventUserStatusEnum.user_requests_change:
-            userChangeRequests.add(assignment);
-            break;
+      switch (assignment.status) {
+        case EventUserStatusEnum.accepted_user:
+        case EventUserStatusEnum.accepted_flight_school:
+          acceptedEvents.add(assignment);
+          break;
 
-          case EventUserStatusEnum.pending_flight_school:
-          case EventUserStatusEnum.pending_user:
-          case EventUserStatusEnum.removed:
-          case EventUserStatusEnum.denied_flight_school:
-          case EventUserStatusEnum.denied_user:
-            pendingOrRequestedEvents.add(assignment);
-            break;
+        case EventUserStatusEnum.user_requests_change:
+          changeRequests.add(assignment);
+          break;
 
-          case EventUserStatusEnum.open:
-            publicRequests.add(assignment);
-            break;
-        }
+        case EventUserStatusEnum.pending_flight_school:
+        case EventUserStatusEnum.pending_user:
+        case EventUserStatusEnum.denied_flight_school:
+        case EventUserStatusEnum.denied_user:
+        case EventUserStatusEnum.open:
+          requestsAndOpportunities.add(assignment);
+          break;
+
+        case EventUserStatusEnum.removed:
+          break;
       }
     }
+
+    acceptedEvents.sort(
+          (a, b) => a.event.startTime.compareTo(b.event.startTime),
+    );
+    requestsAndOpportunities.sort(
+          (a, b) => a.event.startTime.compareTo(b.event.startTime),
+    );
+    changeRequests.sort(
+          (a, b) => a.event.startTime.compareTo(b.event.startTime),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -155,15 +159,9 @@ class _HomeViewState extends State<HomeView> {
                   : const Icon(Icons.error, color: Colors.red),
               tooltip: 'Connection Info',
               onPressed: () {
-                final message = widget.isLoading
-                    ? 'Loading latest data...'
-                    : widget.hasConnection
-                    ? 'Last updated at ${widget.lastUpdated != null ? '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}' : 'unknown'}'
-                    : 'No connection. Last update was at ${widget.lastUpdated != null ? '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}' : 'unknown'}';
-
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(message),
+                    content: Text(_connectionMessage()),
                     duration: const Duration(seconds: 3),
                   ),
                 );
@@ -177,10 +175,10 @@ class _HomeViewState extends State<HomeView> {
         children: [
           if (user.flightSchools.length > 1)
             Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: const EdgeInsets.all(10),
               child: FlightSchoolSelector(
                 flightSchools: user.flightSchools,
-                onSelectionChanged: (Set<String> selected) {
+                onSelectionChanged: (selected) {
                   setState(() {
                     selectedFlightSchools = selected;
                   });
@@ -199,17 +197,14 @@ class _HomeViewState extends State<HomeView> {
                   Expanded(
                     child: TabBarView(
                       children: [
-                        YourEventsWidget(
-                          assignments: [
-                            ...acceptedEvents,
-                            ...userChangeRequests
-                          ],
+                        _YourEventsTab(
+                          acceptedEvents: acceptedEvents,
+                          changeRequests: changeRequests,
+                          applications: user.applications,
+                          allAssignments: user.assignments,
                         ),
                         RequestsOpportunitiesWidget(
-                          assignments: [
-                            ...pendingOrRequestedEvents,
-                            ...publicRequests
-                          ],
+                          assignments: requestsAndOpportunities,
                         ),
                       ],
                     ),
@@ -220,6 +215,78 @@ class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
+    );
+  }
+
+  String _connectionMessage() {
+    final timeText = widget.lastUpdated == null
+        ? 'unknown'
+        : '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:'
+        '${widget.lastUpdated!.minute.toString().padLeft(2, '0')}';
+
+    if (widget.isLoading) return 'Loading latest data...';
+    if (widget.hasConnection) return 'Last updated at $timeText';
+
+    return 'No connection. Last update was at $timeText';
+  }
+}
+
+class _YourEventsTab extends StatelessWidget {
+  final List<EventAssignment> acceptedEvents;
+  final List<EventAssignment> changeRequests;
+  final List<dynamic> applications;
+  final List<EventAssignment> allAssignments;
+
+  const _YourEventsTab({
+    required this.acceptedEvents,
+    required this.changeRequests,
+    required this.applications,
+    required this.allAssignments,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAccepted = acceptedEvents.isNotEmpty;
+    final hasChangesOrApplications =
+        changeRequests.isNotEmpty || applications.isNotEmpty;
+
+    if (!hasAccepted && !hasChangesOrApplications) {
+      return const Center(
+        child: Text(
+          'No events found',
+          style: TextStyle(color: Colors.black54),
+        ),
+      );
+    }
+
+    if (hasAccepted && !hasChangesOrApplications) {
+      return YourEventsWidget(assignments: acceptedEvents);
+    }
+
+    if (!hasAccepted && hasChangesOrApplications) {
+      return ApplicationsChangeRequestsWidget(
+        changeRequests: changeRequests,
+        applications: applications.cast(),
+        allAssignments: allAssignments,
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: YourEventsWidget(
+            assignments: acceptedEvents,
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: ApplicationsChangeRequestsWidget(
+            changeRequests: changeRequests,
+            applications: applications.cast(),
+            allAssignments: allAssignments,
+          ),
+        ),
+      ],
     );
   }
 }
