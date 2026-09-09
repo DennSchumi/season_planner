@@ -1,12 +1,14 @@
 import 'dart:core';
 class AppwriteConfig{
-  String appwriteEnpoint ="https://appwrite.schirmschumi.de/v1";
-  String projectId = "693ebfc00021af605014";
-  String mainDatabaseId ="693ebfe20019de61cf09";
-  String usersCollectionID ="693ebfe8002f50b297c3";
-  String flightSchoolsCollectionId = "693ebff40010c03b12ab";
-  String membershipsId = "memberships";
-  String flightSchoolLogosId = "695be45800189fad45f0";
+  String appwriteEnpoint ="http://localhost/v1";
+  String projectId = "6aa0f487000340aa9e05";
+  String mainDatabaseId ="6aa137f3001249bfafae";
+  String usersCollectionID ="6aa1394b0029b8f3bb56";
+  String flightSchoolsCollectionId = "6aa1395d002f8a08aa82";
+  String membershipsId = "6aa13952003db5da63a9";
+  String flightSchoolLogosId = "6aa0f812001ea72f0d18";
+  String eventsCollectionId = "6aa1396a00events0000";
+  String teamAssignmentsCollectionId = "6aa1397b00team000000";
 
   String flightSchoolFunctionsId = "695a659000312dc45be3";
 }

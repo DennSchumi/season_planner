@@ -182,26 +182,40 @@ class DatabaseService {
       );
 
       final assignments = await _database.listDocuments(
-        databaseId: flightSchool.databaseId,
-        collectionId: flightSchool.teamAssignmentsEventsCollectionId,
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().teamAssignmentsCollectionId,
         queries: [
-          Query.equal('\$id', event.id),
+          Query.equal('events', event.id),
+          Query.equal('user', user.id),
         ],
       );
 
-      if (assignments.documents.isEmpty) {
-        throw Exception('No matching assignment found.');
+      String assignmentId;
+      if (assignments.documents.isNotEmpty) {
+        assignmentId = assignments.documents.first.$id;
+      } else {
+        // Find an open slot if no direct assignment
+        final openSlots = await _database.listDocuments(
+          databaseId: AppwriteConfig().mainDatabaseId,
+          collectionId: AppwriteConfig().teamAssignmentsCollectionId,
+          queries: [
+            Query.equal('events', event.id),
+            Query.isNull('user'),
+          ],
+        );
+        if (openSlots.documents.isEmpty) {
+          throw Exception('No matching assignment found.');
+        }
+        assignmentId = openSlots.documents.first.$id;
       }
 
-      final assignmentId = assignments.documents.first.$id;
-
       await _database.updateDocument(
-        databaseId: flightSchool.databaseId,
-        collectionId: flightSchool.teamAssignmentsEventsCollectionId,
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().teamAssignmentsCollectionId,
         documentId: assignmentId,
         data: {
           'status': newStatus.name,
-          'user_id':user.id
+          'user': user.id
         },
       );
 
@@ -213,57 +227,11 @@ class DatabaseService {
   }
 
   Future<List<Event>> loadUserEvents(UserModelUserView user) async {
-    final List<Event> allEvents = [];
-
-    for (final flightSchool in user.flightSchools) {
-      final teamAssignments = await _database.listDocuments(
-        databaseId: flightSchool.databaseId,
-        collectionId: flightSchool.teamAssignmentsEventsCollectionId,
-        queries: [
-          Query.or([
-            Query.equal("user_id", user.id),
-            Query.equal("user_id", "69"),
-          ])
-        ],
-      );
-
-      for (final assignment in teamAssignments.documents) {
-        final data = assignment.data;
-
-        final eventData = data["events"];
-
-        final teamDocs = await _database.listDocuments(
-          databaseId: flightSchool.databaseId,
-          collectionId: flightSchool.teamAssignmentsEventsCollectionId,
-          queries: [
-            Query.equal("events", [eventData["\$id"]]),
-          ],
-        );
-
-
-        final List<TeamMember> teamMembers = teamDocs.documents
-            .map((doc) => TeamMember.fromMap(doc.data))
-            .toList();
-
-        final event = Event(
-          id: data["\$id"],
-          flightSchoolId: flightSchool.id ?? "test",
-          identifier: eventData["identifier"] ?? "test",
-          status: EventStatusEnum.values.byName(eventData["status"]),
-          startTime: DateTime.parse(eventData["start_time"]),
-          endTime: DateTime.parse(eventData["end_time"]),
-          displayName: eventData["display_name"] ?? "test",
-          location: eventData["location"],
-          team: teamMembers,
-          notes: eventData["notes"] ?? "",
-          role: EventRoleEnum.values.byName(data["role"]),
-          assignmentStatus: EventUserStatusEnum.values.byName(data["status"]),
-        );
-
-        allEvents.add(event);
-      }
+    final updatedUser = await getUserInformation();
+    if (updatedUser != null) {
+      return updatedUser.events;
     }
-    return allEvents;
+    return [];
   }
 
 
@@ -279,80 +247,181 @@ class DatabaseService {
       final userDocument = await _database.listDocuments(
         databaseId: AppwriteConfig().mainDatabaseId,
         collectionId: AppwriteConfig().usersCollectionID,
-        queries: [Query.equal("\$id", userID)],
+        queries: [Query.equal("auth_id", userID)],
       );
 
-      if (userDocument.documents.isEmpty) return null;
+      if (userDocument.documents.isEmpty) {
+        // Auto-create document for local dev if missing
+        try {
+          await _database.createDocument(
+            databaseId: AppwriteConfig().mainDatabaseId,
+            collectionId: AppwriteConfig().usersCollectionID,
+            documentId: ID.unique(),
+            data: {
+              "auth_id": userID
+            },
+            permissions: [Permission.read(Role.user(userID)), Permission.write(Role.user(userID))]
+          );
+        } catch (e) {
+          print("Could not auto-create user document: $e");
+        }
+        return UserModelUserView(
+            id: userID,
+            name: user.name,
+            mail: user.email,
+            phone: user.phone,
+            flightSchools: [],
+            events: []
+        );
+      }
 
       final userDocumentData = userDocument.documents.first.data;
-      final membershipsList = userDocumentData["memberships"] as List;
+      final membershipsList = (userDocumentData["memberships"] as List?) ?? [];
 
-      final List<FlightSchoolUserView> flightSchools = membershipsList
-          .where((m) => m["flightSchools"] != null)
-          .map((membership) {
-        final fs = membership["flightSchools"];
-          return FlightSchoolUserView(
-          id: fs["\$id"],
-          displayName: fs["display_name"],
-          displayShortName: fs["display_short_name"],
-          membershipStatus: MembershipStatusEnum.values.byName(membership["status"]),
-            availableRoles: (membership["roles"] as List? ?? [])
-                .map((r) => EventRoleEnum.values.byName(r.toString()))
-                .toList(),
-          databaseId: fs["database_id"],
-          teamAssignmentsEventsCollectionId: fs["team_assigments_events_id"],
-          eventsCollectionId: fs["events_id"],
-          auditLogsCollectionId: fs["audit_logs_id"],
-          adminUserIds: List<String>.from(fs["admin_users"] ?? []),
-          logoLink: fs["logo_link"] ?? "",
-        );
-      })
-          .toList();
+      final List<FlightSchoolUserView> flightSchools = [];
+      for (final membershipItem in membershipsList) {
+        Map<String, dynamic>? membership;
+        if (membershipItem is String) {
+          try {
+             final mDoc = await _database.getDocument(
+                databaseId: AppwriteConfig().mainDatabaseId,
+                collectionId: AppwriteConfig().membershipsId,
+                documentId: membershipItem,
+             );
+             membership = mDoc.data;
+          } catch(e) {
+             print("Fehler beim Laden der Membership: $e");
+             continue;
+          }
+        } else if (membershipItem is Map) {
+           membership = Map<String, dynamic>.from(membershipItem);
+        } else {
+           continue;
+        }
+
+        final fsField = membership["flightSchools"];
+        if (fsField != null) {
+          String fsId = "";
+          if (fsField is String) {
+            fsId = fsField;
+          } else if (fsField is Map) {
+            fsId = fsField["\$id"] ?? "";
+          }
+
+          if (fsId.isNotEmpty) {
+            try {
+              final fsDoc = await _database.getDocument(
+                databaseId: AppwriteConfig().mainDatabaseId,
+                collectionId: AppwriteConfig().flightSchoolsCollectionId,
+                documentId: fsId,
+              );
+              final fsData = fsDoc.data;
+              flightSchools.add(FlightSchoolUserView(
+                id: fsDoc.$id,
+                displayName: fsData["display_name"] ?? "",
+                displayShortName: fsData["display_short_name"] ?? "",
+                membershipStatus: MembershipStatusEnum.values.firstWhere(
+                  (e) => e.name == membership?["status"],
+                  orElse: () => MembershipStatusEnum.inactive
+                ),
+                availableRoles: (membership?["roles"] as List? ?? [])
+                    .map((r) => EventRoleEnum.values.byName(r.toString()))
+                    .toList(),
+                databaseId: fsData["database_id"] ?? "",
+                teamAssignmentsEventsCollectionId: fsData["team_assigments_events_id"] ?? "",
+                eventsCollectionId: fsData["events_id"] ?? "",
+                auditLogsCollectionId: fsData["audit_logs_id"] ?? "",
+                adminUserIds: List<String>.from(fsData["admin_users"] ?? []),
+                logoLink: fsData["logo_link"] ?? "",
+              ));
+            } catch (e) {
+              print("Fehler beim Laden der Flugschule $fsId: $e");
+            }
+          }
+        }
+      }
       final List<Event> allEvents = [];
 
       for (final flightSchool in flightSchools) {
-        final teamAssignments = await _database.listDocuments(
-          databaseId: flightSchool.databaseId,
-          collectionId: flightSchool.teamAssignmentsEventsCollectionId,
-          queries: [
-            Query.or([
-              Query.equal("user_id", userID),
-              Query.equal("user_id", ""),      
-              Query.isNull("user_id"),
-            ])
-          ],
-        );
-
-        for (final assignment in teamAssignments.documents) {
-          final data = assignment.data;
-          final eventData = data["events"];
-
-          final teamDocs = await _database.listDocuments(
-            databaseId: flightSchool.databaseId,
-            collectionId: flightSchool.teamAssignmentsEventsCollectionId,
+        try {
+          // Fetch all events for this flight school
+          final eventsResult = await _database.listDocuments(
+            databaseId: AppwriteConfig().mainDatabaseId,
+            collectionId: AppwriteConfig().eventsCollectionId,
             queries: [
-              Query.equal("events", [eventData["\$id"]]),
+              Query.equal("flight_school", flightSchool.id),
+              Query.orderDesc("start_time"),
             ],
           );
 
-          final teamMembers = teamDocs.documents
-              .map((doc) => TeamMember.fromMap(doc.data))
-              .toList();
+          for (final eventDoc in eventsResult.documents) {
+            final eventData = eventDoc.data;
 
-          allEvents.add(Event(
-            id: data["\$id"],
-            flightSchoolId: flightSchool.id ?? "test",
-            identifier: eventData["identifier"] ?? "test",
-            status: EventStatusEnum.values.byName(eventData["status"]),
-            startTime: DateTime.parse(eventData["start_time"]),
-            endTime: DateTime.parse(eventData["end_time"]),
-            displayName: eventData["display_name"] ?? "test",
-            team: teamMembers,
-            location: eventData["location"],
-            notes: eventData["notes"],
-            role: EventRoleEnum.values.byName(data["role"]),
-            assignmentStatus: EventUserStatusEnum.values.byName(data["status"]),
-          ));
+            // Fetch all team assignments for this event
+            final teamDocs = await _database.listDocuments(
+              databaseId: AppwriteConfig().mainDatabaseId,
+              collectionId: AppwriteConfig().teamAssignmentsCollectionId,
+              queries: [
+                Query.equal("events", eventDoc.$id),
+              ],
+            );
+
+            bool isUserInvolvedOrOpen = false;
+            Map<String, dynamic>? userAssignment;
+
+            final teamMembers = teamDocs.documents.map((doc) {
+              final data = doc.data;
+              final userField = data["user"];
+              String assignedUserId = "";
+              if (userField is String) {
+                assignedUserId = userField;
+              } else if (userField is Map) {
+                assignedUserId = userField["\$id"] ?? "";
+              }
+
+              if (assignedUserId == userID) {
+                isUserInvolvedOrOpen = true;
+                userAssignment = data;
+              } else if (assignedUserId.isEmpty) {
+                isUserInvolvedOrOpen = true;
+              }
+
+              return TeamMember(
+                  userId: assignedUserId.isEmpty ? "slot_${doc.$id}" : assignedUserId,
+                  name: userField is Map ? (userField["name"] ?? "") : "",
+                  role: data["role"] ?? "",
+                  status: data["status"] ?? ""
+              );
+            }).toList();
+
+            if (!isUserInvolvedOrOpen) continue;
+
+            allEvents.add(Event(
+              id: eventDoc.$id,
+              flightSchoolId: flightSchool.id,
+              identifier: (eventData["identifier"] ?? "").toString(),
+              status: EventStatusEnum.values.firstWhere(
+                (e) => e.name == eventData["status"],
+                orElse: () => EventStatusEnum.provisional
+              ),
+              startTime: DateTime.parse(eventData["start_time"]),
+              endTime: DateTime.parse(eventData["end_time"]),
+              displayName: (eventData["display_name"] ?? "").toString(),
+              team: teamMembers,
+              location: (eventData["location"] ?? "").toString(),
+              notes: (eventData["notes"] ?? "").toString(),
+              role: userAssignment != null ? EventRoleEnum.values.firstWhere(
+                (e) => e.name == userAssignment!["role"],
+                orElse: () => EventRoleEnum.trainee
+              ) : EventRoleEnum.trainee,
+              assignmentStatus: userAssignment != null ? EventUserStatusEnum.values.firstWhere(
+                (e) => e.name == userAssignment!["status"],
+                orElse: () => EventUserStatusEnum.open
+              ) : EventUserStatusEnum.open,
+            ));
+          }
+        } catch (e) {
+          print("Fehler beim Laden der Events für Flugschule ${flightSchool.id}: $e");
         }
       }
       return UserModelUserView(
@@ -377,10 +446,11 @@ class DatabaseService {
     if (fs == null) throw Exception("FlightSchool not set in provider");
 
     final eventDoc = await _database.createDocument(
-      databaseId: fs.databaseId,
-      collectionId: fs.eventsCollectionId,
+      databaseId: AppwriteConfig().mainDatabaseId,
+      collectionId: AppwriteConfig().eventsCollectionId,
       documentId: ID.unique(),
       data: {
+        "flight_school": fs.id,
         "identifier": event.identifier,
         "display_name": event.displayName,
         "status": event.status.name,
@@ -399,16 +469,20 @@ class DatabaseService {
     print(created.team);
 
     for (final tm in created.team) {
+      final data = <String, dynamic>{
+        "role": tm.role,
+        "status": tm.status,
+        "events": created.id,
+      };
+      if (!tm.isSlot && tm.userId.isNotEmpty) {
+        data["user"] = tm.userId;
+      }
+
       await _database.createDocument(
-        databaseId: fs.databaseId,
-        collectionId: fs.teamAssignmentsEventsCollectionId,
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().teamAssignmentsCollectionId,
         documentId: ID.unique(),
-        data: {
-          "user_id": tm.isSlot ? "" : tm.userId,
-          "role": tm.role,
-          "status": tm.status,
-          "events": created.id,
-        },
+        data: data,
       );
     }
 
@@ -425,10 +499,9 @@ class DatabaseService {
     if (event.id.trim().isEmpty) {
       throw Exception("Event.id is empty – cannot update.");
     }
-
     await _database.updateDocument(
-      databaseId: fs.databaseId,
-      collectionId: fs.eventsCollectionId,
+      databaseId: AppwriteConfig().mainDatabaseId,
+      collectionId: AppwriteConfig().eventsCollectionId,
       documentId: event.id,
       data: {
         "identifier": event.identifier,
@@ -442,10 +515,10 @@ class DatabaseService {
     );
 
     final existing = await _database.listDocuments(
-      databaseId: fs.databaseId,
-      collectionId: fs.teamAssignmentsEventsCollectionId,
+      databaseId: AppwriteConfig().mainDatabaseId,
+      collectionId: AppwriteConfig().teamAssignmentsCollectionId,
       queries: [
-        Query.equal("events", [event.id]),
+        Query.equal("events", event.id),
         Query.limit(500),
       ],
     );
@@ -453,7 +526,14 @@ class DatabaseService {
     final Map<String, dynamic> existingByKey = {};
     for (final doc in existing.documents) {
       final data = doc.data;
-      final userId = (data["user_id"] ?? "").toString();
+      final userField = data["user"];
+      String userId = "";
+      if (userField is String) {
+        userId = userField;
+      } else if (userField is Map) {
+        userId = userField["\$id"] ?? "";
+      }
+
       final key = userId.isEmpty ? "slot:${doc.$id}" : "user:$userId";
 
       existingByKey[key] = {
@@ -486,15 +566,15 @@ class DatabaseService {
       if (isExistingUser) {
         if (!newByKey.containsKey(key)) {
           await _database.deleteDocument(
-            databaseId: fs.databaseId,
-            collectionId: fs.teamAssignmentsEventsCollectionId,
+            databaseId: AppwriteConfig().mainDatabaseId,
+            collectionId: AppwriteConfig().teamAssignmentsCollectionId,
             documentId: docId,
           );
         }
       } else if (isExistingSlot) {
         await _database.deleteDocument(
-          databaseId: fs.databaseId,
-          collectionId: fs.teamAssignmentsEventsCollectionId,
+          databaseId: AppwriteConfig().mainDatabaseId,
+          collectionId: AppwriteConfig().teamAssignmentsCollectionId,
           documentId: docId,
         );
       }
@@ -506,11 +586,10 @@ class DatabaseService {
 
       if (key.startsWith("slot:new:")) {
         await _database.createDocument(
-          databaseId: fs.databaseId,
-          collectionId: fs.teamAssignmentsEventsCollectionId,
+          databaseId: AppwriteConfig().mainDatabaseId,
+          collectionId: AppwriteConfig().teamAssignmentsCollectionId,
           documentId: ID.unique(),
           data: {
-            "user_id": "",
             "role": tm.role,
             "status": tm.status,
             "events": event.id,
@@ -522,11 +601,11 @@ class DatabaseService {
       final existingEntry = existingByKey[key];
       if (existingEntry == null) {
         await _database.createDocument(
-          databaseId: fs.databaseId,
-          collectionId: fs.teamAssignmentsEventsCollectionId,
+          databaseId: AppwriteConfig().mainDatabaseId,
+          collectionId: AppwriteConfig().teamAssignmentsCollectionId,
           documentId: ID.unique(),
           data: {
-            "user_id": tm.userId,
+            "user": tm.userId,
             "role": tm.role,
             "status": tm.status,
             "events": event.id,
@@ -539,8 +618,8 @@ class DatabaseService {
 
         if (oldRole != tm.role || oldStatus != tm.status) {
           await _database.updateDocument(
-            databaseId: fs.databaseId,
-            collectionId: fs.teamAssignmentsEventsCollectionId,
+            databaseId: AppwriteConfig().mainDatabaseId,
+            collectionId: AppwriteConfig().teamAssignmentsCollectionId,
             documentId: docId,
             data: {
               "role": tm.role,

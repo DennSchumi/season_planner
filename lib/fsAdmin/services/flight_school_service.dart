@@ -68,9 +68,6 @@ class FlightSchoolService {
       final members = await _fetchMembers(id);
       final events = await _fetchEvents(
         flightSchoolId: id,
-        databaseId: databaseId,
-        eventsCollectionId: eventsCollectionId,
-        teamAssignmentsId: teamAssignmentsId,
       );
 
       final settings =
@@ -141,67 +138,77 @@ class FlightSchoolService {
 
   Future<List<Event>> _fetchEvents({
     required String flightSchoolId,
-    required String databaseId,
-    required String eventsCollectionId,
-    required String teamAssignmentsId,
   }) async {
     List<Event> events = [];
 
     try {
-      if (databaseId.isNotEmpty && eventsCollectionId.isNotEmpty) {
-        final eventsResult = await _database.listDocuments(
-          databaseId: databaseId,
-          collectionId: eventsCollectionId,
+      final eventsResult = await _database.listDocuments(
+        databaseId: AppwriteConfig().mainDatabaseId,
+        collectionId: AppwriteConfig().eventsCollectionId,
+        queries: [
+          Query.equal("flight_school", flightSchoolId),
+          Query.orderDesc("start_time"),
+          Query.limit(200),
+        ],
+      );
+
+      final List<Event> eventList = [];
+
+      for (final eventDoc in eventsResult.documents) {
+        final eventData = eventDoc.data;
+
+        final teamDocs = await _database.listDocuments(
+          databaseId: AppwriteConfig().mainDatabaseId,
+          collectionId: AppwriteConfig().teamAssignmentsCollectionId,
           queries: [
-            Query.orderDesc("start_time"),
-            Query.limit(200),
+            Query.equal("events", eventDoc.$id),
           ],
         );
 
-        final List<Event> eventList = [];
+        final teamMembers = teamDocs.documents.map((d) {
+          final data = d.data;
+          final userField = data["user"];
+          String assignedUserId = "";
+          if (userField is String) {
+            assignedUserId = userField;
+          } else if (userField is Map) {
+            assignedUserId = userField["\$id"] ?? "";
+          }
 
-        for (final eventDoc in eventsResult.documents) {
-          final eventData = eventDoc.data;
-
-          final teamDocs = await _database.listDocuments(
-            databaseId: databaseId,
-            collectionId: teamAssignmentsId,
-            queries: [
-              Query.equal("events", eventDoc.$id),
-            ],
+          return TeamMember(
+              userId: assignedUserId.isEmpty ? "slot_${d.$id}" : assignedUserId,
+              name: userField is Map ? (userField["name"] ?? "") : "",
+              role: data["role"] ?? "",
+              status: data["status"] ?? ""
           );
+        }).toList();
 
-          final teamMembers = teamDocs.documents
-              .map((d) => TeamMember.fromMap(d.data))
-              .toList();
+        final firstAssignment =
+        teamDocs.documents.isNotEmpty ? teamDocs.documents.first.data : null;
 
-          final firstAssignment =
-          teamDocs.documents.isNotEmpty ? teamDocs.documents.first.data : null;
-
-          eventList.add(
-            Event(
-              id: eventDoc.$id,
-              flightSchoolId: flightSchoolId,
-              identifier: (eventData["identifier"] ?? "test").toString(),
-              status: EventStatusEnum.values.byName(eventData["status"]),
-              startTime: DateTime.parse(eventData["start_time"]),
-              endTime: DateTime.parse(eventData["end_time"]),
-              displayName: (eventData["display_name"] ?? "test").toString(),
-              team: teamMembers,
-              notes: eventData["notes"],
-              location: eventData["location"],
-              role: firstAssignment != null
-                  ? EventRoleEnum.values.byName(firstAssignment["role"])
-                  : EventRoleEnum.values.first,
-              assignmentStatus: firstAssignment != null
-                  ? EventUserStatusEnum.values.byName(firstAssignment["status"])
-                  : EventUserStatusEnum.values.first,
-            ),
-          );
-        }
-
-        events = eventList;
+        eventList.add(
+          Event(
+            id: eventDoc.$id,
+            flightSchoolId: flightSchoolId,
+            identifier: (eventData["identifier"] ?? "test").toString(),
+            status: EventStatusEnum.values.byName(eventData["status"]),
+            startTime: DateTime.parse(eventData["start_time"]),
+            endTime: DateTime.parse(eventData["end_time"]),
+            displayName: (eventData["display_name"] ?? "test").toString(),
+            team: teamMembers,
+            notes: eventData["notes"],
+            location: eventData["location"],
+            role: firstAssignment != null
+                ? EventRoleEnum.values.byName(firstAssignment["role"])
+                : EventRoleEnum.values.first,
+            assignmentStatus: firstAssignment != null
+                ? EventUserStatusEnum.values.byName(firstAssignment["status"])
+                : EventUserStatusEnum.values.first,
+          ),
+        );
       }
+
+      events = eventList;
     } catch (e) {
       print("events loading error: $e");
       events = [];
