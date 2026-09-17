@@ -90,6 +90,22 @@ class TransactionService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<List<TransactionModel>> getOpenTroubleTickets() async {
+    try {
+      final queries = [
+        Query.equal('type', 'troubleticket'),
+        Query.equal('status', 'offen'),
+        Query.orderDesc('date'),
+        Query.limit(100)
+      ];
+      final docs = await DatabaseService().getDocuments(AppwriteConfig.transactionsCollectionId, queries: queries);
+      return docs.map((d) => TransactionModel.fromDocument(d)).toList();
+    } catch (e) {
+      print("Error loading open trouble tickets: $e");
+      return [];
+    }
+  }
+
   Future<TransactionModel?> getLastServiceTransaction(String itemId) async {
     try {
         final queries = [
@@ -131,17 +147,34 @@ class TransactionService extends ChangeNotifier {
       final docs = await DatabaseService().getDocuments(AppwriteConfig.transactionsCollectionId, queries: queries);
       
       if (docs.isNotEmpty) {
-        final docId = docs.first.$id;
+        final txDoc = docs.first;
+        final tx = TransactionModel.fromDocument(txDoc);
+        final docId = tx.id;
+        
+        // Calculate duration in calendar days
+        final now = DateTime.now();
+        final startMidnight = DateTime(tx.date.year, tx.date.month, tx.date.day);
+        final endMidnight = DateTime(now.year, now.month, now.day);
+        final days = endMidnight.difference(startMidnight).inDays + 1;
+        
+        final currentDetails = tx.details ?? '';
+        final suffix = '(Ausgeliehen für $days ${days == 1 ? "Tag" : "Tage"})';
+        final newDetails = currentDetails.isEmpty ? suffix : '$currentDetails $suffix';
+
         await DatabaseService().updateDocument(
           AppwriteConfig.transactionsCollectionId,
           docId,
-          {'status': 'closed'}
+          {
+            'status': 'closed',
+            'details': newDetails,
+          }
         );
         
         // Update local state if the transaction is in the list
-        final index = _transactions.indexWhere((tx) => tx.id == docId);
+        final index = _transactions.indexWhere((t) => t.id == docId);
         if (index != -1) {
           _transactions[index].status = 'closed';
+          _transactions[index].details = newDetails;
           notifyListeners();
         }
       }

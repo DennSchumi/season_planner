@@ -61,6 +61,17 @@ class AuthService {
     }
   }
 
+  /// Creates a JWT token for the current authenticated user
+  Future<String?> getJWT() async {
+    try {
+      final jwt = await _account.createJWT();
+      return jwt.jwt;
+    } catch (e) {
+      print("Error creating JWT: $e");
+      return null;
+    }
+  }
+
   /// Checks if the user has an active session
   Future<bool> isLoggedIn() async {
     try {

@@ -22,6 +22,7 @@ class FlightSchoolService extends ChangeNotifier {
   List<FlightSchoolModel> _schools = [];
   FlightSchoolModel? _selectedSchool;
   bool _isLoading = true;
+  String? errorMessage;
 
   List<FlightSchoolModel> get schools => List.unmodifiable(_schools);
   FlightSchoolModel? get selectedSchool => _selectedSchool;
@@ -29,20 +30,25 @@ class FlightSchoolService extends ChangeNotifier {
 
   Future<void> loadSchools() async {
     _isLoading = true;
+    errorMessage = null;
     notifyListeners();
 
-    final docs = await DatabaseService().getDocuments(
-      AppwriteConfig.flightSchoolsCollectionId, 
-      queries: [Query.limit(100)]
-    );
-    _schools = docs.map((d) => FlightSchoolModel(
-      id: d.$id,
-      name: d.data['name'] ?? 'Unbekannt',
-    )).toList();
+    try {
+      final docs = await DatabaseService().getDocuments(
+        AppwriteConfig.flightSchoolsCollectionId, 
+        queries: [Query.limit(100)]
+      );
+      _schools = docs.map((d) => FlightSchoolModel(
+        id: d.$id,
+        name: d.data['name'] ?? 'Unbekannt',
+      )).toList();
 
-    if (_schools.isNotEmpty) {
-      // Restore selected school from SharedPreferences later, for now select first
-      _selectedSchool = _schools.first;
+      if (_schools.isNotEmpty) {
+        _selectedSchool = _schools.first;
+      }
+    } catch (e) {
+      debugPrint("Error loading schools: $e");
+      errorMessage = "Netzwerkfehler: Flugschulen konnten nicht geladen werden.";
     }
 
     _isLoading = false;

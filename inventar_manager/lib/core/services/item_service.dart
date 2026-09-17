@@ -69,12 +69,14 @@ class ItemService extends ChangeNotifier {
 
   List<ItemModel> _items = [];
   bool _isLoading = false;
+  String? errorMessage;
 
   List<ItemModel> get items => List.unmodifiable(_items);
   bool get isLoading => _isLoading;
 
   Future<void> loadItems(String schoolId) async {
     _isLoading = true;
+    errorMessage = null;
     notifyListeners();
 
     try {
@@ -84,9 +86,18 @@ class ItemService extends ChangeNotifier {
       ];
       final docs = await DatabaseService().getDocuments(AppwriteConfig.itemsCollectionId, queries: queries);
       
-      _items = docs.map((d) => ItemModel.fromDocument(d)).toList();
+      final loadedItems = <ItemModel>[];
+      for (var d in docs) {
+        try {
+          loadedItems.add(ItemModel.fromDocument(d));
+        } catch (e) {
+          debugPrint("Failed to parse item document: $e");
+        }
+      }
+      _items = loadedItems;
     } catch (e) {
-      print("Error loading items: $e");
+      debugPrint("Error loading items: $e");
+      errorMessage = "Netzwerkfehler: Gegenstände konnten nicht geladen werden.";
     }
 
     _isLoading = false;
@@ -124,7 +135,7 @@ class ItemService extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint("Error deleting item: \$e");
+      debugPrint("Error deleting item: $e");
       return false;
     }
   }

@@ -1,6 +1,6 @@
 class AppwriteConfig {
-  static const String endpoint = "http://localhost/v1";
-  static const String projectId = "6aa0f487000340aa9e05";
+  static const String endpoint = String.fromEnvironment('APPWRITE_ENDPOINT', defaultValue: "http://localhost/v1");
+  static const String projectId = String.fromEnvironment('APPWRITE_PROJECT_ID', defaultValue: "6aa0f487000340aa9e05");
   
   static const String inventoryDatabaseId = "inventory_db"; 
   

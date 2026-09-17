@@ -6,6 +6,9 @@ import 'package:inventar_manager/core/services/flight_school_service.dart';
 import 'package:inventar_manager/features/inventory/inventory_detail_view.dart';
 import 'package:inventar_manager/features/inventory/check_in_out_dialog.dart';
 import 'package:inventar_manager/features/inventory/batch_movement_dialog.dart';
+import 'package:inventar_manager/core/services/transaction_service.dart';
+
+enum TodoType { ok, dueSoon, pastDue, ticket }
 
 class DashboardView extends StatefulWidget {
   const DashboardView({Key? key}) : super(key: key);
@@ -16,8 +19,10 @@ class DashboardView extends StatefulWidget {
 
 class _DashboardViewState extends State<DashboardView> {
   List<String> _hiddenCategories = [];
+  List<TransactionModel> _openTickets = [];
   final CategoryService _categoryService = CategoryService();
   final ItemService _itemService = ItemService();
+  final TransactionService _transactionService = TransactionService();
 
   @override
   void initState() {
@@ -30,6 +35,16 @@ class _DashboardViewState extends State<DashboardView> {
     setState(() {
       _hiddenCategories = prefs.getStringList('hidden_categories') ?? [];
     });
+    _loadOpenTickets();
+  }
+
+  Future<void> _loadOpenTickets() async {
+    final tickets = await _transactionService.getOpenTroubleTickets();
+    if (mounted) {
+      setState(() {
+        _openTickets = tickets;
+      });
+    }
   }
 
   void _toggleCategoryVisibility(String categoryName) async {
@@ -92,6 +107,28 @@ class _DashboardViewState extends State<DashboardView> {
               ],
             ),
             const SizedBox(height: 12),
+            if (_categoryService.errorMessage != null || _itemService.errorMessage != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFECACA)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Color(0xFFEF4444)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _categoryService.errorMessage ?? _itemService.errorMessage ?? "",
+                        style: const TextStyle(color: Color(0xFF991B1B)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             categories.isEmpty 
               ? Container(
                   width: double.infinity,
@@ -179,11 +216,83 @@ class _DashboardViewState extends State<DashboardView> {
                 ],
               ),
               const SizedBox(height: 16),
-              _buildTodoCard(
-                "Keine Services f\u00e4llig",
-                "Alles in Ordnung",
-                Icons.check_circle_outline_rounded,
-                false,
+              Builder(
+                builder: (context) {
+                  final now = DateTime.now();
+                  final dueThreshold = now.add(const Duration(days: 7));
+                  
+                  final dueItems = items.where((i) {
+                    if (i.status == 'disposed' || i.nextServiceDate == null) return false;
+                    return i.nextServiceDate!.isBefore(dueThreshold);
+                  }).toList();
+                  
+                  final ticketWidgets = _openTickets
+                      .where((ticket) => items.any((i) => i.id == ticket.itemId))
+                      .map((ticket) {
+                    final item = items.firstWhere((i) => i.id == ticket.itemId);
+                    final itemName = "${item.name} (${item.materialNumber})";
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: InkWell(
+                        onTap: () async {
+                          await Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => InventoryDetailView(item: item),
+                          ));
+                          _loadOpenTickets();
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: _buildTodoCard(
+                          itemName,
+                          "Troubleticket offen",
+                          Icons.build_rounded,
+                          TodoType.ticket,
+                        ),
+                      ),
+                    );
+                  }).toList();
+
+                  final dueServiceWidgets = dueItems.map((item) {
+                    final isPastDue = item.nextServiceDate!.isBefore(now);
+                    final daysRemaining = item.nextServiceDate!.difference(now).inDays;
+                    final subtitle = isPastDue 
+                        ? "Überfällig seit ${-daysRemaining} Tagen"
+                        : "Fällig in $daysRemaining Tagen";
+                        
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => InventoryDetailView(item: item),
+                          ));
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: _buildTodoCard(
+                          "${item.name} (${item.materialNumber})",
+                          subtitle,
+                          Icons.warning_amber_rounded,
+                          isPastDue ? TodoType.pastDue : TodoType.dueSoon,
+                        ),
+                      ),
+                    );
+                  }).toList();
+                  
+                  if (ticketWidgets.isEmpty && dueServiceWidgets.isEmpty) {
+                    return _buildTodoCard(
+                      "Keine Services oder Tickets",
+                      "Alles in Ordnung",
+                      Icons.check_circle_outline_rounded,
+                      TodoType.ok,
+                    );
+                  }
+                  
+                  return Column(
+                    children: [
+                      ...ticketWidgets,
+                      ...dueServiceWidgets,
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -326,13 +435,50 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  Widget _buildTodoCard(String title, String subtitle, IconData icon, bool urgent) {
+  Widget _buildTodoCard(String title, String subtitle, IconData icon, TodoType type) {
+    Color bgColor, borderColor, iconBgColor, iconColor, titleColor, subtitleColor;
+    
+    switch (type) {
+      case TodoType.pastDue:
+        bgColor = const Color(0xFFFEF2F2);
+        borderColor = const Color(0xFFFECACA);
+        iconBgColor = const Color(0xFFFEE2E2);
+        iconColor = const Color(0xFFEF4444);
+        titleColor = const Color(0xFF991B1B);
+        subtitleColor = const Color(0xFFB91C1C);
+        break;
+      case TodoType.dueSoon:
+        bgColor = const Color(0xFFFEFCE8);
+        borderColor = const Color(0xFFFEF08A);
+        iconBgColor = const Color(0xFFFEF9C3);
+        iconColor = const Color(0xFFEAB308);
+        titleColor = const Color(0xFF854D0E);
+        subtitleColor = const Color(0xFFA16207);
+        break;
+      case TodoType.ticket:
+        bgColor = const Color(0xFFFFF7ED);
+        borderColor = const Color(0xFFFED7AA);
+        iconBgColor = const Color(0xFFFFEDD5);
+        iconColor = const Color(0xFFF97316);
+        titleColor = const Color(0xFF9A3412);
+        subtitleColor = const Color(0xFFC2410C);
+        break;
+      case TodoType.ok:
+      default:
+        bgColor = Colors.white;
+        borderColor = const Color(0xFFE0F2FE);
+        iconBgColor = const Color(0xFFE0F2FE);
+        iconColor = const Color(0xFF0284C7);
+        titleColor = const Color(0xFF0F172A);
+        subtitleColor = const Color(0xFF64748B);
+    }
+
     return Container(
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: urgent ? const Color(0xFFFEF2F2) : Colors.white,
+        color: bgColor,
         borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: urgent ? const Color(0xFFFECACA) : const Color(0xFFE0F2FE)),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,10 +486,10 @@ class _DashboardViewState extends State<DashboardView> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: urgent ? const Color(0xFFFEE2E2) : const Color(0xFFE0F2FE),
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: urgent ? const Color(0xFFEF4444) : const Color(0xFF0284C7), size: 20),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -355,14 +501,14 @@ class _DashboardViewState extends State<DashboardView> {
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    color: urgent ? const Color(0xFF991B1B) : const Color(0xFF0F172A),
+                    color: titleColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: urgent ? const Color(0xFFB91C1C) : const Color(0xFF64748B),
+                    color: subtitleColor,
                     fontSize: 12,
                   ),
                 ),

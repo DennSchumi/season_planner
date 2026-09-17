@@ -8,6 +8,7 @@ import 'package:inventar_manager/features/inventory/check_in_out_dialog.dart';
 import 'package:inventar_manager/features/inventory/trouble_ticket_resolve_dialog.dart';
 import 'package:inventar_manager/core/services/database_service.dart';
 import 'package:inventar_manager/core/appwrite_config.dart';
+import 'package:inventar_manager/core/services/auth_service.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
@@ -210,7 +211,9 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                                               const SizedBox(width: 8),
                                               TextButton(
                                                 onPressed: () async {
-                                                  final url = DatabaseService().getFileViewUrl(AppwriteConfig.serviceProofsBucketId, data['fileId']);
+                                                  final baseUrl = DatabaseService().getFileViewUrl(AppwriteConfig.serviceProofsBucketId, data['fileId']);
+                                                  final jwt = await AuthService().getJWT();
+                                                  final url = jwt != null ? "$baseUrl&jwt=$jwt" : baseUrl;
                                                   if (await canLaunchUrl(Uri.parse(url))) {
                                                     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
                                                   } else {
@@ -227,7 +230,22 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                                             ],
                                           );
                                         } else if (data['checkType'] != null) {
-                                          detailsWidget = Text("Formular: ${data['checkType']}");
+                                          detailsWidget = Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text("Formular: ${data['checkType']}"),
+                                              const SizedBox(width: 8),
+                                              TextButton(
+                                                onPressed: () => _showServiceDetailsDialog(context, data),
+                                                style: TextButton.styleFrom(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  minimumSize: Size.zero,
+                                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                ),
+                                                child: const Text('Protokoll ansehen', style: TextStyle(fontSize: 12)),
+                                              )
+                                            ],
+                                          );
                                         } else {
                                           detailsWidget = Text(tx.details!);
                                         }
@@ -273,19 +291,38 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
     final catName = _categoryService.categories.where((c) => c.id == widget.item.categoryId).firstOrNull?.name ?? 'Unbekannt';
     
     int daysInOperation = 0;
+    
+    // We'll calculate unique calendar days the item was in operation
+    final Set<String> uniqueOperationDays = {};
+
     DateTime? lastCheckout;
-    // Transactions are descending, so reversed is chronological
+    // Iterate chronologically (reversed since list is descending)
     for(final tx in _transactionService.transactions.reversed) {
       if (tx.type == 'checkout') {
         lastCheckout = tx.date;
       } else if (tx.type == 'checkin' && lastCheckout != null) {
-        daysInOperation += tx.date.difference(lastCheckout).inDays;
+        // Add all days from lastCheckout to tx.date
+        final start = DateTime(lastCheckout.year, lastCheckout.month, lastCheckout.day);
+        final end = DateTime(tx.date.year, tx.date.month, tx.date.day);
+        for (int i = 0; i <= end.difference(start).inDays; i++) {
+          final currentDay = start.add(Duration(days: i));
+          uniqueOperationDays.add('${currentDay.year}-${currentDay.month}-${currentDay.day}');
+        }
         lastCheckout = null;
       }
     }
+    
+    // If it's currently checked out, calculate days until today
     if (lastCheckout != null) {
-      daysInOperation += DateTime.now().difference(lastCheckout).inDays;
+      final start = DateTime(lastCheckout.year, lastCheckout.month, lastCheckout.day);
+      final end = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+      for (int i = 0; i <= end.difference(start).inDays; i++) {
+        final currentDay = start.add(Duration(days: i));
+        uniqueOperationDays.add('${currentDay.year}-${currentDay.month}-${currentDay.day}');
+      }
     }
+    
+    daysInOperation = uniqueOperationDays.length;
 
     int troubleTickets = _transactionService.transactions.where((t) => t.type == 'troubleticket').length;
     int services = _transactionService.transactions.where((t) => t.type == 'service_check' || t.type == 'service').length;
@@ -422,6 +459,62 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
       child: Text(
         text,
         style: const TextStyle(color: Colors.white, fontSize: 12),
+      ),
+    );
+  }
+
+  void _showServiceDetailsDialog(BuildContext context, Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text("Service Protokoll", style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildServiceDetailRow("Art des Checks", data['checkType']),
+                _buildServiceDetailRow("Prüfer", data['inspector']),
+                if (data['dry'] != null) _buildServiceDetailRow("Weste getrocknet", data['dry']),
+                if (data['funcTest'] != null) _buildServiceDetailRow("Funktion", data['funcTest']),
+                const Divider(),
+                _buildServiceDetailRow("DOM CO2 Kartusche", data['domCo2']),
+                _buildServiceDetailRow("Min-Gewicht", "${data['minWeight']} g"),
+                _buildServiceDetailRow("Ist-Gewicht", "${data['istWeight']} g"),
+                _buildServiceDetailRow("Ablaufdatum Automatik", data['expAuto']),
+                const Divider(),
+                _buildServiceDetailRow("Siegel man. Auslösung", data['sealMan']),
+                _buildServiceDetailRow("Siegel autom. Auslösung", data['sealAuto']),
+                _buildServiceDetailRow("Drucktest", data['pressure']),
+                const Divider(),
+                _buildServiceDetailRow("Sicherungstyp", data['triggerType']),
+                _buildServiceDetailRow("Sicherung Zustand", data['triggerState']),
+                _buildServiceDetailRow("Korrekt gepackt", data['packed']),
+                _buildServiceDetailRow("Gesamtzustand", data['condition']),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Schließen"),
+            )
+          ],
+        );
+      }
+    );
+  }
+
+  Widget _buildServiceDetailRow(String label, dynamic value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 2, child: Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13))),
+          Expanded(flex: 3, child: Text(value?.toString() ?? "-", style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),
+        ],
       ),
     );
   }

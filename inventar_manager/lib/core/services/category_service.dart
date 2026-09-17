@@ -21,6 +21,18 @@ class CategoryModel {
     required this.serviceRequiresDocument,
     required this.iconData,
   });
+
+  factory CategoryModel.fromDocument(dynamic d) {
+    return CategoryModel(
+      id: d.$id,
+      schoolId: d.data['schoolId'],
+      name: d.data['name'],
+      prefix: d.data['prefix'],
+      serviceIntervalMonths: d.data['serviceIntervalMonths'],
+      serviceRequiresDocument: d.data['serviceRequiresDoc'] ?? false,
+      iconData: d.data['iconData'] ?? 'support',
+    );
+  }
   
   IconData get icon {
     switch (iconData) {
@@ -44,12 +56,14 @@ class CategoryService extends ChangeNotifier {
 
   List<CategoryModel> _categories = [];
   bool _isLoading = false;
+  String? errorMessage;
 
   List<CategoryModel> get categories => List.unmodifiable(_categories);
   bool get isLoading => _isLoading;
 
   Future<void> loadCategories(String schoolId) async {
     _isLoading = true;
+    errorMessage = null;
     notifyListeners();
 
     try {
@@ -59,17 +73,18 @@ class CategoryService extends ChangeNotifier {
       ];
       final docs = await DatabaseService().getDocuments(AppwriteConfig.categoriesCollectionId, queries: queries);
       
-      _categories = docs.map((d) => CategoryModel(
-        id: d.$id,
-        schoolId: d.data['schoolId'],
-        name: d.data['name'],
-        prefix: d.data['prefix'],
-        serviceIntervalMonths: d.data['serviceIntervalMonths'],
-        serviceRequiresDocument: d.data['serviceRequiresDoc'] ?? false,
-        iconData: d.data['iconData'] ?? 'support',
-      )).toList();
+      final loadedCats = <CategoryModel>[];
+      for (var d in docs) {
+        try {
+          loadedCats.add(CategoryModel.fromDocument(d));
+        } catch (e) {
+          debugPrint("Failed to parse category: $e");
+        }
+      }
+      _categories = loadedCats;
     } catch (e) {
-      print("Error loading categories: $e");
+      debugPrint("Error loading categories: $e");
+      errorMessage = "Netzwerkfehler: Kategorien konnten nicht geladen werden.";
     }
 
     _isLoading = false;

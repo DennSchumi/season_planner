@@ -8,6 +8,77 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 
+import 'package:flutter/services.dart';
+
+class MonthYearInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+
+    if (text.length > oldValue.text.length) {
+      if (text.length > 7) {
+        return oldValue;
+      }
+      
+      final cleanText = text.replaceAll('/', '');
+      if (cleanText.length > 6) return oldValue;
+      
+      String newText = '';
+      for (int i = 0; i < cleanText.length; i++) {
+        newText += cleanText[i];
+        if (i == 1 && cleanText.length > 2) {
+          newText += '/';
+        }
+      }
+      
+      if (text.length == 2 && oldValue.text.length == 1) {
+        newText += '/';
+      }
+
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+    }
+    return newValue;
+  }
+}
+
+class WeightInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+
+    if (text.length > oldValue.text.length) {
+      final cleanText = text.replaceAll(',', '').replaceAll('.', '');
+      
+      String newText = '';
+      for (int i = 0; i < cleanText.length; i++) {
+        newText += cleanText[i];
+        if (i == 2 && cleanText.length > 3) {
+          newText += ',';
+        }
+      }
+      
+      if (text.length == 3 && oldValue.text.length == 2) {
+        newText += ',';
+      }
+
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+    }
+    return newValue;
+  }
+}
+
 class ServiceCheckView extends StatefulWidget {
   final ItemModel item;
 
@@ -106,6 +177,21 @@ class _ServiceCheckViewState extends State<ServiceCheckView> {
 
     if (result != null) {
       final bytes = await result.readAsBytes();
+      
+      if (bytes.length > 10485760) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Datei ist zu groß (max 10MB)')));
+        }
+        return;
+      }
+      
+      if (bytes.length < 5 || bytes[0] != 0x25 || bytes[1] != 0x50 || bytes[2] != 0x44 || bytes[3] != 0x46 || bytes[4] != 0x2D) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ungültiges Dateiformat (nur echtes PDF erlaubt)')));
+        }
+        return;
+      }
+
       setState(() {
         _selectedFileBytes = bytes;
         _selectedFileName = result.name;
@@ -410,17 +496,17 @@ class _ServiceCheckViewState extends State<ServiceCheckView> {
               _buildDropdown("Funktion bei Auslösung", ['OK', 'Fehlerhaft'], _funcTest, (v) => setState(() => _funcTest = v!)),
             ],
 
-            _buildTextField("DOM CO2 Kartusche", _domCo2Controller, placeholder: "MM/JJJJ", maxLength: 7),
+            _buildTextField("DOM CO2 Kartusche", _domCo2Controller, placeholder: "MM/JJJJ", maxLength: 7, formatters: [MonthYearInputFormatter()]),
             
             Row(
               children: [
-                Expanded(child: _buildTextField("Min-Gewicht (g)", _minWeightController, isNumber: true, placeholder: "ggg,dd")),
+                Expanded(child: _buildTextField("Min-Gewicht (g)", _minWeightController, isNumber: true, placeholder: "ggg,dd", formatters: [WeightInputFormatter()])),
                 const SizedBox(width: 16),
-                Expanded(child: _buildTextField("Ist-Gewicht (g)", _istWeightController, isNumber: true, placeholder: "ggg,dd")),
+                Expanded(child: _buildTextField("Ist-Gewicht (g)", _istWeightController, isNumber: true, placeholder: "ggg,dd", formatters: [WeightInputFormatter()])),
               ],
             ),
             
-            _buildTextField("Ablaufdatum Automatik", _expAutoController, placeholder: "MM/JJJJ", maxLength: 7),
+            _buildTextField("Ablaufdatum Automatik", _expAutoController, placeholder: "MM/JJJJ", maxLength: 7, formatters: [MonthYearInputFormatter()]),
             
             Row(
               children: [
@@ -494,7 +580,7 @@ class _ServiceCheckViewState extends State<ServiceCheckView> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {bool isNumber = false, String? placeholder, int? maxLength}) {
+  Widget _buildTextField(String label, TextEditingController controller, {bool isNumber = false, String? placeholder, int? maxLength, List<TextInputFormatter>? formatters}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -506,6 +592,7 @@ class _ServiceCheckViewState extends State<ServiceCheckView> {
             controller: controller,
             keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
             maxLength: maxLength,
+            inputFormatters: formatters,
             decoration: InputDecoration(
               hintText: placeholder,
               hintStyle: const TextStyle(color: Color(0xFF94A3B8)),

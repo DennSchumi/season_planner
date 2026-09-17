@@ -71,10 +71,12 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
               details: _commentController.text.trim(),
               date: DateTime.now(),
             );
-            await transactionService.addTransaction(tx);
+            final txResult = await transactionService.addTransaction(tx);
+            if (txResult == null) throw Exception("Transaktion für ${item.materialNumber} fehlgeschlagen");
 
             item.status = 'out';
-            await itemService.updateItem(item);
+            final updateSuccess = await itemService.updateItem(item);
+            if (!updateSuccess) throw Exception("Update für ${item.materialNumber} fehlgeschlagen");
           } else {
             final tx = TransactionModel(
               id: '',
@@ -87,14 +89,16 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
               details: _commentController.text.trim(),
               date: DateTime.now(),
             );
-            await transactionService.addTransaction(tx);
+            final txResult = await transactionService.addTransaction(tx);
+            if (txResult == null) throw Exception("Transaktion für ${item.materialNumber} fehlgeschlagen");
             await transactionService.closeOpenCheckout(item.id);
 
             item.status = 'in_stock';
-            await itemService.updateItem(item);
+            final updateSuccess = await itemService.updateItem(item);
+            if (!updateSuccess) throw Exception("Update für ${item.materialNumber} fehlgeschlagen");
           }
         } catch (itemError) {
-          debugPrint("Fehler bei Gegenstand \${item.materialNumber}: \$itemError");
+          debugPrint("Fehler bei Gegenstand ${item.materialNumber}: $itemError");
           item.status = oldStatus;
         }
       }
@@ -105,8 +109,8 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
           SnackBar(
             content: Text(
               isCheckout 
-                ? '\${_selectedItemIds.length} Gegenst\u00e4nde erfolgreich ausgegeben' 
-                : '\${_selectedItemIds.length} Gegenst\u00e4nde erfolgreich zur\u00fcckgenommen'
+                ? '${_selectedItemIds.length} Gegenstände erfolgreich ausgegeben' 
+                : '${_selectedItemIds.length} Gegenstände erfolgreich zurückgenommen'
             ),
             backgroundColor: const Color(0xFF10B981),
           ),
@@ -115,7 +119,7 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Allgemeiner Fehler: \$e')),
+          SnackBar(content: Text('Allgemeiner Fehler: $e')),
         );
       }
     } finally {
@@ -151,7 +155,7 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
     }).toList();
 
     return AlertDialog(
-      title: Text("Sammelbewegung - \${widget.category.name}", style: const TextStyle(fontWeight: FontWeight.bold)),
+      title: Text("Sammelbewegung - ${widget.category.name}", style: const TextStyle(fontWeight: FontWeight.bold)),
       content: SizedBox(
         width: 600,
         child: Column(
@@ -212,7 +216,7 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
             ),
             const SizedBox(height: 24),
             Text(
-              "Gegenst\u00e4nde ausw\u00e4hlen (\${_selectedItemIds.length} ausgew\u00e4hlt):",
+              "Gegenstände auswählen (${_selectedItemIds.length} ausgewählt):",
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),

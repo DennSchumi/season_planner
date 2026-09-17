@@ -63,11 +63,13 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
           details: _detailsController.text,
           date: DateTime.now(),
         );
-        await transactionService.addTransaction(tx);
+        final txResult = await transactionService.addTransaction(tx);
+        if (txResult == null) throw Exception("Transaktion konnte nicht gespeichert werden");
         await transactionService.closeOpenCheckout(widget.item.id);
 
         widget.item.status = 'in_stock';
-        await itemService.updateItem(widget.item);
+        final updateSuccess = await itemService.updateItem(widget.item);
+        if (!updateSuccess) throw Exception("Gegenstand konnte nicht aktualisiert werden");
       } else {
         // Checking OUT
         final tx = TransactionModel(
@@ -81,10 +83,12 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
           details: _detailsController.text,
           date: DateTime.now(),
         );
-        await transactionService.addTransaction(tx);
+        final txResult = await transactionService.addTransaction(tx);
+        if (txResult == null) throw Exception("Transaktion konnte nicht gespeichert werden");
 
         widget.item.status = 'out';
-        await itemService.updateItem(widget.item);
+        final updateSuccess = await itemService.updateItem(widget.item);
+        if (!updateSuccess) throw Exception("Gegenstand konnte nicht aktualisiert werden");
       }
 
       if (mounted) {
