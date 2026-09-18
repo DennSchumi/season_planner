@@ -79,9 +79,18 @@ class _MainScaffoldState extends State<MainScaffold> {
 
         final currentSchool = _flightSchoolService.selectedSchool;
         if (currentSchool == null) {
-          return const Scaffold(
-            backgroundColor: Color(0xFFF8FAFC),
-            body: Center(child: Text("Keine Flugschulen gefunden.")),
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(
+                  _flightSchoolService.errorMessage ?? "Keine Flugschulen gefunden.",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                ),
+              ),
+            ),
           );
         }
 

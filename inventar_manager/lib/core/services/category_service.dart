@@ -2,6 +2,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
 import 'package:inventar_manager/core/services/database_service.dart';
 import 'package:inventar_manager/core/appwrite_config.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class CategoryModel {
   String id;
@@ -42,6 +43,28 @@ class CategoryModel {
       case 'support':
       default: return Icons.support;
     }
+  }
+
+  Widget buildIcon({Color? color, double size = 24}) {
+    return CategoryModel.buildIconWidget(iconData, color: color, size: size);
+  }
+
+  static Widget buildIconWidget(String iconDataStr, {Color? color, double size = 24}) {
+    if (iconDataStr.endsWith('.svg')) {
+      return SvgPicture.asset(
+        iconDataStr,
+        width: size,
+        height: size,
+        colorFilter: color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
+      );
+    }
+    
+    IconData fallbackIcon = Icons.support;
+    if (iconDataStr == 'radio') fallbackIcon = Icons.radio;
+    else if (iconDataStr == 'paragliding') fallbackIcon = Icons.paragliding;
+    else if (iconDataStr == 'airline_seat_recline_normal') fallbackIcon = Icons.airline_seat_recline_normal;
+
+    return Icon(fallbackIcon, color: color, size: size);
   }
 }
 

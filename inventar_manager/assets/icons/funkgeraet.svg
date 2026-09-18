@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <style>
+    .line {
+      fill: none;
+      stroke: #000000;
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .solid {
+      fill: #000000;
+    }
+  </style>
+
+  <!-- Funkwellen links -->
+  <path class="line" d="M 55 60 A 20 20 0 0 0 55 85" />
+  <path class="line" d="M 45 50 A 35 35 0 0 0 45 95" />
+  <path class="line" d="M 35 40 A 50 50 0 0 0 35 105" />
+
+  <!-- Funkwellen rechts -->
+  <path class="line" d="M 145 60 A 20 20 0 0 1 145 85" />
+  <path class="line" d="M 155 50 A 35 35 0 0 1 155 95" />
+  <path class="line" d="M 165 40 A 50 50 0 0 1 165 105" />
+
+  <!-- Äußeres Gehäuse mit Antenne und Drehknopf -->
+  <path class="line" d="
+    M 65 100 
+    A 5 5 0 0 1 70 95 
+    L 75 95 
+    L 75 89 
+    A 3 3 0 0 1 78 86 
+    L 80 86 
+    L 80 40 
+    A 5 5 0 0 1 90 40 
+    L 90 86 
+    L 92 86 
+    A 3 3 0 0 1 95 89 
+    L 95 95 
+    L 112 95 
+    L 112 87 
+    A 4 4 0 0 1 120 87 
+    L 120 95 
+    L 130 95 
+    A 5 5 0 0 1 135 100 
+    L 135 185 
+    A 10 10 0 0 1 125 195 
+    L 75 195 
+    A 10 10 0 0 1 65 185 
+    Z" />
+
+  <!-- Lautsprecher-Schlitz oben -->
+  <rect class="solid" x="78" y="106" width="44" height="5" rx="1" />
+
+  <!-- Display -->
+  <rect class="line" x="75" y="120" width="50" height="20" rx="2" />
+
+  <!-- Tastenfeld (3x3 Raster) -->
+  <rect class="solid" x="76" y="148" width="10" height="8" rx="1" />
+  <rect class="solid" x="95" y="148" width="10" height="8" rx="1" />
+  <rect class="solid" x="114" y="148" width="10" height="8" rx="1" />
+
+  <rect class="solid" x="76" y="162" width="10" height="8" rx="1" />
+  <rect class="solid" x="95" y="162" width="10" height="8" rx="1" />
+  <rect class="solid" x="114" y="162" width="10" height="8" rx="1" />
+
+  <rect class="solid" x="76" y="176" width="10" height="8" rx="1" />
+  <rect class="solid" x="95" y="176" width="10" height="8" rx="1" />
+  <rect class="solid" x="114" y="176" width="10" height="8" rx="1" />
+
+  <!-- Untere Einkerbung / Stoßschutz -->
+  <path class="line" d="M 76 195 L 76 190 A 4 4 0 0 1 80 186 L 120 186 A 4 4 0 0 1 124 190 L 124 195" />
+</svg>

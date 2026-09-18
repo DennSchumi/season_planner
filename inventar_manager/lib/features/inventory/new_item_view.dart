@@ -316,7 +316,16 @@ class _NewItemViewState extends State<NewItemView> {
           DropdownButtonFormField<CategoryModel>(
             decoration: const InputDecoration(labelText: "Kategorie", border: OutlineInputBorder()),
             value: _selectedCategory,
-            items: _categoryService.categories.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
+            items: _categoryService.categories.map((c) => DropdownMenuItem(
+              value: c, 
+              child: Row(
+                children: [
+                  c.buildIcon(color: const Color(0xFF64748B), size: 20),
+                  const SizedBox(width: 8),
+                  Text(c.name),
+                ],
+              ),
+            )).toList(),
             onChanged: (val) {
               setState(() {
                 _selectedCategory = val;

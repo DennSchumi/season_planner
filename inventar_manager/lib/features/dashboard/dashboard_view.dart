@@ -6,6 +6,7 @@ import 'package:inventar_manager/core/services/flight_school_service.dart';
 import 'package:inventar_manager/features/inventory/inventory_detail_view.dart';
 import 'package:inventar_manager/features/inventory/check_in_out_dialog.dart';
 import 'package:inventar_manager/features/inventory/batch_movement_dialog.dart';
+import 'package:inventar_manager/features/dashboard/item_swap_dialog.dart';
 import 'package:inventar_manager/core/services/transaction_service.dart';
 
 enum TodoType { ok, dueSoon, pastDue, ticket }
@@ -89,20 +90,31 @@ class _DashboardViewState extends State<DashboardView> {
                     color: Color(0xFF334155),
                   ),
                 ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.filter_list, color: Color(0xFF64748B)),
-                  tooltip: "Kategorien filtern",
-                  onSelected: _toggleCategoryVisibility,
-                  itemBuilder: (context) {
-                    return categories.map((c) {
-                      final isHidden = _hiddenCategories.contains(c.name);
-                      return CheckedPopupMenuItem<String>(
-                        value: c.name,
-                        checked: !isHidden,
-                        child: Text(c.name),
-                      );
-                    }).toList();
-                  },
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () {
+                        ItemSwapDialog.show(context, _categoryService, _itemService);
+                      },
+                      icon: const Icon(Icons.swap_horiz, color: Color(0xFF64748B)),
+                      label: const Text("Tauschen", style: TextStyle(color: Color(0xFF64748B))),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.filter_list, color: Color(0xFF64748B)),
+                      tooltip: "Kategorien filtern",
+                      onSelected: _toggleCategoryVisibility,
+                      itemBuilder: (context) {
+                        return categories.map((c) {
+                          final isHidden = _hiddenCategories.contains(c.name);
+                          return CheckedPopupMenuItem<String>(
+                            value: c.name,
+                            checked: !isHidden,
+                            child: Text(c.name),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -360,7 +372,7 @@ class _DashboardViewState extends State<DashboardView> {
         children: [
           Row(
             children: [
-              Icon(category.icon, color: const Color(0xFF3B82F6), size: 24),
+              category.buildIcon(color: const Color(0xFF3B82F6), size: 24),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

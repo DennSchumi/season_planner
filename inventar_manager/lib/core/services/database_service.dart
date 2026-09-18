@@ -25,10 +25,10 @@ class DatabaseService {
   }
 
   // Generic method to fetch documents
-  Future<List<models.Document>> getDocuments(String collectionId, {List<String>? queries}) async {
+  Future<List<models.Document>> getDocuments(String collectionId, {List<String>? queries, String? databaseId}) async {
     try {
       final response = await _databases.listDocuments(
-        databaseId: AppwriteConfig.inventoryDatabaseId,
+        databaseId: databaseId ?? AppwriteConfig.inventoryDatabaseId,
         collectionId: collectionId,
         queries: queries,
       );
@@ -40,10 +40,10 @@ class DatabaseService {
   }
 
   // Generic method to create document
-  Future<models.Document?> createDocument(String collectionId, Map<String, dynamic> data) async {
+  Future<models.Document?> createDocument(String collectionId, Map<String, dynamic> data, {String? databaseId}) async {
     try {
       return await _databases.createDocument(
-        databaseId: AppwriteConfig.inventoryDatabaseId,
+        databaseId: databaseId ?? AppwriteConfig.inventoryDatabaseId,
         collectionId: collectionId,
         documentId: ID.unique(),
         data: data,
@@ -55,10 +55,10 @@ class DatabaseService {
   }
 
   // Generic method to update document
-  Future<models.Document?> updateDocument(String collectionId, String documentId, Map<String, dynamic> data) async {
+  Future<models.Document?> updateDocument(String collectionId, String documentId, Map<String, dynamic> data, {String? databaseId}) async {
     try {
       return await _databases.updateDocument(
-        databaseId: AppwriteConfig.inventoryDatabaseId,
+        databaseId: databaseId ?? AppwriteConfig.inventoryDatabaseId,
         collectionId: collectionId,
         documentId: documentId,
         data: data,
@@ -70,10 +70,10 @@ class DatabaseService {
   }
 
   // Generic method to delete document
-  Future<void> deleteDocument(String collectionId, String documentId) async {
+  Future<void> deleteDocument(String collectionId, String documentId, {String? databaseId}) async {
     try {
       await _databases.deleteDocument(
-        databaseId: AppwriteConfig.inventoryDatabaseId,
+        databaseId: databaseId ?? AppwriteConfig.inventoryDatabaseId,
         collectionId: collectionId,
         documentId: documentId,
       );

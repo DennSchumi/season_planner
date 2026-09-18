@@ -12,6 +12,14 @@ class SettingsView extends StatefulWidget {
 class _SettingsViewState extends State<SettingsView> {
   final CategoryService _categoryService = CategoryService();
 
+  final List<Map<String, String>> _availableIcons = [
+    {'name': 'Support (Standard)', 'value': 'support'},
+    {'name': 'Funkgerät', 'value': 'assets/icons/funkgeraet.svg'},
+    {'name': 'Gleitschirm', 'value': 'assets/icons/gleitschirm.svg'},
+    {'name': 'Schwimmweste', 'value': 'assets/icons/schwimmweste.svg'},
+    {'name': 'Gurtzeug', 'value': 'assets/icons/gurtzeug.svg'},
+  ];
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -92,7 +100,7 @@ class _SettingsViewState extends State<SettingsView> {
                             color: const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(category.icon, color: const Color(0xFF3B82F6)),
+                          child: category.buildIcon(color: const Color(0xFF3B82F6)),
                         ),
                         title: Text(category.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                         subtitle: Padding(
@@ -151,6 +159,7 @@ class _SettingsViewState extends State<SettingsView> {
     final prefixController = TextEditingController();
     final intervalController = TextEditingController(text: "12");
     bool requiresDoc = false;
+    String selectedIcon = 'support';
 
     showDialog(
       context: context,
@@ -189,6 +198,31 @@ class _SettingsViewState extends State<SettingsView> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedIcon,
+                      decoration: const InputDecoration(
+                        labelText: "Kategorie-Icon",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _availableIcons.map((iconMap) {
+                        return DropdownMenuItem<String>(
+                          value: iconMap['value'],
+                          child: Row(
+                            children: [
+                              CategoryModel.buildIconWidget(iconMap['value']!, color: const Color(0xFF64748B), size: 20),
+                              const SizedBox(width: 8),
+                              Text(iconMap['name']!),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setStateModal(() => selectedIcon = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     SwitchListTile(
                       title: const Text("Service-Nachweis"),
                       subtitle: Text(requiresDoc ? "Dokument muss hochgeladen werden" : "Nur Text-Protokoll"),
@@ -223,7 +257,7 @@ class _SettingsViewState extends State<SettingsView> {
                           prefix: newPrefix,
                           serviceIntervalMonths: newInterval,
                           serviceRequiresDocument: requiresDoc,
-                          iconData: 'support', // default icon
+                          iconData: selectedIcon,
                         );
                         
                         await _categoryService.addCategory(newCat);
@@ -249,6 +283,11 @@ class _SettingsViewState extends State<SettingsView> {
     final prefixController = TextEditingController(text: category.prefix);
     final intervalController = TextEditingController(text: category.serviceIntervalMonths.toString());
     bool requiresDoc = category.serviceRequiresDocument;
+    
+    // Fallback falls iconData nicht in der Liste ist
+    String selectedIcon = _availableIcons.any((element) => element['value'] == category.iconData) 
+      ? category.iconData 
+      : 'support';
 
     showDialog(
       context: context,
@@ -279,6 +318,31 @@ class _SettingsViewState extends State<SettingsView> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedIcon,
+                      decoration: const InputDecoration(
+                        labelText: "Kategorie-Icon",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _availableIcons.map((iconMap) {
+                        return DropdownMenuItem<String>(
+                          value: iconMap['value'],
+                          child: Row(
+                            children: [
+                              CategoryModel.buildIconWidget(iconMap['value']!, color: const Color(0xFF64748B), size: 20),
+                              const SizedBox(width: 8),
+                              Text(iconMap['name']!),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setStateModal(() => selectedIcon = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     SwitchListTile(
                       title: const Text("Service-Nachweis"),
                       subtitle: Text(requiresDoc ? "Dokument muss hochgeladen werden" : "Nur Text-Protokoll"),
@@ -306,6 +370,7 @@ class _SettingsViewState extends State<SettingsView> {
                       category.prefix = newPrefix;
                       category.serviceIntervalMonths = newInterval;
                       category.serviceRequiresDocument = requiresDoc;
+                      category.iconData = selectedIcon;
                       
                       _categoryService.updateCategory(category);
                       

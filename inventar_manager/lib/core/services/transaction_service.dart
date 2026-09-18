@@ -136,6 +136,25 @@ class TransactionService extends ChangeNotifier {
     return null;
   }
 
+  Future<TransactionModel?> getOpenCheckout(String itemId) async {
+    try {
+      final queries = [
+        Query.equal('itemId', itemId),
+        Query.equal('type', 'checkout'),
+        Query.equal('status', 'open'),
+        Query.orderDesc('date'),
+        Query.limit(1)
+      ];
+      final docs = await DatabaseService().getDocuments(AppwriteConfig.transactionsCollectionId, queries: queries);
+      if (docs.isNotEmpty) {
+        return TransactionModel.fromDocument(docs.first);
+      }
+    } catch (e) {
+      print("Error getting open checkout: $e");
+    }
+    return null;
+  }
+
   Future<void> closeOpenCheckout(String itemId) async {
     try {
       final queries = [
