@@ -59,6 +59,8 @@ class _TroubleTicketResolveDialogState extends State<TroubleTicketResolveDialog>
         
         // Update item to in_stock
         widget.item.status = 'in_stock';
+        widget.item.isLocked = false;
+        widget.item.lockReason = null;
         await itemService.updateItem(widget.item);
       } else if (_mode == 'dispose') {
         // Create dispose transaction
@@ -77,6 +79,8 @@ class _TroubleTicketResolveDialogState extends State<TroubleTicketResolveDialog>
 
         // Update item to disposed
         widget.item.status = 'disposed';
+        widget.item.isLocked = false;
+        widget.item.lockReason = null;
         await itemService.updateItem(widget.item);
       }
 

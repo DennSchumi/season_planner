@@ -9,7 +9,7 @@ import 'package:inventar_manager/features/inventory/batch_movement_dialog.dart';
 import 'package:inventar_manager/features/dashboard/item_swap_dialog.dart';
 import 'package:inventar_manager/core/services/transaction_service.dart';
 
-enum TodoType { ok, dueSoon, pastDue, ticket }
+enum TodoType { ok, dueSoon, pastDue, ticket, locked }
 
 class DashboardView extends StatefulWidget {
   const DashboardView({Key? key}) : super(key: key);
@@ -263,6 +263,30 @@ class _DashboardViewState extends State<DashboardView> {
                     );
                   }).toList();
 
+                  final ticketItemIds = _openTickets.map((t) => t.itemId).toSet();
+
+                  final lockedItemsWidgets = items
+                      .where((i) => i.isLocked && !ticketItemIds.contains(i.id))
+                      .map((item) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => InventoryDetailView(item: item),
+                          ));
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: _buildTodoCard(
+                          "${item.name} (${item.materialNumber})",
+                          item.lockReason ?? "Manuell gesperrt",
+                          Icons.lock_rounded,
+                          TodoType.locked,
+                        ),
+                      ),
+                    );
+                  }).toList();
+
                   final dueServiceWidgets = dueItems.map((item) {
                     final isPastDue = item.nextServiceDate!.isBefore(now);
                     final daysRemaining = item.nextServiceDate!.difference(now).inDays;
@@ -289,7 +313,7 @@ class _DashboardViewState extends State<DashboardView> {
                     );
                   }).toList();
                   
-                  if (ticketWidgets.isEmpty && dueServiceWidgets.isEmpty) {
+                  if (ticketWidgets.isEmpty && dueServiceWidgets.isEmpty && lockedItemsWidgets.isEmpty) {
                     return _buildTodoCard(
                       "Keine Services oder Tickets",
                       "Alles in Ordnung",
@@ -300,6 +324,7 @@ class _DashboardViewState extends State<DashboardView> {
                   
                   return Column(
                     children: [
+                      ...lockedItemsWidgets,
                       ...ticketWidgets,
                       ...dueServiceWidgets,
                     ],
@@ -401,6 +426,7 @@ class _DashboardViewState extends State<DashboardView> {
             runSpacing: 6,
             children: items.map((item) {
               final isOut = item.status == "out";
+              final hasOpenTicket = _openTickets.any((t) => t.itemId == item.id);
               return InkWell(
                 onTap: () => CheckInOutDialog.show(context, item),
                 onLongPress: () {
@@ -411,23 +437,51 @@ class _DashboardViewState extends State<DashboardView> {
                 borderRadius: BorderRadius.circular(6),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isOut ? const Color(0xFFEF4444) : const Color(0xFF10B981),
-                    borderRadius: BorderRadius.circular(4),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                      )
-                    ]
-                  ),
+                  decoration: hasOpenTicket
+                      ? BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            )
+                          ],
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment(0.4, 0.4),
+                            tileMode: TileMode.repeated,
+                            colors: [
+                              Color(0xFFEF4444),
+                              Color(0xFFEF4444),
+                              Colors.white,
+                              Colors.white,
+                            ],
+                            stops: [0.0, 0.5, 0.5, 1.0],
+                          ),
+                        )
+                      : BoxDecoration(
+                          color: item.isLocked 
+                              ? const Color(0xFF9333EA) // Purple for locked
+                              : (isOut ? const Color(0xFFEF4444) : const Color(0xFF10B981)),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            )
+                          ]
+                        ),
                   child: Text(
                     item.materialNumber.isNotEmpty ? item.materialNumber : '-',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: hasOpenTicket ? Colors.black : Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      shadows: hasOpenTicket 
+                          ? [const Shadow(color: Colors.white, blurRadius: 4)] // Make text readable on stripes
+                          : null,
                     ),
                   ),
                 ),
@@ -474,6 +528,14 @@ class _DashboardViewState extends State<DashboardView> {
         iconColor = const Color(0xFFF97316);
         titleColor = const Color(0xFF9A3412);
         subtitleColor = const Color(0xFFC2410C);
+        break;
+      case TodoType.locked:
+        bgColor = const Color(0xFFFAF5FF);
+        borderColor = const Color(0xFFE9D5FF);
+        iconBgColor = const Color(0xFFF3E8FF);
+        iconColor = const Color(0xFFA855F7);
+        titleColor = const Color(0xFF6B21A8);
+        subtitleColor = const Color(0xFF7E22CE);
         break;
       case TodoType.ok:
       default:

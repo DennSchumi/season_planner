@@ -14,6 +14,8 @@ class ItemModel {
   String? assignedTo;
   DateTime? lastServiceDate;
   DateTime? nextServiceDate;
+  bool isLocked;
+  String? lockReason;
 
   ItemModel({
     required this.id,
@@ -26,6 +28,8 @@ class ItemModel {
     this.assignedTo,
     this.lastServiceDate,
     this.nextServiceDate,
+    this.isLocked = false,
+    this.lockReason,
   });
 
   factory ItemModel.fromDocument(dynamic doc) {
@@ -40,6 +44,8 @@ class ItemModel {
       assignedTo: doc.data['assignedTo'],
       lastServiceDate: doc.data['lastServiceDate'] != null ? DateTime.parse(doc.data['lastServiceDate']) : null,
       nextServiceDate: doc.data['nextServiceDate'] != null ? DateTime.parse(doc.data['nextServiceDate']) : null,
+      isLocked: doc.data['isLocked'] ?? false,
+      lockReason: doc.data['lockReason'],
     );
   }
 
@@ -54,6 +60,8 @@ class ItemModel {
       'assignedTo': assignedTo,
       'lastServiceDate': lastServiceDate?.toIso8601String(),
       'nextServiceDate': nextServiceDate?.toIso8601String(),
+      'isLocked': isLocked,
+      'lockReason': lockReason,
     };
   }
 }
@@ -126,6 +134,26 @@ class ItemService extends ChangeNotifier {
       return true;
     }
     return false;
+  }
+
+  Future<bool> lockItem(String id, String reason) async {
+    final index = _items.indexWhere((c) => c.id == id);
+    if (index == -1) return false;
+    
+    final item = _items[index];
+    item.isLocked = true;
+    item.lockReason = reason;
+    return await updateItem(item);
+  }
+
+  Future<bool> unlockItem(String id) async {
+    final index = _items.indexWhere((c) => c.id == id);
+    if (index == -1) return false;
+    
+    final item = _items[index];
+    item.isLocked = false;
+    item.lockReason = null;
+    return await updateItem(item);
   }
 
   Future<bool> deleteItem(String id) async {

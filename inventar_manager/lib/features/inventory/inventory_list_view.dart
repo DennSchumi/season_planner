@@ -189,7 +189,7 @@ class _InventoryListViewState extends State<InventoryListView> {
                           DataCell(Text(item.name, style: textStyle)),
                           DataCell(Text(item.serialNumber ?? '-', style: textStyle)),
                           DataCell(Text(catName, style: textStyle)),
-                          DataCell(_buildStatusBadge(item.status)),
+                          DataCell(_buildStatusBadge(item)),
                           DataCell(Text(item.lastServiceDate != null ? DateFormat('dd.MM.yyyy').format(item.lastServiceDate!) : '-', style: textStyle)),
                         ],
                         );
@@ -293,37 +293,46 @@ class _InventoryListViewState extends State<InventoryListView> {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(ItemModel item) {
     Color bgColor;
     Color textColor;
     String label;
 
-    switch (status) {
-      case 'in_stock':
-        bgColor = const Color(0xFF10B981).withOpacity(0.1);
-        textColor = const Color(0xFF10B981);
-        label = 'Lager';
-        break;
-      case 'out':
-        bgColor = const Color(0xFFF59E0B).withOpacity(0.1);
-        textColor = const Color(0xFFF59E0B);
-        label = 'Ausgegeben';
-        break;
-      case 'blocked':
-      case 'defekt':
-        bgColor = const Color(0xFFEF4444).withOpacity(0.1);
-        textColor = const Color(0xFFEF4444);
-        label = 'Gesperrt';
-        break;
-      case 'disposed':
-        bgColor = const Color(0xFF94A3B8).withOpacity(0.1);
-        textColor = const Color(0xFF94A3B8);
-        label = 'Entsorgt';
-        break;
-      default:
-        bgColor = Colors.grey.withOpacity(0.1);
-        textColor = Colors.grey;
-        label = status;
+    if (item.status == 'defekt' || item.status == 'troubleticket') {
+      bgColor = const Color(0xFFEF4444).withOpacity(0.1);
+      textColor = const Color(0xFFEF4444);
+      label = 'Troubleticket';
+    } else if (item.isLocked) {
+      bgColor = const Color(0xFF9333EA).withOpacity(0.1);
+      textColor = const Color(0xFF9333EA);
+      label = 'Gesperrt';
+    } else {
+      switch (item.status) {
+        case 'in_stock':
+          bgColor = const Color(0xFF10B981).withOpacity(0.1);
+          textColor = const Color(0xFF10B981);
+          label = 'Lager';
+          break;
+        case 'out':
+          bgColor = const Color(0xFFF59E0B).withOpacity(0.1);
+          textColor = const Color(0xFFF59E0B);
+          label = 'Ausgegeben';
+          break;
+        case 'blocked':
+          bgColor = const Color(0xFFEF4444).withOpacity(0.1);
+          textColor = const Color(0xFFEF4444);
+          label = 'Gesperrt';
+          break;
+        case 'disposed':
+          bgColor = const Color(0xFF94A3B8).withOpacity(0.1);
+          textColor = const Color(0xFF94A3B8);
+          label = 'Entsorgt';
+          break;
+        default:
+          bgColor = Colors.grey.withOpacity(0.1);
+          textColor = Colors.grey;
+          label = item.status;
+      }
     }
 
     return Container(

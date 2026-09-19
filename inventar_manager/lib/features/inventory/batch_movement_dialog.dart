@@ -31,17 +31,29 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
   final Set<String> _selectedItemIds = {};
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _lockReasonController = TextEditingController();
   bool _isLoading = false;
+  bool _lockAfterCheckIn = false;
 
   @override
   void dispose() {
     _commentController.dispose();
     _nameController.dispose();
+    _lockReasonController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (_selectedItemIds.isEmpty) return;
+
+    final isCheckout = _selectedAction == 'Auslagerung';
+
+    if (!isCheckout && _lockAfterCheckIn && _lockReasonController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bitte gib einen Grund für die Sperre ein!')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -94,8 +106,27 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
             await transactionService.closeOpenCheckout(item.id);
 
             item.status = 'in_stock';
+            if (_lockAfterCheckIn) {
+              item.isLocked = true;
+              item.lockReason = _lockReasonController.text.trim();
+            }
             final updateSuccess = await itemService.updateItem(item);
             if (!updateSuccess) throw Exception("Update für ${item.materialNumber} fehlgeschlagen");
+
+            if (_lockAfterCheckIn) {
+              final lockTx = TransactionModel(
+                 id: '',
+                 schoolId: item.schoolId,
+                 itemId: item.id,
+                 type: 'service_lock',
+                 status: 'closed',
+                 initiator: 'System', 
+                 captureMethod: 'manual',
+                 details: 'Gesperrt: ${item.lockReason}',
+                 date: DateTime.now(),
+              );
+              await transactionService.addTransaction(lockTx);
+            }
           }
         } catch (itemError) {
           debugPrint("Fehler bei Gegenstand ${item.materialNumber}: $itemError");
@@ -143,6 +174,7 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
       // Filter out items with expired service if checkout
       if (isCheckout) {
         if (item.status != 'in_stock') return false;
+        if (item.isLocked) return false;
         
         final nextService = item.nextServiceDate;
         if (nextService != null && nextService.isBefore(DateTime.now())) {
@@ -214,6 +246,26 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
                 prefixIcon: Icon(Icons.notes),
               ),
             ),
+            if (!isCheckout) const SizedBox(height: 16),
+            if (!isCheckout)
+              SwitchListTile(
+                title: const Text("Nach Einlagerung sperren"),
+                subtitle: const Text("Z.B. wegen Service-Bedarf"),
+                value: _lockAfterCheckIn,
+                onChanged: (val) => setState(() => _lockAfterCheckIn = val),
+                activeColor: const Color(0xFF9333EA),
+              ),
+            if (!isCheckout && _lockAfterCheckIn) const SizedBox(height: 8),
+            if (!isCheckout && _lockAfterCheckIn)
+              TextField(
+                controller: _lockReasonController,
+                decoration: const InputDecoration(
+                  labelText: "Grund für Sperre",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_rounded),
+                ),
+                maxLines: 1,
+              ),
             const SizedBox(height: 24),
             Text(
               "Gegenstände auswählen (${_selectedItemIds.length} ausgewählt):",

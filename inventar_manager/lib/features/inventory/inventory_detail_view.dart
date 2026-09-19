@@ -90,6 +90,10 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                           Icons.build_rounded,
                           const Color(0xFF3B82F6),
                           () {
+                            if (widget.item.status == 'out') {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Das Gerät ist ausgelagert. Bitte erst einlagern!')));
+                              return;
+                            }
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => ServiceCheckView(item: widget.item),
@@ -102,6 +106,10 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                             Icons.report_problem_rounded,
                             const Color(0xFFEF4444),
                             () {
+                              if (widget.item.status == 'out') {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Das Gerät ist ausgelagert. Bitte erst einlagern!')));
+                                return;
+                              }
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (context) => TroubleTicketView(item: widget.item),
@@ -110,7 +118,19 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                             },
                           ),
                           _buildActionButton(
-                            "L\u00f6schen",
+                            widget.item.isLocked ? "Sperre aufheben" : "Gerät sperren",
+                            widget.item.isLocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+                            const Color(0xFF9333EA), // Purple
+                            widget.item.status == 'defekt' ? null : () {
+                              if (widget.item.isLocked) {
+                                _unlockItem();
+                              } else {
+                                _showLockItemDialog(context);
+                              }
+                            },
+                          ),
+                          _buildActionButton(
+                            "Löschen",
                             Icons.delete,
                             const Color(0xFF94A3B8),
                             () {
@@ -187,13 +207,26 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                                   final isCheckout = tx.type == 'checkout';
                                   final isTicket = tx.type == 'troubleticket';
                                   final isService = tx.type == 'service_check' || tx.type == 'service';
+                                  final isServiceLock = tx.type == 'service_lock' || tx.type == 'service_lock_resolved';
                                   
                                   Color badgeColor = const Color(0xFF64748B); // default gray
-                                  if (isCheckout) badgeColor = const Color(0xFFF59E0B);
-                                  else if (tx.type == 'checkin') badgeColor = const Color(0xFF10B981);
-                                  else if (isService) badgeColor = const Color(0xFF3B82F6);
-                                  else if (isTicket) {
+                                  String typeLabel = tx.type;
+                                  
+                                  if (isCheckout) {
+                                    badgeColor = const Color(0xFFF59E0B);
+                                    typeLabel = "Ausgabe";
+                                  } else if (tx.type == 'checkin') {
+                                    badgeColor = const Color(0xFF10B981);
+                                    typeLabel = "Rücknahme";
+                                  } else if (isService) {
+                                    badgeColor = const Color(0xFF3B82F6);
+                                    typeLabel = "Service";
+                                  } else if (isTicket) {
                                     badgeColor = (tx.status == 'offen') ? const Color(0xFFEF4444) : const Color(0xFF64748B);
+                                    typeLabel = "Ticket";
+                                  } else if (isServiceLock) {
+                                    badgeColor = const Color(0xFF9333EA); // Purple
+                                    typeLabel = tx.type == 'service_lock' ? "Sperre" : "Sperre aufg.";
                                   }
                                   
                                   Widget detailsWidget = const Text('-');
@@ -264,7 +297,7 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
                                       }
                                     } : null,
                                     cells: [
-                                      DataCell(_buildTypeBadge(tx.type, badgeColor)),
+                                      DataCell(_buildTypeBadge(typeLabel, badgeColor)),
                                       DataCell(Text(tx.initiator)),
                                       DataCell(Text(tx.captureMethod.isNotEmpty ? tx.captureMethod : '-')),
                                       DataCell(Text(DateFormat('dd.MM.yyyy HH:mm').format(tx.date))),
@@ -434,13 +467,15 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback? onTap) {
     return ElevatedButton.icon(
       onPressed: onTap,
       icon: Icon(icon, size: 18),
       label: Text(label),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
+        disabledBackgroundColor: color.withOpacity(0.5),
+        disabledForegroundColor: Colors.white70,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         elevation: 0,
@@ -539,16 +574,133 @@ class _InventoryDetailViewState extends State<InventoryDetailView> {
             child: const Text("Entsorgen", style: TextStyle(color: Colors.white)),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              _showHardDeleteConfirmDialog(context);
+              try {
+                await _itemService.deleteItem(widget.item.id);
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Gegenstand endgültig gelöscht", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF10B981)),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fehler: $e")));
+                }
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
-            child: const Text("Hart Löschen", style: TextStyle(color: Colors.white)),
+            child: const Text("Löschen", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _unlockItem() async {
+    try {
+      await _itemService.unlockItem(widget.item.id);
+      
+      final tx = TransactionModel(
+        id: '',
+        schoolId: widget.item.schoolId,
+        itemId: widget.item.id,
+        type: 'service_lock_resolved',
+        status: 'closed',
+        initiator: 'System', // Could use actual user
+        captureMethod: 'manual',
+        details: 'Manuelle Sperre aufgehoben',
+        date: DateTime.now(),
+      );
+      await _transactionService.addTransaction(tx);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Sperre erfolgreich aufgehoben", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF10B981)),
+        );
+        setState(() {}); // refresh view
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fehler: $e")));
+      }
+    }
+  }
+
+  void _showLockItemDialog(BuildContext context) {
+    final reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text("Gerät sperren"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Bitte gib einen Grund für die Sperre an (z.B. Service notwendig):"),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                decoration: const InputDecoration(
+                  labelText: "Grund",
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Abbrechen"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (reasonController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text("Bitte einen Grund eingeben")));
+                  return;
+                }
+                Navigator.pop(ctx);
+                await _lockItem(reasonController.text.trim());
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9333EA)),
+              child: const Text("Sperren", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      }
+    );
+  }
+
+  Future<void> _lockItem(String reason) async {
+    try {
+      await _itemService.lockItem(widget.item.id, reason);
+      
+      final tx = TransactionModel(
+        id: '',
+        schoolId: widget.item.schoolId,
+        itemId: widget.item.id,
+        type: 'service_lock',
+        status: 'closed',
+        initiator: 'System', 
+        captureMethod: 'manual',
+        details: 'Gesperrt: $reason',
+        date: DateTime.now(),
+      );
+      await _transactionService.addTransaction(tx);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Gerät erfolgreich gesperrt", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF9333EA)),
+        );
+        setState(() {}); // refresh view
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fehler beim Sperren: $e")));
+      }
+    }
   }
 
   Future<void> _disposeItem() async {

@@ -119,6 +119,7 @@ class _ServiceCheckViewState extends State<ServiceCheckView> {
   String _triggerState = 'geschlossene Position';
   String _packed = 'Ja';
   String _condition = 'Einsatzbereit';
+  bool _unlockItem = true;
 
   @override
   void initState() {
@@ -275,6 +276,11 @@ class _ServiceCheckViewState extends State<ServiceCheckView> {
       // Assume 24 months interval
       widget.item.nextServiceDate = DateTime.now().add(const Duration(days: 365 * 2));
       
+      if (widget.item.isLocked && _unlockItem) {
+        widget.item.isLocked = false;
+        widget.item.lockReason = null;
+      }
+
       await ItemService().updateItem(widget.item);
 
       if (mounted) {
@@ -412,6 +418,24 @@ class _ServiceCheckViewState extends State<ServiceCheckView> {
               if (_proofType == 'pdf') _buildPdfUploadSection()
               else _buildFormSection(),
               
+              if (widget.item.isLocked) ...[
+                const SizedBox(height: 24),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: CheckboxListTile(
+                    title: const Text("Gerät nach Speichern entsperren", style: TextStyle(fontWeight: FontWeight.w500)),
+                    subtitle: const Text("Hebt die aktuelle manuelle Sperre des Gegenstands auf."),
+                    value: _unlockItem,
+                    activeColor: const Color(0xFF3B82F6),
+                    onChanged: (v) => setState(() => _unlockItem = v ?? true),
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _isSaving ? null : _save,

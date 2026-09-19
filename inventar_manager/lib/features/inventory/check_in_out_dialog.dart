@@ -8,6 +8,12 @@ class CheckInOutDialog extends StatefulWidget {
   const CheckInOutDialog({Key? key, required this.item}) : super(key: key);
 
   static void show(BuildContext context, ItemModel item) {
+    if (item.status != 'out' && (item.isLocked || item.status == 'defekt')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dieses Gerät ist gesperrt oder defekt und kann nicht ausgegeben werden!')),
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (context) => CheckInOutDialog(item: item),
@@ -21,7 +27,9 @@ class CheckInOutDialog extends StatefulWidget {
 class _CheckInOutDialogState extends State<CheckInOutDialog> {
   final _nameController = TextEditingController();
   final _detailsController = TextEditingController();
+  final _lockReasonController = TextEditingController();
   bool _isLoading = false;
+  bool _lockAfterCheckIn = false;
 
   bool get isOut => widget.item.status == 'out';
 
@@ -29,6 +37,7 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
   void dispose() {
     _nameController.dispose();
     _detailsController.dispose();
+    _lockReasonController.dispose();
     super.dispose();
   }
 
@@ -39,6 +48,13 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
     if (!checkingIn && name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bitte gib einen Namen ein!')),
+      );
+      return;
+    }
+
+    if (checkingIn && _lockAfterCheckIn && _lockReasonController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bitte gib einen Grund für die Sperre ein!')),
       );
       return;
     }
@@ -68,8 +84,28 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
         await transactionService.closeOpenCheckout(widget.item.id);
 
         widget.item.status = 'in_stock';
+        if (_lockAfterCheckIn) {
+          widget.item.isLocked = true;
+          widget.item.lockReason = _lockReasonController.text.trim();
+        }
+        
         final updateSuccess = await itemService.updateItem(widget.item);
         if (!updateSuccess) throw Exception("Gegenstand konnte nicht aktualisiert werden");
+
+        if (_lockAfterCheckIn) {
+           final lockTx = TransactionModel(
+             id: '',
+             schoolId: widget.item.schoolId,
+             itemId: widget.item.id,
+             type: 'service_lock',
+             status: 'closed',
+             initiator: 'System', 
+             captureMethod: 'manual',
+             details: 'Gesperrt: ${widget.item.lockReason}',
+             date: DateTime.now(),
+           );
+           await transactionService.addTransaction(lockTx);
+        }
       } else {
         // Checking OUT
         final tx = TransactionModel(
@@ -143,6 +179,26 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
               ),
               maxLines: 2,
             ),
+            if (isOut) const SizedBox(height: 16),
+            if (isOut)
+              SwitchListTile(
+                title: const Text("Nach Rücknahme sperren"),
+                subtitle: const Text("Z.B. wegen Service-Bedarf"),
+                value: _lockAfterCheckIn,
+                onChanged: (val) => setState(() => _lockAfterCheckIn = val),
+                activeColor: const Color(0xFF9333EA),
+              ),
+            if (isOut && _lockAfterCheckIn) const SizedBox(height: 8),
+            if (isOut && _lockAfterCheckIn)
+              TextField(
+                controller: _lockReasonController,
+                decoration: const InputDecoration(
+                  labelText: "Grund für Sperre",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_rounded),
+                ),
+                maxLines: 1,
+              ),
           ],
         ),
       ),

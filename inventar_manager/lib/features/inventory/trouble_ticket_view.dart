@@ -43,6 +43,8 @@ class _TroubleTicketViewState extends State<TroubleTicketView> {
       await TransactionService().addTransaction(transaction);
 
       _selectedItem!.status = 'defekt'; // update status to reflect it's blocked
+      _selectedItem!.isLocked = true;
+      _selectedItem!.lockReason = 'Wegen Defekt gesperrt';
       await ItemService().updateItem(_selectedItem!);
 
       if (mounted) {
