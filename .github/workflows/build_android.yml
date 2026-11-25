@@ -33,19 +33,25 @@ jobs:
           cat <<'EOF' > ~/.gradle/init.d/maven-mirror.gradle
           def mirrorUrl = "https://maven-central.storage-download.googleapis.com/maven2"
           def prependMirror = { repos ->
-              def mirror = repos.maven { url = mirrorUrl }
-              repos.remove(mirror)
-              repos.addFirst(mirror)
+              try {
+                  def mirror = repos.maven { url = mirrorUrl }
+                  repos.remove(mirror)
+                  repos.addFirst(mirror)
+              } catch (ignored) {}
           }
           gradle.settingsEvaluated { settings ->
               prependMirror(settings.pluginManagement.repositories)
+              if (!settings.dependencyResolutionManagement.repositories.isEmpty()) {
+                  prependMirror(settings.dependencyResolutionManagement.repositories)
+              }
           }
           gradle.allprojects { proj ->
               prependMirror(proj.buildscript.repositories)
-              prependMirror(proj.repositories)
               proj.afterEvaluate {
                   prependMirror(proj.buildscript.repositories)
-                  prependMirror(proj.repositories)
+                  if (!proj.repositories.isEmpty()) {
+                      prependMirror(proj.repositories)
+                  }
               }
           }
           EOF
