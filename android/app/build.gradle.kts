@@ -61,14 +61,6 @@ android {
             }
         }
     }
-
-    externalNativeBuild {
-        cmake {
-            path = file("CMakeLists.txt")
-            buildStagingDirectory =
-                file("${System.getProperty("java.io.tmpdir")}/season_planner_cxx")
-        }
-    }
 }
 
 dependencies {
