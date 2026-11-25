@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 allprojects {
     repositories {
+        maven(url = "https://maven-central.storage-download.googleapis.com/maven2")
         google()
         mavenCentral()
     }
