@@ -40,7 +40,12 @@ jobs:
               } catch (ignored) {}
           }
           gradle.settingsEvaluated { settings ->
-              prependMirror(settings.pluginManagement.repositories)
+              def pmRepos = settings.pluginManagement.repositories
+              def wasEmpty = pmRepos.isEmpty()
+              prependMirror(pmRepos)
+              if (wasEmpty) {
+                  pmRepos.gradlePluginPortal()
+              }
               if (!settings.dependencyResolutionManagement.repositories.isEmpty()) {
                   prependMirror(settings.dependencyResolutionManagement.repositories)
               }
