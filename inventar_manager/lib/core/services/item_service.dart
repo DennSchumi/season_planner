@@ -1,6 +1,7 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
 import 'package:inventar_manager/core/services/database_service.dart';
+import 'package:inventar_manager/core/services/security_privacy_service.dart';
 import 'package:inventar_manager/core/appwrite_config.dart';
 
 class ItemModel {
@@ -113,7 +114,11 @@ class ItemService extends ChangeNotifier {
   }
 
   Future<ItemModel?> addItem(ItemModel item) async {
-    final doc = await DatabaseService().createDocument(AppwriteConfig.itemsCollectionId, item.toMap());
+    final doc = await DatabaseService().createDocument(
+      AppwriteConfig.itemsCollectionId,
+      item.toMap(),
+      permissions: SecurityPrivacyService.schoolMemberUpdatePerms(item.schoolId),
+    );
     if (doc != null) {
       item.id = doc.$id;
       _items.add(item);

@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:inventar_manager/core/services/auth_service.dart';
+import 'package:inventar_manager/core/services/category_service.dart';
+import 'package:inventar_manager/core/services/flight_school_service.dart';
+import 'package:inventar_manager/core/services/item_service.dart';
+import 'package:inventar_manager/core/theme.dart';
+import 'package:inventar_manager/core/widgets/ui_primitives.dart';
 import 'package:inventar_manager/features/auth/login_view.dart';
 import 'package:inventar_manager/features/dashboard/dashboard_view.dart';
 import 'package:inventar_manager/features/inventory/inventory_list_view.dart';
 import 'package:inventar_manager/features/settings/settings_view.dart';
-import 'package:inventar_manager/core/services/flight_school_service.dart';
-import 'package:inventar_manager/core/services/category_service.dart';
-import 'package:inventar_manager/core/services/item_service.dart';
 
 class MainScaffold extends StatefulWidget {
-  const MainScaffold({Key? key}) : super(key: key);
+  const MainScaffold({super.key});
 
   @override
-  _MainScaffoldState createState() => _MainScaffoldState();
+  State<MainScaffold> createState() => _MainScaffoldState();
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
@@ -22,7 +24,6 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   void initState() {
     super.initState();
-    // Initialize DatabaseService and load schools
     _flightSchoolService.loadSchools().then((_) {
       if (_flightSchoolService.selectedSchool != null) {
         CategoryService().loadCategories(
@@ -56,23 +57,24 @@ class _MainScaffoldState extends State<MainScaffold> {
     ];
   }
 
-  void _logout() async {
+  Future<void> _logout() async {
     await AuthService().logout();
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginView()),
+        fadePageRoute(const LoginView()),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return ListenableBuilder(
       listenable: _flightSchoolService,
       builder: (context, child) {
         if (_flightSchoolService.isLoading) {
           return const Scaffold(
-            backgroundColor: Color(0xFFF8FAFC),
             body: Center(child: CircularProgressIndicator()),
           );
         }
@@ -80,14 +82,64 @@ class _MainScaffoldState extends State<MainScaffold> {
         final currentSchool = _flightSchoolService.selectedSchool;
         if (currentSchool == null) {
           return Scaffold(
-            backgroundColor: const Color(0xFFF8FAFC),
+            appBar: AppBar(
+              title: const Text('Inventar Manager'),
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.logout_rounded, color: cs.onSurfaceVariant),
+                  onPressed: _logout,
+                  tooltip: 'Abmelden',
+                ),
+              ],
+            ),
             body: Center(
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Text(
-                  _flightSchoolService.errorMessage ?? "Keine Flugschulen gefunden.",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: SoftCard(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const TintedIconBadge(
+                          icon: Icons.school_outlined,
+                          iconColor: AppTheme.dangerColor,
+                          backgroundColor: AppTheme.dangerBg,
+                          size: 48,
+                          iconSize: 24,
+                          radius: 14,
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          _flightSchoolService.errorMessage ??
+                              'Keine Flugschulen gefunden.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: cs.onSurface,
+                            fontSize: 14.5,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _flightSchoolService.loadSchools,
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: const Text('Neu laden'),
+                            ),
+                            const SizedBox(width: 10),
+                            FilledButton.icon(
+                              onPressed: _logout,
+                              icon: const Icon(Icons.logout_rounded, size: 18),
+                              label: const Text('Abmelden'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -97,41 +149,33 @@ class _MainScaffoldState extends State<MainScaffold> {
         final pages = _getPages(currentSchool.id);
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
           appBar: AppBar(
-            title: const Text(
-              "Inventarmanager",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            backgroundColor: Colors.white,
-            elevation: 0,
-            centerTitle: false,
+            title: const Text('Inventar Manager'),
             actions: [
               Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
+                  horizontal: 8,
+                  vertical: 8,
                 ),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(8.0),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: cs.outlineVariant),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: currentSchool.id,
-                      icon: const Icon(
-                        Icons.arrow_drop_down,
-                        color: Color(0xFF64748B),
+                      icon: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: cs.onSurfaceVariant,
                       ),
-                      style: const TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.w500,
+                      dropdownColor: cs.surface,
+                      style: TextStyle(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
                       ),
                       items: _flightSchoolService.schools.map((school) {
                         return DropdownMenuItem(
@@ -149,42 +193,39 @@ class _MainScaffoldState extends State<MainScaffold> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.logout, color: Color(0xFF64748B)),
+                icon: Icon(Icons.logout_rounded, color: cs.onSurfaceVariant),
                 onPressed: _logout,
-                tooltip: "Abmelden",
+                tooltip: 'Abmelden',
               ),
+              const SizedBox(width: 6),
             ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1.0),
-              child: Container(color: const Color(0xFFE2E8F0), height: 1.0),
-            ),
           ),
           body: pages[_currentIndex],
           bottomNavigationBar: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                top: BorderSide(color: cs.outlineVariant, width: 1),
               ),
             ),
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: (index) => setState(() => _currentIndex = index),
-              backgroundColor: Colors.white,
-              selectedItemColor: const Color(0xFF3B82F6),
-              unselectedItemColor: const Color(0xFF64748B),
-              elevation: 0,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.dashboard_rounded),
-                  label: "Dashboard",
+            child: NavigationBar(
+              selectedIndex: _currentIndex,
+              onDestinationSelected: (index) =>
+                  setState(() => _currentIndex = index),
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard_rounded),
+                  label: 'Dashboard',
                 ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.inventory_2_rounded),
-                  label: "Inventar",
+                NavigationDestination(
+                  icon: Icon(Icons.inventory_2_outlined),
+                  selectedIcon: Icon(Icons.inventory_2_rounded),
+                  label: 'Inventar',
                 ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.settings_rounded),
-                  label: "Einstellungen",
+                NavigationDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings_rounded),
+                  label: 'Einstellungen',
                 ),
               ],
             ),

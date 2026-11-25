@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:inventar_manager/core/services/item_service.dart';
 import 'package:inventar_manager/core/services/transaction_service.dart';
 import 'package:inventar_manager/core/services/auth_service.dart';
+import 'package:inventar_manager/core/theme.dart';
+import 'package:inventar_manager/core/widgets/ui_primitives.dart';
 
 class TroubleTicketView extends StatefulWidget {
   final ItemModel? item;
 
-  const TroubleTicketView({Key? key, this.item}) : super(key: key);
+  const TroubleTicketView({super.key, this.item});
 
   @override
   _TroubleTicketViewState createState() => _TroubleTicketViewState();
@@ -49,7 +51,9 @@ class _TroubleTicketViewState extends State<TroubleTicketView> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Trouble Ticket erstellt & Gegenstand gesperrt!')),
+          const SnackBar(
+            content: Text('Trouble Ticket erstellt & Gegenstand gesperrt!'),
+          ),
         );
         Navigator.pop(context);
       }
@@ -62,128 +66,159 @@ class _TroubleTicketViewState extends State<TroubleTicketView> {
     // Wir gehen aber davon aus, dass wir es meist aus der Detailansicht oder dem Modal öffnen.
     final List<ItemModel> availableItems = ItemService().items;
 
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text(
-          "Neues Trouble Ticket",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 18),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: const Color(0xFFE2E8F0), height: 1.0),
-        ),
-      ),
+      appBar: AppBar(title: const Text("Neues Trouble Ticket")),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Betroffener Gegenstand",
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFF334155)),
-                    ),
-                    const SizedBox(height: 12),
-                    if (widget.item != null)
-                      Row(
-                        children: [
-                          const Icon(Icons.inventory_2_outlined, color: Color(0xFF3B82F6)),
-                          const SizedBox(width: 8),
-                          Text(
-                            "${widget.item!.name} (SN: ${widget.item!.serialNumber ?? '-'})",
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      )
-                    else
-                      DropdownButtonFormField<ItemModel>(
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.all(20.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SoftCard(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Betroffener Gegenstand",
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        hint: const Text('Bitte Gegenstand auswählen'),
-                        value: _selectedItem,
-                        items: availableItems.map((i) => DropdownMenuItem(value: i, child: Text(i.name))).toList(),
-                        onChanged: (v) => setState(() => _selectedItem = v),
-                        validator: (v) => v == null ? 'Bitte wählen Sie einen Gegenstand' : null,
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFECACA)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_rounded, color: Color(0xFFEF4444), size: 32),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Achtung",
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
+                        const SizedBox(height: 12),
+                        if (widget.item != null)
+                          Row(
+                            children: [
+                              const TintedIconBadge(
+                                icon: Icons.inventory_2_outlined,
+                                size: 38,
+                                iconSize: 19,
+                                radius: 10,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  "${widget.item!.name} (SN: ${widget.item!.serialNumber ?? '-'})",
+                                  style: TextStyle(
+                                    fontSize: 15.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: cs.onSurface,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          DropdownButtonFormField<ItemModel>(
+                            decoration: const InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                            ),
+                            hint: const Text('Bitte Gegenstand auswählen'),
+                            initialValue: _selectedItem,
+                            items: availableItems
+                                .map(
+                                  (i) => DropdownMenuItem(
+                                    value: i,
+                                    child: Text(i.name),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) => setState(() => _selectedItem = v),
+                            validator: (v) => v == null
+                                ? 'Bitte wählen Sie einen Gegenstand'
+                                : null,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Durch Erstellen dieses Tickets wird der Gegenstand (${widget.item?.name ?? _selectedItem?.name ?? ''}) automatisch für die Ausgabe gesperrt.",
-                            style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 13),
-                          ),
-                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTheme.dangerColor.withValues(alpha: 0.16)
+                          : AppTheme.dangerBg,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: AppTheme.dangerColor.withValues(alpha: 0.25),
                       ),
                     ),
-                  ],
-                ),
+                    child: Row(
+                      children: [
+                        const TintedIconBadge(
+                          icon: Icons.warning_rounded,
+                          iconColor: AppTheme.dangerColor,
+                          backgroundColor: Colors.white,
+                          size: 40,
+                          iconSize: 22,
+                          radius: 12,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Achtung",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.dangerColor,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Durch Erstellen dieses Tickets wird der Gegenstand (${widget.item?.name ?? _selectedItem?.name ?? ''}) automatisch für die Ausgabe gesperrt.",
+                                style: TextStyle(
+                                  color: isDark
+                                      ? cs.onSurface
+                                      : AppTheme.dangerColor,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  SoftCard(
+                    padding: const EdgeInsets.all(18),
+                    child: TextFormField(
+                      controller: _descController,
+                      maxLines: 5,
+                      decoration: const InputDecoration(
+                        labelText: "Fehlerbeschreibung",
+                        alignLabelWithHint: true,
+                      ),
+                      validator: (value) =>
+                          value!.isEmpty ? "Bitte beschreibe das Problem" : null,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 52,
+                    child: FilledButton.icon(
+                      onPressed: _save,
+                      icon: const Icon(Icons.report_problem_rounded),
+                      label: const Text("Ticket erstellen & Sperren"),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.dangerColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              
-              TextFormField(
-                controller: _descController,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  labelText: "Fehlerbeschreibung",
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                validator: (value) => value!.isEmpty ? "Bitte beschreibe das Problem" : null,
-              ),
-              
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: _save,
-                icon: const Icon(Icons.report_problem_rounded),
-                label: const Text("Ticket erstellen & Sperren", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

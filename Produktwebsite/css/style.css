@@ -1,0 +1,2296 @@
+/* =========================================================
+   Tragegurt — Produktwebsite
+   Tokens 1:1 aus season_planner/lib/core/theme.dart &
+   inventar_manager/lib/core/theme.dart übernommen
+   ========================================================= */
+
+/* ---------- Lokale Inter-Schriftarten (0 externe Requests) ---------- */
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fonts/Inter-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fonts/Inter-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fonts/Inter-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fonts/Inter-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fonts/Inter-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --color-primary: #5B3DF5;
+  --color-primary-dark: #4428D0;
+  --color-primary-tint: #EEEAFE;
+  --color-accent: #8B74FA;
+
+  --color-bg: #EEEEEC;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F7F7F5;
+  --color-surface-well: #E7E7E3;
+  --color-text: #11131A;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9AA3B2;
+  --color-border: #E4E4E0;
+
+  --color-success: #12805C;
+  --color-success-bg: #E3F6ED;
+  --color-warning: #B45309;
+  --color-warning-bg: #FEF3C7;
+  --color-danger: #D92D20;
+  --color-danger-bg: #FEE4E2;
+  --color-info: #1570EF;
+  --color-info-bg: #EFF6FF;
+  --color-swap: #0F766E;
+  --color-swap-bg: #E4FBF7;
+  --color-stage1: #7C3AED;
+  --color-stage1-bg: #F3EAFE;
+  --color-ticket: #EA580C;
+  --color-ticket-bg: #FFEDD5;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 1px rgba(16, 24, 40, .04);
+  --shadow-md: 0 12px 28px -8px rgba(16, 24, 40, .14);
+  --shadow-lg: 0 30px 60px -16px rgba(16, 24, 40, .22);
+  --shadow-glow: 0 18px 40px -12px rgba(91, 61, 245, .35);
+
+  --container: 1152px;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --dur-fast: .22s;
+  --dur: .5s;
+  --dur-slow: .8s;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0E0F14;
+    --color-surface: #171821;
+    --color-surface-2: #1F212D;
+    --color-surface-well: #12131B;
+    --color-text: #F3F4F6;
+    --color-text-secondary: #9CA3AF;
+    --color-text-tertiary: #6B7280;
+    --color-border: #282B3A;
+
+    --color-primary: #8C78FF;
+    --color-primary-dark: #5B3DF5;
+    --color-primary-tint: #271F4F;
+
+    --color-success: #34D399;
+    --color-success-bg: rgba(18, 128, 92, .22);
+    --color-warning: #FBBF24;
+    --color-warning-bg: rgba(180, 83, 9, .24);
+    --color-danger: #F87171;
+    --color-danger-bg: rgba(217, 45, 32, .22);
+    --color-info: #60A5FA;
+    --color-info-bg: rgba(21, 112, 239, .22);
+    --color-swap: #2DD4BF;
+    --color-swap-bg: rgba(15, 118, 110, .24);
+    --color-stage1: #A78BFA;
+    --color-stage1-bg: rgba(124, 58, 237, .24);
+    --color-ticket: #FB923C;
+    --color-ticket-bg: rgba(234, 88, 12, .22);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3);
+    --shadow-md: 0 12px 28px -8px rgba(0, 0, 0, .45);
+    --shadow-lg: 0 30px 60px -16px rgba(0, 0, 0, .55);
+    --shadow-glow: 0 18px 44px -12px rgba(140, 120, 255, .4);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #0E0F14;
+  --color-surface: #171821;
+  --color-surface-2: #1F212D;
+  --color-surface-well: #12131B;
+  --color-text: #F3F4F6;
+  --color-text-secondary: #9CA3AF;
+  --color-text-tertiary: #6B7280;
+  --color-border: #282B3A;
+
+  --color-primary: #8C78FF;
+  --color-primary-dark: #5B3DF5;
+  --color-primary-tint: #271F4F;
+
+  --color-success: #34D399;
+  --color-success-bg: rgba(18, 128, 92, .22);
+  --color-warning: #FBBF24;
+  --color-warning-bg: rgba(180, 83, 9, .24);
+  --color-danger: #F87171;
+  --color-danger-bg: rgba(217, 45, 32, .22);
+  --color-info: #60A5FA;
+  --color-info-bg: rgba(21, 112, 239, .22);
+  --color-swap: #2DD4BF;
+  --color-swap-bg: rgba(15, 118, 110, .24);
+  --color-stage1: #A78BFA;
+  --color-stage1-bg: rgba(124, 58, 237, .24);
+  --color-ticket: #FB923C;
+  --color-ticket-bg: rgba(234, 88, 12, .22);
+}
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+section {
+  position: relative;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ---------- Typography ---------- */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+h1,
+.h1 {
+  font-size: clamp(2.4rem, 5vw + 1rem, 4.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+h2,
+.h2 {
+  font-size: clamp(1.9rem, 2.6vw + 1rem, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+h3,
+.h3 {
+  font-size: clamp(1.15rem, .8vw + 1rem, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.lead {
+  font-size: clamp(1.05rem, .4vw + 1rem, 1.25rem);
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  max-width: 48ch;
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 26px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15.5px;
+  border: 1px solid transparent;
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: translateY(1px) scale(.99);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-glow);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+  box-shadow: 0 22px 46px -14px rgba(91, 61, 245, .46);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-dark);
+}
+
+.btn-ghost:hover {
+  transform: translateY(-1px);
+}
+
+.btn-sm {
+  height: 42px;
+  padding: 0 20px;
+  font-size: 14.5px;
+}
+
+.btn[disabled],
+.btn.is-disabled {
+  opacity: .55;
+  pointer-events: none;
+}
+
+.btn-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.icon-16 {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.icon-18 {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+/* ---------- Nav ---------- */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 16px 0;
+  transition: background-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), padding var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  border-bottom: 1px solid transparent;
+}
+
+.nav.is-scrolled {
+  padding: 10px 0;
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.nav .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -.01em;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  flex: none;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.nav-links a {
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.nav-links a:hover {
+  color: var(--color-text);
+}
+
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-toggle {
+  display: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.mobile-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  padding: 100px 28px 40px;
+  gap: 8px;
+  transform: translateY(-8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.mobile-panel.is-open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.mobile-panel a {
+  font-size: 22px;
+  font-weight: 700;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mobile-panel .btn {
+  margin-top: 20px;
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  padding: 164px 0 104px;
+  overflow: clip;
+  position: relative;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 820px;
+  background:
+    radial-gradient(640px 420px at 18% 10%, color-mix(in srgb, var(--color-primary) 22%, transparent), transparent 70%),
+    radial-gradient(560px 420px at 86% 28%, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent 72%);
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero .container {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-inner {
+  max-width: 780px;
+}
+
+.hero h1 {
+  margin-top: 20px;
+}
+
+.hero .lead {
+  margin-top: 22px;
+  max-width: 54ch;
+}
+
+.hero .btn-row {
+  margin-top: 36px;
+}
+
+.hero-note {
+  margin-top: 18px;
+  font-size: 13.5px;
+  color: var(--color-text-tertiary);
+}
+
+.hero-apps {
+  margin-top: 76px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.hero-app-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+
+.hero-app-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.hero-app-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  flex: none;
+}
+
+.hero-app-card strong {
+  font-size: 15px;
+  display: block;
+}
+
+.hero-app-card span {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.hero-app-status {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-live {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-soon {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+/* ---------- Section shells ---------- */
+.section {
+  padding: 120px 0;
+}
+
+.section-tight {
+  padding: 84px 0;
+}
+
+.section-alt {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-head {
+  max-width: 680px;
+  margin-bottom: 56px;
+}
+
+.section-head .h2 {
+  margin-top: 16px;
+}
+
+.section-head .lead {
+  margin-top: 16px;
+}
+
+.section-head.center {
+  margin-inline: auto;
+  text-align: center;
+}
+
+.product-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.product-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  flex: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Feature rows ---------- */
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 64px;
+  align-items: center;
+  padding: 64px 0;
+}
+
+.feature-copy,
+.feature-visual {
+  min-width: 0;
+}
+
+.feature+.feature {
+  border-top: 1px solid var(--color-border);
+}
+
+.feature.reverse .feature-copy {
+  order: 2;
+}
+
+.feature.reverse .feature-visual {
+  order: 1;
+}
+
+.feature-copy .tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-bottom: 18px;
+}
+
+.feature-copy h3 {
+  font-size: clamp(1.38rem, 1.2vw + 1rem, 1.85rem);
+  line-height: 1.18;
+}
+
+.feature-copy p {
+  margin-top: 14px;
+  color: var(--color-text-secondary);
+  max-width: 44ch;
+}
+
+.feature-list {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.feature-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.45;
+}
+
+.feature-list svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+
+.feature-visual {
+  position: relative;
+}
+
+.mock-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.section-alt .mock-card {
+  background: var(--color-bg);
+}
+
+.mock-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .mock-card::after {
+  box-shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mock-card::after {
+    box-shadow: none;
+  }
+}
+
+.mock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.mock-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.mock-title-strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -.01em;
+}
+
+.mock-sub {
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+}
+
+/* Chips / StatusPills (identisch zu AppTheme StatusPill) */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  flex: none;
+  white-space: nowrap;
+}
+
+.chip-ok {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.chip-warn {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.chip-info {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.chip-primary {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+.chip-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.chip-swap {
+  background: var(--color-swap-bg);
+  color: var(--color-swap);
+}
+
+.chip-stage1 {
+  background: var(--color-stage1-bg);
+  color: var(--color-stage1);
+}
+
+.chip-ticket {
+  background: var(--color-ticket-bg);
+  color: var(--color-ticket);
+}
+
+/* List / row mock */
+.mock-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.mock-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: 14px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  opacity: 0;
+  transform: translateX(-14px);
+  transition: opacity .5s var(--ease), transform .5s var(--ease);
+  transition-delay: calc(var(--i, 0) * 65ms);
+}
+
+.section-alt .mock-row {
+  background: var(--color-surface);
+}
+
+.in-view .mock-row {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.mock-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mock-row-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.mock-row-sub {
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Season Planner Mock 1: Echter Monatskalender + Event-Balken + ICS ---------- */
+.mock-cal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.mock-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mock-cal-month {
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -.015em;
+}
+
+.mock-cal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 8px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.mock-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+}
+
+.mock-seg span {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 7px;
+  color: var(--color-text-secondary);
+}
+
+.mock-seg span.active {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.mock-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.mock-cal-grid .dow {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  padding-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.mock-day {
+  min-width: 0;
+  min-height: 54px;
+  border-radius: 10px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  padding: 4px 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  opacity: 0;
+  transform: scale(.9);
+  transition: opacity .35s var(--ease), transform .35s var(--ease);
+  transition-delay: calc(var(--i, 0) * 16ms);
+}
+
+.in-view .mock-day {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.mock-day.is-past {
+  opacity: .48;
+}
+
+.in-view .mock-day.is-past {
+  opacity: .48;
+}
+
+.mock-day.is-today {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.mock-day-num {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mock-day.is-today .mock-day-num {
+  color: var(--color-primary);
+}
+
+.mock-avail-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+.mock-bar-pill {
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 2px 4px;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mock-bar-ev {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.mock-bar-ev-soft {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+.mock-bar-tandem {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.mock-bar-tandem-open {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.mock-ics-bar {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  font-size: 11.5px;
+}
+
+.mock-ics-bar code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ---------- Season Planner Mock 2: DateBadgeBox + Tandem & Tausch ---------- */
+.mock-date-badge {
+  width: 44px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  line-height: 1.05;
+}
+
+.mock-date-badge.is-primary {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+.mock-date-badge.is-ok {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.mock-date-badge.is-swap {
+  background: var(--color-swap-bg);
+  color: var(--color-swap);
+}
+
+.mock-date-badge strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.mock-date-badge span {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.mock-demand-box {
+  padding: 12px 13px;
+  border-radius: 15px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  margin-bottom: 10px;
+}
+
+.mock-demand-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mock-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+  margin-top: 9px;
+  overflow: hidden;
+}
+
+.mock-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  width: 0%;
+  transition: width .85s var(--ease);
+}
+
+.in-view .mock-progress-fill {
+  width: var(--w, 66%);
+}
+
+/* ---------- Season Planner Mock 3: 2:3 Qualifikations-Kacheln + ÖAeC Audit-PDF ---------- */
+.mock-doc-well {
+  background: var(--color-surface-well);
+  border-radius: 18px;
+  padding: 13px;
+  border: 1px solid var(--color-border);
+}
+
+.mock-doc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.mock-doc-tile {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .45s var(--ease), transform .45s var(--ease);
+  transition-delay: calc(var(--i, 0) * 75ms);
+}
+
+.in-view .mock-doc-tile {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mock-doc-head {
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.mock-doc-head.ok {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.mock-doc-head.warn {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.mock-doc-head.primary {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+.mock-doc-body {
+  padding: 9px 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mock-doc-name {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.mock-doc-meta {
+  font-size: 9.5px;
+  color: var(--color-text-secondary);
+}
+
+.mock-audit-banner {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 10%, var(--color-surface)), var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mock-audit-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  flex: none;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* ---------- Season Planner Mock 4: Event-Checkliste + Stundenzettel ---------- */
+.mock-ts-table {
+  margin-top: 10px;
+  border-radius: 13px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.mock-ts-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1.3fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  font-size: 11.5px;
+}
+
+.mock-ts-row+.mock-ts-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.mock-ts-row strong {
+  font-weight: 700;
+}
+
+.mock-ts-row span {
+  color: var(--color-text-secondary);
+}
+
+.mock-ts-sum {
+  font-weight: 800;
+  color: var(--color-success);
+  font-variant-numeric: tabular-nums;
+}
+
+.mock-sig-box {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.mock-sig-svg {
+  width: 84px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Season Planner Mock 5: Echter Mobile Startscreen + Floating Nav ---------- */
+.mock-phone {
+  width: 282px;
+  margin-inline: auto;
+  border-radius: 36px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
+}
+
+.mock-phone-screen {
+  background: var(--color-bg);
+  border-radius: 25px;
+  padding: 13px 11px 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mock-school-chips {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.mock-school-chip {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.mock-school-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.mock-hero-event {
+  border-radius: 18px;
+  padding: 13px;
+  background: linear-gradient(135deg, #5B3DF5, #4428D0);
+  color: #fff;
+  box-shadow: 0 10px 22px -8px rgba(91, 61, 245, .5);
+  margin-bottom: 11px;
+}
+
+.mock-hero-event-kicker {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .82;
+}
+
+.mock-hero-event-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+.mock-hero-event-meta {
+  font-size: 10.5px;
+  opacity: .88;
+  margin-top: 4px;
+}
+
+.mock-hero-event-pills {
+  display: flex;
+  gap: 5px;
+  margin-top: 9px;
+  flex-wrap: wrap;
+}
+
+.mock-hero-event-pills span {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .18);
+}
+
+.mock-phone-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin: 8px 2px 6px;
+}
+
+.mock-phone-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+.mock-phone-nav-pill {
+  margin-top: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 7px 6px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: var(--shadow-md);
+}
+
+.mock-phone-nav-pill .nav-item {
+  position: relative;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+}
+
+.mock-phone-nav-pill .nav-item.active {
+  color: var(--color-primary);
+}
+
+.mock-phone-nav-pill svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mock-dot-blue {
+  position: absolute;
+  top: 0;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-info);
+}
+
+.mock-badge-red {
+  position: absolute;
+  top: -3px;
+  right: 1px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Inventar Manager Mock 1: Echte Kategorie-Karten mit farbigen Materialnummer-Tiles ---------- */
+.mock-inv-cat {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: 14px 15px;
+}
+
+.mock-inv-cat+.mock-inv-cat {
+  margin-top: 12px;
+}
+
+.mock-inv-cat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mock-inv-cat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex: none;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mock-inv-cat-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mock-inv-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.mock-inv-tile {
+  min-width: 40px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+  opacity: 0;
+  transform: scale(.82);
+  transition: opacity .35s var(--ease), transform .35s var(--ease);
+  transition-delay: calc(var(--i, 0) * 35ms);
+}
+
+.in-view .mock-inv-tile {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.mock-inv-tile.in-stock {
+  background: #12805C;
+}
+
+.mock-inv-tile.out {
+  background: #D92D20;
+}
+
+.mock-inv-tile.locked {
+  background: #7C3AED;
+}
+
+.mock-inv-tile.ticket {
+  color: #11131A;
+  text-shadow: 0 0 5px #fff, 0 0 3px #fff;
+  background: repeating-linear-gradient(-45deg,
+      #D92D20 0px,
+      #D92D20 6px,
+      #FFFFFF 6px,
+      #FFFFFF 12px);
+  border: 1px solid rgba(217, 45, 32, .45);
+}
+
+.mock-inv-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mock-inv-legend {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.mock-inv-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mock-inv-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* ---------- Inventar Manager Mock 2: QR-Scan + Check-in/out ---------- */
+.mock-qr-split {
+  display: grid;
+  grid-template-columns: 124px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.mock-qr {
+  width: 124px;
+  height: 124px;
+  border-radius: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mock-qr svg {
+  width: 56px;
+  height: 56px;
+  color: var(--color-text-tertiary);
+}
+
+.mock-qr .corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--color-primary);
+}
+
+.mock-qr .tl {
+  top: 8px;
+  left: 8px;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 6px 0 0 0;
+}
+
+.mock-qr .tr {
+  top: 8px;
+  right: 8px;
+  border-left: none;
+  border-bottom: none;
+  border-radius: 0 6px 0 0;
+}
+
+.mock-qr .bl {
+  bottom: 8px;
+  left: 8px;
+  border-right: none;
+  border-top: none;
+  border-radius: 0 0 0 6px;
+}
+
+.mock-qr .br {
+  bottom: 8px;
+  right: 8px;
+  border-left: none;
+  border-top: none;
+  border-radius: 0 0 6px 0;
+}
+
+.mock-qr .scan-line {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 2px;
+  background: var(--color-primary);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--color-primary) 70%, transparent);
+  animation: scanline 2.6s ease-in-out infinite;
+}
+
+@keyframes scanline {
+
+  0%,
+  100% {
+    top: 14px;
+  }
+
+  50% {
+    top: 106px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mock-qr .scan-line {
+    animation: none;
+    top: 60px;
+  }
+}
+
+.mock-action-pills {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.mock-action-btn {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 11px;
+  border-radius: 10px;
+}
+
+.mock-action-btn.primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.mock-action-btn.subtle {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+/* ---------- Inventar Manager Mock 3: Echte To-Do-Karten + Service-Protokoll ---------- */
+.mock-todo {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 12px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  opacity: 0;
+  transform: translateX(-14px);
+  transition: opacity .45s var(--ease), transform .45s var(--ease);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+.in-view .mock-todo {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.mock-todo.is-ticket {
+  background: color-mix(in srgb, var(--color-ticket-bg) 72%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-ticket) 26%, transparent);
+}
+
+.mock-todo.is-warn {
+  background: color-mix(in srgb, var(--color-warning-bg) 72%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-warning) 26%, transparent);
+}
+
+.mock-todo.is-ok {
+  background: color-mix(in srgb, var(--color-success-bg) 72%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-success) 26%, transparent);
+}
+
+.mock-todo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mock-todo-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mock-todo.is-ticket .mock-todo-icon {
+  background: var(--color-ticket-bg);
+  color: var(--color-ticket);
+}
+
+.mock-todo.is-warn .mock-todo-icon {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.mock-todo.is-ok .mock-todo-icon {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.mock-todo-sub-accent {
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.mock-todo.is-ticket .mock-todo-sub-accent {
+  color: var(--color-ticket);
+}
+
+.mock-todo.is-warn .mock-todo-sub-accent {
+  color: var(--color-warning);
+}
+
+.mock-todo.is-ok .mock-todo-sub-accent {
+  color: var(--color-success);
+}
+
+/* ---------- Plattform / Vertrauen Grid ---------- */
+.trust-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.trust-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow-sm);
+}
+
+.trust-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.trust-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.trust-card h3 {
+  font-size: 15.5px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.trust-card p {
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* ---------- Product intro bands ---------- */
+.product-band {
+  padding-top: 24px;
+}
+
+.product-tagline {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  margin-top: 14px;
+  max-width: 50ch;
+}
+
+/* ---------- CTA band ---------- */
+.cta-band {
+  margin: 0 auto;
+  max-width: var(--container);
+  padding: 72px 56px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #fff;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(420px 220px at 85% -10%, rgba(255, 255, 255, .25), transparent 70%);
+}
+
+.cta-band>* {
+  position: relative;
+}
+
+.cta-band h2 {
+  color: #fff;
+}
+
+.cta-band p {
+  color: rgba(255, 255, 255, .84);
+  margin-top: 14px;
+  max-width: 50ch;
+  margin-inline: auto;
+}
+
+.cta-band .btn-row {
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.cta-band .btn-primary {
+  background: #fff;
+  color: #4428D0;
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, .3);
+}
+
+.cta-band .btn-primary:hover {
+  background: #fff;
+  opacity: .94;
+}
+
+.cta-band .btn-secondary {
+  border-color: rgba(255, 255, 255, .4);
+  color: #fff;
+}
+
+.cta-band .btn-secondary:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
+/* ---------- Footer ---------- */
+.footer {
+  padding: 72px 0 36px;
+  border-top: 1px solid var(--color-border);
+}
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 48px;
+  flex-wrap: wrap;
+  padding-bottom: 48px;
+}
+
+.footer-brand .brand {
+  margin-bottom: 12px;
+}
+
+.footer-brand p {
+  color: var(--color-text-secondary);
+  max-width: 36ch;
+  font-size: 14.5px;
+}
+
+.footer-cols {
+  display: flex;
+  gap: 64px;
+  flex-wrap: wrap;
+}
+
+.footer-col h4 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--color-text-tertiary);
+  margin-bottom: 16px;
+}
+
+.footer-col a {
+  display: block;
+  font-size: 14.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 11px;
+  transition: color var(--dur-fast);
+}
+
+.footer-col a:hover {
+  color: var(--color-primary);
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 28px;
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
+.footer-bottom .legal-links {
+  display: flex;
+  gap: 20px;
+}
+
+.footer-bottom .legal-links a:hover {
+  color: var(--color-primary);
+}
+
+/* ---------- Reveal utility ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease);
+}
+
+.reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-scale {
+  transform: translateY(0) scale(.94);
+}
+
+.reveal-scale.in-view {
+  transform: scale(1);
+}
+
+.reveal-left {
+  transform: translateX(-32px);
+}
+
+.reveal-left.in-view {
+  transform: translateX(0);
+}
+
+.reveal-right {
+  transform: translateX(32px);
+}
+
+.reveal-right.in-view {
+  transform: translateX(0);
+}
+
+.stagger>* {
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .reveal,
+  .reveal-scale,
+  .reveal-left,
+  .reveal-right,
+  .mock-day,
+  .mock-row,
+  .mock-doc-tile,
+  .mock-inv-tile,
+  .mock-todo,
+  .mock-progress-fill {
+    transition-duration: .01ms !important;
+    transform: none !important;
+  }
+}
+
+/* ---------- Legal pages ---------- */
+.legal-page {
+  padding: 146px 0 110px;
+}
+
+.legal-page .container {
+  max-width: 780px;
+}
+
+.legal-page h1 {
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+}
+
+.legal-page .updated {
+  margin-top: 10px;
+}
+
+.legal-page h2 {
+  font-size: 1.25rem;
+  margin-top: 44px;
+  margin-bottom: 12px;
+}
+
+.legal-page h2:first-of-type {
+  margin-top: 38px;
+}
+
+.legal-page h3 {
+  font-size: 1.02rem;
+  margin-top: 22px;
+  margin-bottom: 8px;
+}
+
+.legal-page p,
+.legal-page li {
+  color: var(--color-text-secondary);
+  font-size: 15.5px;
+  line-height: 1.65;
+}
+
+.legal-page p {
+  margin-top: 12px;
+}
+
+.legal-page ul {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+.legal-page strong {
+  color: var(--color-text);
+}
+
+.legal-page code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: var(--color-text);
+}
+
+.legal-page a.inline {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-box {
+  margin-top: 20px;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.legal-box p:first-child {
+  margin-top: 0;
+}
+
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.legal-table tr:last-child td {
+  border-bottom: none;
+}
+
+.legal-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--color-text-tertiary);
+  background: var(--color-surface-2);
+}
+
+.legal-table td {
+  color: var(--color-text-secondary);
+}
+
+.placeholder {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: .95em;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--color-primary);
+  font-size: 14.5px;
+}
+
+.back-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 980px) {
+  .trust-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 920px) {
+
+  .nav-links,
+  .nav-cta {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: flex;
+  }
+
+  .hero {
+    padding: 136px 0 76px;
+  }
+
+  .hero-apps {
+    grid-template-columns: 1fr;
+  }
+
+  .feature {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding: 48px 0;
+  }
+
+  .feature.reverse .feature-copy,
+  .feature.reverse .feature-visual {
+    order: initial;
+  }
+
+  .section {
+    padding: 88px 0;
+  }
+
+  .cta-band {
+    padding: 52px 28px;
+    border-radius: var(--radius-lg);
+  }
+
+  .footer-top {
+    flex-direction: column;
+    gap: 32px;
+  }
+}
+
+@media (max-width: 560px) {
+  .container {
+    padding-inline: 20px;
+  }
+
+  .btn {
+    height: 48px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+
+  .mock-phone {
+    width: 100%;
+    max-width: 282px;
+  }
+
+  .mock-doc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mock-qr-split {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .mock-action-pills {
+    justify-content: center;
+  }
+
+  .trust-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mock-cal-grid {
+    gap: 3px;
+  }
+
+  .mock-day {
+    min-height: 44px;
+    padding: 3px;
+  }
+
+  .mock-bar-pill {
+    font-size: 7.5px;
+  }
+
+  .mock-audit-banner {
+    flex-wrap: wrap;
+  }
+
+  .mock-ics-bar {
+    flex-wrap: wrap;
+  }
+
+  .legal-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  h1,
+  .h1 {
+    font-size: clamp(2rem, 9vw, 2.6rem);
+  }
+}

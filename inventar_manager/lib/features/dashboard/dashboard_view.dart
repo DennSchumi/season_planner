@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:inventar_manager/core/services/category_service.dart';
 import 'package:inventar_manager/core/services/item_service.dart';
-import 'package:inventar_manager/core/services/flight_school_service.dart';
+import 'package:inventar_manager/core/theme.dart';
+import 'package:inventar_manager/core/widgets/ui_primitives.dart';
 import 'package:inventar_manager/features/inventory/inventory_detail_view.dart';
 import 'package:inventar_manager/features/inventory/check_in_out_dialog.dart';
 import 'package:inventar_manager/features/inventory/batch_movement_dialog.dart';
@@ -12,7 +13,7 @@ import 'package:inventar_manager/core/services/transaction_service.dart';
 enum TodoType { ok, dueSoon, pastDue, ticket, locked }
 
 class DashboardView extends StatefulWidget {
-  const DashboardView({Key? key}) : super(key: key);
+  const DashboardView({super.key});
 
   @override
   _DashboardViewState createState() => _DashboardViewState();
@@ -64,6 +65,8 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool isDesktop = MediaQuery.of(context).size.width > 800;
 
     return ListenableBuilder(
@@ -82,25 +85,28 @@ class _DashboardViewState extends State<DashboardView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   "Kategorien",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF334155),
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 Row(
                   children: [
                     TextButton.icon(
                       onPressed: () {
-                        ItemSwapDialog.show(context, _categoryService, _itemService);
+                        ItemSwapDialog.show(
+                          context,
+                          _categoryService,
+                          _itemService,
+                        );
                       },
-                      icon: const Icon(Icons.swap_horiz, color: Color(0xFF64748B)),
-                      label: const Text("Tauschen", style: TextStyle(color: Color(0xFF64748B))),
+                      icon: const Icon(Icons.swap_horiz_rounded, size: 19),
+                      label: const Text("Tauschen"),
                     ),
                     PopupMenuButton<String>(
-                      icon: const Icon(Icons.filter_list, color: Color(0xFF64748B)),
+                      icon: Icon(
+                        Icons.filter_list_rounded,
+                        color: cs.onSurfaceVariant,
+                      ),
                       tooltip: "Kategorien filtern",
                       onSelected: _toggleCategoryVisibility,
                       itemBuilder: (context) {
@@ -119,110 +125,128 @@ class _DashboardViewState extends State<DashboardView> {
               ],
             ),
             const SizedBox(height: 12),
-            if (_categoryService.errorMessage != null || _itemService.errorMessage != null)
+            if (_categoryService.errorMessage != null ||
+                _itemService.errorMessage != null)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFFECACA)),
+                  color: isDark
+                      ? AppTheme.dangerColor.withValues(alpha: 0.16)
+                      : AppTheme.dangerBg,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Color(0xFFEF4444)),
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: AppTheme.dangerColor,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _categoryService.errorMessage ?? _itemService.errorMessage ?? "",
-                        style: const TextStyle(color: Color(0xFF991B1B)),
+                        _categoryService.errorMessage ??
+                            _itemService.errorMessage ??
+                            "",
+                        style: const TextStyle(color: AppTheme.dangerColor),
                       ),
                     ),
                   ],
                 ),
               ),
-            categories.isEmpty 
-              ? Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.inbox, size: 48, color: Color(0xFF94A3B8)),
-                      const SizedBox(height: 16),
-                      const Text(
-                        "Keine Kategorien vorhanden",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        "Lege deine erste Kategorie in den Einstellungen an, um Gegenst\u00e4nde hinzuzuf\u00fcgen.",
-                        style: TextStyle(color: Color(0xFF64748B)),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          // Navigate to Settings
-                          Navigator.pushReplacementNamed(context, '/settings'); // Or how do we navigate to settings? The app uses a bottom nav bar.
-                          // The main scaffold uses index. Let's just instruct them for now or use the nav if possible.
-                        },
-                        icon: const Icon(Icons.settings),
-                        label: const Text("Zu den Einstellungen"),
-                      )
-                    ],
-                  ),
-                )
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    // Make cards larger by reducing columns
-                    int crossAxisCount = constraints.maxWidth > 1400 ? 3 : constraints.maxWidth > 900 ? 2 : 1;
-                    double spacing = 16.0;
-                    double width = (constraints.maxWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
-                    
-                    return Wrap(
-                      spacing: spacing,
-                      runSpacing: spacing,
-                      children: categories
-                          .where((c) => !_hiddenCategories.contains(c.name))
-                          .map((c) {
-                            final catItems = items.where((i) => i.categoryId == c.id && i.status != 'disposed').toList();
-                            return SizedBox(
-                              width: width - 0.1,
-                              child: _buildCategoryCard(c, catItems),
+            categories.isEmpty
+                ? SoftCard(
+                    padding: const EdgeInsets.all(28),
+                    child: Column(
+                      children: [
+                        const TintedIconBadge(
+                          icon: Icons.inbox_outlined,
+                          size: 52,
+                          iconSize: 26,
+                          radius: 16,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Keine Kategorien vorhanden",
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "Lege deine erste Kategorie in den Einstellungen an, um Gegenstände hinzuzufügen.",
+                          style: TextStyle(color: cs.onSurfaceVariant),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: () {
+                            Navigator.pushReplacementNamed(
+                              context,
+                              '/settings',
                             );
-                          })
-                          .toList(),
-                    );
-                  },
-                ),
+                          },
+                          icon: const Icon(Icons.settings_rounded, size: 18),
+                          label: const Text("Zu den Einstellungen"),
+                        ),
+                      ],
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Make cards larger by reducing columns
+                      int crossAxisCount = constraints.maxWidth > 1400
+                          ? 3
+                          : constraints.maxWidth > 900
+                          ? 2
+                          : 1;
+                      double spacing = 16.0;
+                      double width =
+                          (constraints.maxWidth -
+                              (spacing * (crossAxisCount - 1))) /
+                          crossAxisCount;
+
+                      return Wrap(
+                        spacing: spacing,
+                        runSpacing: spacing,
+                        children: categories
+                            .where((c) => !_hiddenCategories.contains(c.name))
+                            .map((c) {
+                              final catItems = items
+                                  .where(
+                                    (i) =>
+                                        i.categoryId == c.id &&
+                                        i.status != 'disposed',
+                                  )
+                                  .toList();
+                              return SizedBox(
+                                width: width - 0.1,
+                                child: _buildCategoryCard(c, catItems),
+                              );
+                            })
+                            .toList(),
+                      );
+                    },
+                  ),
           ],
         );
 
-        Widget sidebarContent = Container(
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0F9FF),
-            borderRadius: BorderRadius.circular(16.0),
-            border: Border.all(color: const Color(0xFFBAE6FD)),
-          ),
+        Widget sidebarContent = SoftCard(
+          padding: const EdgeInsets.all(18.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.checklist_rtl_rounded, color: Color(0xFF0369A1)),
-                  SizedBox(width: 8),
+                  const TintedIconBadge(
+                    icon: Icons.checklist_rtl_rounded,
+                    size: 36,
+                    iconSize: 19,
+                    radius: 10,
+                  ),
+                  const SizedBox(width: 10),
                   Text(
                     "To-Do Liste",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0369A1),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
@@ -232,75 +256,97 @@ class _DashboardViewState extends State<DashboardView> {
                 builder: (context) {
                   final now = DateTime.now();
                   final dueThreshold = now.add(const Duration(days: 7));
-                  
+
                   final dueItems = items.where((i) {
-                    if (i.status == 'disposed' || i.nextServiceDate == null) return false;
+                    if (i.status == 'disposed' || i.nextServiceDate == null) {
+                      return false;
+                    }
                     return i.nextServiceDate!.isBefore(dueThreshold);
                   }).toList();
-                  
-                  final ticketWidgets = _openTickets
-                      .where((ticket) => items.any((i) => i.id == ticket.itemId))
-                      .map((ticket) {
-                    final item = items.firstWhere((i) => i.id == ticket.itemId);
-                    final itemName = "${item.name} (${item.materialNumber})";
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: InkWell(
-                        onTap: () async {
-                          await Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => InventoryDetailView(item: item),
-                          ));
-                          _loadOpenTickets();
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: _buildTodoCard(
-                          itemName,
-                          "Troubleticket offen",
-                          Icons.build_rounded,
-                          TodoType.ticket,
-                        ),
-                      ),
-                    );
-                  }).toList();
 
-                  final ticketItemIds = _openTickets.map((t) => t.itemId).toSet();
+                  final ticketWidgets = _openTickets
+                      .where(
+                        (ticket) => items.any((i) => i.id == ticket.itemId),
+                      )
+                      .map((ticket) {
+                        final item = items.firstWhere(
+                          (i) => i.id == ticket.itemId,
+                        );
+                        final itemName =
+                            "${item.name} (${item.materialNumber})";
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: InkWell(
+                            onTap: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      InventoryDetailView(item: item),
+                                ),
+                              );
+                              _loadOpenTickets();
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: _buildTodoCard(
+                              itemName,
+                              "Troubleticket offen",
+                              Icons.build_rounded,
+                              TodoType.ticket,
+                            ),
+                          ),
+                        );
+                      })
+                      .toList();
+
+                  final ticketItemIds = _openTickets
+                      .map((t) => t.itemId)
+                      .toSet();
 
                   final lockedItemsWidgets = items
                       .where((i) => i.isLocked && !ticketItemIds.contains(i.id))
                       .map((item) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => InventoryDetailView(item: item),
-                          ));
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: _buildTodoCard(
-                          "${item.name} (${item.materialNumber})",
-                          item.lockReason ?? "Manuell gesperrt",
-                          Icons.lock_rounded,
-                          TodoType.locked,
-                        ),
-                      ),
-                    );
-                  }).toList();
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      InventoryDetailView(item: item),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: _buildTodoCard(
+                              "${item.name} (${item.materialNumber})",
+                              item.lockReason ?? "Manuell gesperrt",
+                              Icons.lock_rounded,
+                              TodoType.locked,
+                            ),
+                          ),
+                        );
+                      })
+                      .toList();
 
                   final dueServiceWidgets = dueItems.map((item) {
                     final isPastDue = item.nextServiceDate!.isBefore(now);
-                    final daysRemaining = item.nextServiceDate!.difference(now).inDays;
-                    final subtitle = isPastDue 
+                    final daysRemaining = item.nextServiceDate!
+                        .difference(now)
+                        .inDays;
+                    final subtitle = isPastDue
                         ? "Überfällig seit ${-daysRemaining} Tagen"
                         : "Fällig in $daysRemaining Tagen";
-                        
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: InkWell(
                         onTap: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => InventoryDetailView(item: item),
-                          ));
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  InventoryDetailView(item: item),
+                            ),
+                          );
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: _buildTodoCard(
@@ -312,8 +358,10 @@ class _DashboardViewState extends State<DashboardView> {
                       ),
                     );
                   }).toList();
-                  
-                  if (ticketWidgets.isEmpty && dueServiceWidgets.isEmpty && lockedItemsWidgets.isEmpty) {
+
+                  if (ticketWidgets.isEmpty &&
+                      dueServiceWidgets.isEmpty &&
+                      lockedItemsWidgets.isEmpty) {
                     return _buildTodoCard(
                       "Keine Services oder Tickets",
                       "Alles in Ordnung",
@@ -321,7 +369,7 @@ class _DashboardViewState extends State<DashboardView> {
                       TodoType.ok,
                     );
                   }
-                  
+
                   return Column(
                     children: [
                       ...lockedItemsWidgets,
@@ -336,20 +384,18 @@ class _DashboardViewState extends State<DashboardView> {
         );
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "\u00dcbersicht",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
+              Text(
+                "Übersicht",
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 24),
-              
+              const SizedBox(height: 20),
+
               if (isDesktop)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,36 +421,40 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Widget _buildCategoryCard(CategoryModel category, List<ItemModel> items) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     int outCount = items.where((i) => i.status == "out").length;
     int inStockCount = items.length - outCount;
 
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
+    return SoftCard(
+      padding: const EdgeInsets.all(18.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              category.buildIcon(color: const Color(0xFF3B82F6), size: 24),
-              const SizedBox(width: 8),
+              Container(
+                width: 38,
+                height: 38,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppTheme.primaryColor.withValues(alpha: 0.18)
+                      : AppTheme.primaryTint,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: category.buildIcon(
+                  color: isDark ? AppTheme.darkPrimary : AppTheme.primaryColor,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   category.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF0F172A),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
                     fontSize: 16,
                   ),
                   maxLines: 1,
@@ -412,7 +462,10 @@ class _DashboardViewState extends State<DashboardView> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.library_add_check, color: Color(0xFF64748B)),
+                icon: Icon(
+                  Icons.library_add_check_outlined,
+                  color: cs.onSurfaceVariant,
+                ),
                 tooltip: "Sammelbewegung",
                 onPressed: () {
                   BatchMovementDialog.show(context, category, items);
@@ -420,40 +473,47 @@ class _DashboardViewState extends State<DashboardView> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 7,
+            runSpacing: 7,
             children: items.map((item) {
               final isOut = item.status == "out";
-              final hasOpenTicket = _openTickets.any((t) => t.itemId == item.id);
+              final hasOpenTicket = _openTickets.any(
+                (t) => t.itemId == item.id,
+              );
               return InkWell(
                 onTap: () => CheckInOutDialog.show(context, item),
                 onLongPress: () {
-                  Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => InventoryDetailView(item: item),
-                  ));
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => InventoryDetailView(item: item),
+                    ),
+                  );
                 },
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(10),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: hasOpenTicket
                       ? BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 2,
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 3,
                               offset: const Offset(0, 1),
-                            )
+                            ),
                           ],
                           gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment(0.4, 0.4),
                             tileMode: TileMode.repeated,
                             colors: [
-                              Color(0xFFEF4444),
-                              Color(0xFFEF4444),
+                              AppTheme.dangerColor,
+                              AppTheme.dangerColor,
                               Colors.white,
                               Colors.white,
                             ],
@@ -461,26 +521,30 @@ class _DashboardViewState extends State<DashboardView> {
                           ),
                         )
                       : BoxDecoration(
-                          color: item.isLocked 
-                              ? const Color(0xFF9333EA) // Purple for locked
-                              : (isOut ? const Color(0xFFEF4444) : const Color(0xFF10B981)),
-                          borderRadius: BorderRadius.circular(4),
+                          color: item.isLocked
+                              ? AppTheme.stage1Color
+                              : (isOut
+                                    ? AppTheme.dangerColor
+                                    : AppTheme.successColor),
+                          borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 2,
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 3,
                               offset: const Offset(0, 1),
-                            )
-                          ]
+                            ),
+                          ],
                         ),
                   child: Text(
                     item.materialNumber.isNotEmpty ? item.materialNumber : '-',
                     style: TextStyle(
                       color: hasOpenTicket ? Colors.black : Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      shadows: hasOpenTicket 
-                          ? [const Shadow(color: Colors.white, blurRadius: 4)] // Make text readable on stripes
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      shadows: hasOpenTicket
+                          ? [
+                              const Shadow(color: Colors.white, blurRadius: 4),
+                            ]
                           : null,
                     ),
                   ),
@@ -488,12 +552,20 @@ class _DashboardViewState extends State<DashboardView> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Lager: $inStockCount", style: const TextStyle(fontSize: 12, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
-              Text("Out: $outCount", style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
+              StatusPill(
+                label: "Lager: $inStockCount",
+                foreground: AppTheme.successColor,
+                background: AppTheme.successBg,
+              ),
+              StatusPill(
+                label: "Out: $outCount",
+                foreground: AppTheme.dangerColor,
+                background: AppTheme.dangerBg,
+              ),
             ],
           ),
         ],
@@ -501,69 +573,64 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  Widget _buildTodoCard(String title, String subtitle, IconData icon, TodoType type) {
-    Color bgColor, borderColor, iconBgColor, iconColor, titleColor, subtitleColor;
-    
+  Widget _buildTodoCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    TodoType type,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    Color accent;
+    Color lightBg;
+
     switch (type) {
       case TodoType.pastDue:
-        bgColor = const Color(0xFFFEF2F2);
-        borderColor = const Color(0xFFFECACA);
-        iconBgColor = const Color(0xFFFEE2E2);
-        iconColor = const Color(0xFFEF4444);
-        titleColor = const Color(0xFF991B1B);
-        subtitleColor = const Color(0xFFB91C1C);
+        accent = AppTheme.dangerColor;
+        lightBg = AppTheme.dangerBg;
         break;
       case TodoType.dueSoon:
-        bgColor = const Color(0xFFFEFCE8);
-        borderColor = const Color(0xFFFEF08A);
-        iconBgColor = const Color(0xFFFEF9C3);
-        iconColor = const Color(0xFFEAB308);
-        titleColor = const Color(0xFF854D0E);
-        subtitleColor = const Color(0xFFA16207);
+        accent = AppTheme.warningColor;
+        lightBg = AppTheme.warningBg;
         break;
       case TodoType.ticket:
-        bgColor = const Color(0xFFFFF7ED);
-        borderColor = const Color(0xFFFED7AA);
-        iconBgColor = const Color(0xFFFFEDD5);
-        iconColor = const Color(0xFFF97316);
-        titleColor = const Color(0xFF9A3412);
-        subtitleColor = const Color(0xFFC2410C);
+        accent = const Color(0xFFEA580C);
+        lightBg = const Color(0xFFFFEDD5);
         break;
       case TodoType.locked:
-        bgColor = const Color(0xFFFAF5FF);
-        borderColor = const Color(0xFFE9D5FF);
-        iconBgColor = const Color(0xFFF3E8FF);
-        iconColor = const Color(0xFFA855F7);
-        titleColor = const Color(0xFF6B21A8);
-        subtitleColor = const Color(0xFF7E22CE);
+        accent = AppTheme.stage1Color;
+        lightBg = AppTheme.stage1Bg;
         break;
       case TodoType.ok:
-      default:
-        bgColor = Colors.white;
-        borderColor = const Color(0xFFE0F2FE);
-        iconBgColor = const Color(0xFFE0F2FE);
-        iconColor = const Color(0xFF0284C7);
-        titleColor = const Color(0xFF0F172A);
-        subtitleColor = const Color(0xFF64748B);
+        accent = AppTheme.successColor;
+        lightBg = AppTheme.successBg;
+        break;
     }
+
+    final bgColor = isDark
+        ? accent.withValues(alpha: 0.14)
+        : lightBg.withValues(alpha: 0.55);
+    final fgAccent = isDark
+        ? Color.lerp(accent, Colors.white, 0.35) ?? accent
+        : accent;
 
     return Container(
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(14.0),
+        border: Border.all(color: accent.withValues(alpha: isDark ? 0.3 : 0.2)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconBgColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
+          TintedIconBadge(
+            icon: icon,
+            iconColor: accent,
+            backgroundColor: lightBg,
+            size: 36,
+            iconSize: 18,
+            radius: 10,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -573,17 +640,18 @@ class _DashboardViewState extends State<DashboardView> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: titleColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    color: cs.onSurface,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: subtitleColor,
+                    color: type == TodoType.ok ? cs.onSurfaceVariant : fgAccent,
                     fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],

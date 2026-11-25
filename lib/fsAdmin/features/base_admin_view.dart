@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:season_planner/core/widgets/ux_components.dart';
 import 'package:season_planner/fsAdmin/data/models/flight_school_model_flight_school_view.dart';
 import 'package:season_planner/fsAdmin/features/main_scaffold/main_admin_scaffold_view.dart';
-import 'package:season_planner/fsAdmin/services/flight_school_service.dart';
 import 'package:season_planner/fsAdmin/flight_school_provider.dart';
+import 'package:season_planner/fsAdmin/services/flight_school_service.dart';
+import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 import 'package:season_planner/user/user_provider.dart';
-import '../../user/data/models/flight_school_model_user_view.dart';
 
+/// Öffnet direkt den Admin-Bereich mit der zuletzt verwendeten Flugschule
+/// (oder der ersten verfügbaren Admin-Flugschule, falls noch keine gespeichert ist).
+/// Zwischen mehreren Flugschulen kann jederzeit direkt über den Umschalter
+/// in der Admin-AppBar gewechselt werden.
 class BaseAdminView extends StatefulWidget {
   const BaseAdminView({super.key});
 
@@ -15,37 +20,55 @@ class BaseAdminView extends StatefulWidget {
 }
 
 class _BaseAdminViewState extends State<BaseAdminView> {
-  bool _autoNavigated = false;
-  bool _isBusy = false;
+  bool _started = false;
+  String? _errorMessage;
 
-  Future<void> _selectFlightSchool(BuildContext context, String id) async {
-    final flightSchoolProvider =
-    Provider.of<FlightSchoolProvider>(context, listen: false);
+  Future<void> _openInitialFlightSchool(
+    List<FlightSchoolUserView> adminFlightSchools,
+  ) async {
+    final flightSchoolProvider = Provider.of<FlightSchoolProvider>(
+      context,
+      listen: false,
+    );
 
-
-    setState(() {
-      _isBusy = true;
-    });
-    final FlightSchoolModelFlightSchoolView? fs = await FlightSchoolService().getFlightSchool(id);
-
+    final lastId = await flightSchoolProvider.loadLastAdminFlightSchoolId();
     if (!mounted) return;
 
-    if (fs == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("FlightSchool could´nt be loaded.")),
+    final target = adminFlightSchools.firstWhere(
+      (fs) => fs.id == lastId,
+      orElse: () => adminFlightSchools.first,
+    );
+
+    // Wenn dieselbe Flugschule bereits geladen im Provider liegt, sofort öffnen
+    // und im Hintergrund frisch aktualisieren.
+    if (flightSchoolProvider.flightSchool?.id == target.id) {
+      flightSchoolProvider.reloadFlightSchoolInBackground(
+        FlightSchoolService().getFlightSchool,
+      );
+      Navigator.pushReplacement(
+        context,
+        fadePageRoute(const MainAdminScaffoldView()),
       );
       return;
     }
 
+    final FlightSchoolModelFlightSchoolView? fs =
+        await FlightSchoolService().getFlightSchool(target.id);
+
+    if (!mounted) return;
+
+    if (fs == null) {
+      setState(() {
+        _errorMessage =
+            'Flugschule „${target.displayName}“ konnte nicht geladen werden.';
+      });
+      return;
+    }
+
     flightSchoolProvider.setFlightSchool(fs);
-
-
-    setState(() {
-      _isBusy = false;
-    });
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => MainAdminScaffoldView()),
+      fadePageRoute(const MainAdminScaffoldView()),
     );
   }
 
@@ -54,61 +77,60 @@ class _BaseAdminViewState extends State<BaseAdminView> {
     final user = Provider.of<UserProvider>(context).user;
 
     if (user == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const ParagliderLoadingView(
+        message: 'Flugschule wird geladen…',
+      );
     }
 
     final List<FlightSchoolUserView> adminFlightSchools = user.flightSchools
         .where((fs) => fs.adminUserIds.contains(user.id))
         .toList();
 
-    if (adminFlightSchools.length == 1 && !_autoNavigated) {
-      _autoNavigated = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _selectFlightSchool(context, adminFlightSchools.first.id);
-      });
-
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (adminFlightSchools.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Admin-Bereich')),
+        body: EmptyStateView(
+          icon: Icons.admin_panel_settings_outlined,
+          title: 'Kein Admin-Zugang vorhanden',
+          subtitle:
+              'Du bist aktuell bei keiner Flugschule als Administrator eingetragen.',
+          actionLabel: 'Zurück',
+          actionIcon: Icons.arrow_back,
+          onAction: () => Navigator.maybePop(context),
+        ),
+      );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Select Flight School")),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: adminFlightSchools.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final fs = adminFlightSchools[index];
-
-                return Card(
-                  elevation: 2,
-                  child: ListTile(
-                    title: Text(fs.displayName),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _isBusy ? null : () => _selectFlightSchool(context, fs.id),
-                  ),
-                );
-              },
-            ),
-
-            if (_isBusy)
-              Positioned.fill(
-                child: AbsorbPointer(
-                  absorbing: true,
-                  child: Container(
-                    color: Colors.black.withOpacity(0.2),
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                ),
-              ),
-          ],
+    if (_errorMessage != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Admin-Bereich')),
+        body: EmptyStateView(
+          icon: Icons.cloud_off_outlined,
+          title: 'Laden fehlgeschlagen',
+          subtitle: _errorMessage!,
+          actionLabel: 'Erneut versuchen',
+          actionIcon: Icons.refresh,
+          onAction: () {
+            setState(() {
+              _errorMessage = null;
+              _started = false;
+            });
+          },
         ),
-      ),
-    );
+      );
+    }
 
+    if (!_started) {
+      _started = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _openInitialFlightSchool(adminFlightSchools);
+        }
+      });
+    }
+
+    return const ParagliderLoadingView(
+      message: 'Flugschule wird geladen…',
+    );
   }
 }

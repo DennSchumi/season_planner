@@ -1,12 +1,10 @@
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-
+import 'package:season_planner/fsAdmin/data/models/flight_school_model_flight_school_view.dart';
 import 'package:season_planner/fsAdmin/flight_school_provider.dart';
 import 'package:season_planner/fsAdmin/services/flight_school_service.dart';
-import 'package:season_planner/fsAdmin/data/models/flight_school_model_flight_school_view.dart';
 
 class ManageFlightSchoolAdminInfoView extends StatefulWidget {
   const ManageFlightSchoolAdminInfoView({super.key});
@@ -52,18 +50,17 @@ class _ManageFlightSchoolAdminInfoViewState
   }
 
   void _loadFromFs(FlightSchoolModelFlightSchoolView fs) {
-    _initialShortName = fs.displayShortName.trim().isNotEmpty
-        ? fs.displayShortName.trim()
-        : fs.displayName.trim();
+    _initialShortName =
+        fs.displayShortName.trim().isNotEmpty
+            ? fs.displayShortName.trim()
+            : fs.displayName.trim();
 
     _initialLogoLink = fs.logoLink;
     _initialLogoId = fs.logoId;
-
     _shortNameCtrl.text = _initialShortName;
 
     _pickedLogoBytes = null;
     _pickedLogoFilename = null;
-
     _editShortName = false;
   }
 
@@ -79,9 +76,7 @@ class _ManageFlightSchoolAdminInfoViewState
 
   void _toggleShortName() {
     if (_busy) return;
-
     setState(() => _editShortName = !_editShortName);
-
     if (_editShortName) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -98,15 +93,12 @@ class _ManageFlightSchoolAdminInfoViewState
 
   Future<void> _pickLogo() async {
     if (_busy) return;
-
     final XFile? file = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 90,
     );
     if (file == null) return;
-
     final bytes = await file.readAsBytes();
-
     setState(() {
       _pickedLogoBytes = bytes;
       _pickedLogoFilename = file.name;
@@ -123,32 +115,34 @@ class _ManageFlightSchoolAdminInfoViewState
     required Uint8List? pickedBytes,
   }) {
     return ClipOval(
-      child: pickedBytes != null
-          ? Image.memory(
-        pickedBytes,
-        width: 150,
-        height: 150,
-        fit: BoxFit.cover,
-      )
-          : (logoUrl.isNotEmpty
-          ? Image.network(
-        logoUrl,
-        width: 150,
-        height: 150,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Image.asset(
-          "lib/assets/images/fsBaseImage.webp",
-          width: 150,
-          height: 150,
-          fit: BoxFit.cover,
-        ),
-      )
-          : Image.asset(
-        "lib/assets/images/fsBaseImage.webp",
-        width: 150,
-        height: 150,
-        fit: BoxFit.cover,
-      )),
+      child:
+          pickedBytes != null
+              ? Image.memory(
+                pickedBytes,
+                width: 150,
+                height: 150,
+                fit: BoxFit.cover,
+              )
+              : (logoUrl.isNotEmpty
+                  ? Image.network(
+                    logoUrl,
+                    width: 150,
+                    height: 150,
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (_, __, ___) => Image.asset(
+                          "lib/assets/images/fsBaseImage.webp",
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        ),
+                  )
+                  : Image.asset(
+                    "lib/assets/images/fsBaseImage.webp",
+                    width: 150,
+                    height: 150,
+                    fit: BoxFit.cover,
+                  )),
     );
   }
 
@@ -156,16 +150,14 @@ class _ManageFlightSchoolAdminInfoViewState
     required String label,
     required bool isEditing,
     required VoidCallback onToggle,
-    String? hint,
   }) {
     return InputDecoration(
       labelText: label,
-      hintText: hint,
-      border: const OutlineInputBorder(),
-      filled: !isEditing,
-      fillColor: !isEditing ? Colors.black12.withOpacity(0.04) : null,
+      filled: true,
+      fillColor:
+          !isEditing ? Colors.black12.withValues(alpha: 0.04) : Colors.white,
       suffixIcon: IconButton(
-        tooltip: isEditing ? "Lock" : "Edit",
+        tooltip: isEditing ? "Sperren" : "Bearbeiten",
         onPressed: _busy ? null : onToggle,
         icon: Icon(isEditing ? Icons.lock_open : Icons.edit),
       ),
@@ -174,29 +166,25 @@ class _ManageFlightSchoolAdminInfoViewState
 
   Future<void> _save(FlightSchoolModelFlightSchoolView fs) async {
     final shortName = _shortNameCtrl.text.trim();
-
     if (shortName.isEmpty) {
-      _toast("Short name is required");
+      _toast("Kurzname darf nicht leer sein.");
       return;
     }
     if (shortName.length > 25) {
-      _toast("Short name must be max 25 characters");
+      _toast("Kurzname darf maximal 25 Zeichen lang sein.");
       return;
     }
 
     setState(() => _busy = true);
-
     try {
-      /*// 1) ShortName speichern (falls geändert)
       if (_shortNameDirty) {
         final ok = await _fsService.updateFlightSchoolShortName(
           flightSchoolId: fs.id,
           shortName: shortName,
         );
-        if (!ok) throw Exception("Failed to update short name");
+        if (!ok) throw Exception("Kurzname konnte nicht gespeichert werden.");
       }
 
-      // 2) Logo hochladen (falls neu gewählt)
       if (_pickedLogoBytes != null) {
         final upload = await _fsService.uploadFlightSchoolLogo(
           flightSchoolId: fs.id,
@@ -204,36 +192,28 @@ class _ManageFlightSchoolAdminInfoViewState
           filename: _pickedLogoFilename ?? "logo.jpg",
           oldLogoFileId: _initialLogoId.isEmpty ? null : _initialLogoId,
         );
-
-        // Erwartung: upload liefert neues logoLink + logoId zurück
-        // (wenn deine Methode anders ist, sag kurz)
         if (upload == null) {
-          throw Exception("Failed to upload logo");
+          throw Exception("Logo-Upload fehlgeschlagen.");
         }
-
         final ok = await _fsService.updateFlightSchoolLogo(
           flightSchoolId: fs.id,
           logoLink: upload.logoLink,
           logoId: upload.logoId,
         );
-        if (!ok) throw Exception("Failed to save logo");
+        if (!ok)
+          throw Exception("Logo-Referenz konnte nicht gespeichert werden.");
       }
 
-      // 3) FS neu laden (kein optimistic UI)
       final refreshed = await _fsService.getFlightSchool(fs.id);
-      if (refreshed == null) {
-        _toast("Saved, but reload failed");
-        return;
-      }
-
       if (!mounted) return;
-      context.read<FlightSchoolProvider>().setFlightSchool(refreshed);
-
-      setState(() => _loadFromFs(refreshed));
-      FocusScope.of(context).unfocus();*/
-      _toast("Saved");
+      if (refreshed != null) {
+        context.read<FlightSchoolProvider>().setFlightSchool(refreshed);
+        setState(() => _loadFromFs(refreshed));
+      }
+      FocusScope.of(context).unfocus();
+      _toast("Stammdaten erfolgreich gespeichert.");
     } catch (e) {
-      _toast("Save failed: $e");
+      _toast("Speichern fehlgeschlagen: $e");
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -242,7 +222,6 @@ class _ManageFlightSchoolAdminInfoViewState
   @override
   Widget build(BuildContext context) {
     final fs = context.watch<FlightSchoolProvider>().flightSchool;
-
     if (fs == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -250,7 +229,7 @@ class _ManageFlightSchoolAdminInfoViewState
     final remaining = 25 - _shortNameCtrl.text.trim().length;
 
     return Scaffold(
-      appBar: AppBar(title: Text("Edit ${fs.displayName}")),
+      appBar: AppBar(title: Text("${fs.displayName} bearbeiten")),
       body: SafeArea(
         child: Column(
           children: [
@@ -260,11 +239,10 @@ class _ManageFlightSchoolAdminInfoViewState
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
                 children: [
                   const Text(
-                    "Edit short name and logo. Fields are locked by default.",
+                    "Bearbeite Kurzname und Logo deiner Flugschule. Felder sind standardmäßig gesperrt.",
                     style: TextStyle(color: Colors.black54),
                   ),
                   const SizedBox(height: 16),
-
                   Center(
                     child: _roundLogo(
                       logoUrl: _initialLogoLink,
@@ -272,17 +250,18 @@ class _ManageFlightSchoolAdminInfoViewState
                     ),
                   ),
                   const SizedBox(height: 10),
-
                   Center(
                     child: OutlinedButton.icon(
                       onPressed: _busy ? null : _pickLogo,
                       icon: const Icon(Icons.photo_library_outlined),
-                      label: Text(_pickedLogoBytes == null ? "Change logo" : "Change again"),
+                      label: Text(
+                        _pickedLogoBytes == null
+                            ? "Logo ändern"
+                            : "Anderes Logo wählen",
+                      ),
                     ),
                   ),
-
                   const SizedBox(height: 18),
-
                   TextField(
                     controller: _shortNameCtrl,
                     focusNode: _shortNameFocus,
@@ -290,18 +269,18 @@ class _ManageFlightSchoolAdminInfoViewState
                     showCursor: !_busy && _editShortName,
                     maxLength: 25,
                     decoration: _dec(
-                      label: "Short name (max 25)",
+                      label: "Kurzname (max. 25 Zeichen)",
                       isEditing: _editShortName,
                       onToggle: _toggleShortName,
                     ).copyWith(
-                      counterText: _editShortName ? "Remaining: $remaining" : null,
+                      counterText:
+                          _editShortName ? "Verbleibend: $remaining" : null,
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
                 ],
               ),
             ),
-
             SafeArea(
               top: false,
               child: Padding(
@@ -310,15 +289,17 @@ class _ManageFlightSchoolAdminInfoViewState
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: (!_isDirty || _busy) ? null : () => _discard(fs),
-                        child: const Text("Discard"),
+                        onPressed:
+                            (!_isDirty || _busy) ? null : () => _discard(fs),
+                        child: const Text("Verwerfen"),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: FilledButton(
-                        onPressed: (!_isDirty || _busy) ? null : () => _save(fs),
-                        child: const Text("Save"),
+                        onPressed:
+                            (!_isDirty || _busy) ? null : () => _save(fs),
+                        child: const Text("Speichern"),
                       ),
                     ),
                   ],

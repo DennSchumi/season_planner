@@ -1,0 +1,10 @@
+{
+  "name": "push_notifier",
+  "version": "1.0.0",
+  "description": "Appwrite Function zum Versand von Push-Benachrichtigungen gemäß Nutzer-Präferenzen (notif_prefs)",
+  "main": "src/main.js",
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^17.0.0"
+  }
+}

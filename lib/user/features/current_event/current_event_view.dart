@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
+import 'package:season_planner/core/widgets/event_role_docs_section.dart';
+import 'package:season_planner/core/widgets/user_avatar.dart';
+import 'package:season_planner/core/widgets/ux_components.dart';
 import 'package:season_planner/user/user_provider.dart';
 
 class CurrentEventView extends StatefulWidget {
@@ -35,55 +38,54 @@ class _CurrentEventViewState extends State<CurrentEventView> {
 
     final events = user.events
         .where(
-          (e) =>
-      (e.assignmentStatus == EventUserStatusEnum.accepted_user ||
-          e.assignmentStatus ==
-              EventUserStatusEnum.accepted_flight_school) &&
-          e.endTime.isAfter(now),
-    )
+          (e) => e.isOwnBindingAssignment && e.endTime.isAfter(now),
+        )
         .toList()
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
-    return events.isEmpty
-        ? Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Current Event',
-          style: TextStyle(fontSize: 22),
+    if (events.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: const Text('Aktuelles Event'),
+          actions: _buildAppBarActions(),
         ),
-        actions: [_buildStatusIcon()],
-      ),
-      body: const Center(
-        child: Text(
-          'No current or upcoming events.',
-          style: TextStyle(fontSize: 16),
+        body: const EmptyStateView(
+          icon: Icons.access_time_outlined,
+          title: 'Kein aktives oder kommendes Event',
+          subtitle:
+              'Sobald du für ein Event fest eingeteilt oder bestätigt wurdest, erscheint es hier mit Countdown, Checkliste und Arbeitsanweisungen.',
         ),
-      ),
-    )
-        : PageView.builder(
+      );
+    }
+
+    return PageView.builder(
       itemCount: events.length,
       itemBuilder: (context, index) {
         final event = events[index];
         final isOngoing =
             event.startTime.isBefore(now) && event.endTime.isAfter(now);
         final daysUntil = event.startTime.difference(now).inDays;
-        final fs = user.flightSchools
-            .firstWhere((fs) => fs.id == event.flightSchoolId);
-        final fsName =
-            fs.displayShortName ?? fs.displayName ?? 'Flight School';
-        final fsLogo = fs.logoLink ?? '';
+        final fs = user.flightSchools.firstWhere(
+          (fs) => fs.id == event.flightSchoolId,
+        );
+        final effectiveStage = fs.effectiveStageFor(event);
+        final fsName = fs.displayShortName.isNotEmpty
+            ? fs.displayShortName
+            : fs.displayName;
+        final fsLogo = fs.logoLink;
 
         return Scaffold(
           appBar: AppBar(
             automaticallyImplyLeading: false,
             title: Text(
               isOngoing
-                  ? 'Ongoing Event'
-                  : 'Upcoming Event in $daysUntil day${daysUntil == 1 ? '' : 's'}',
-              style: const TextStyle(fontSize: 20),
+                  ? 'Laufendes Event'
+                  : daysUntil == 0
+                      ? 'Event startet heute'
+                      : 'Nächstes Event in $daysUntil ${daysUntil == 1 ? "Tag" : "Tagen"}',
             ),
-            actions: [_buildStatusIcon()],
+            actions: _buildAppBarActions(),
           ),
           body: Padding(
             padding: const EdgeInsets.all(16),
@@ -96,90 +98,116 @@ class _CurrentEventViewState extends State<CurrentEventView> {
                 ),
                 const SizedBox(height: 12),
                 _SectionCard(
-                  title: 'General',
+                  title: 'Allgemein',
                   children: [
-                    _InfoRow(
-                      icon: Icons.badge_outlined,
-                      label: 'Identifier',
-                      value: event.identifier,
-                    ),
+                    if (event.identifier.isNotEmpty)
+                      _InfoRow(
+                        icon: Icons.badge_outlined,
+                        label: 'Kennung',
+                        value: event.identifier,
+                      ),
                     _InfoRow(
                       icon: Icons.schedule,
-                      label: 'Start',
+                      label: 'Beginn',
                       value: _formatDate(event.startTime),
                     ),
                     _InfoRow(
                       icon: Icons.schedule_outlined,
-                      label: 'End',
+                      label: 'Ende',
                       value: _formatDate(event.endTime),
                     ),
                     _InfoRow(
                       icon: Icons.flag_outlined,
-                      label: 'Event status',
+                      label: 'Status',
                       value: event.status.label,
                     ),
                     _InfoRow(
                       icon: Icons.account_circle_outlined,
-                      label: 'Your role',
-                      value: event.role.label,
+                      label: 'Deine Rolle',
+                      value: event.roleLabel,
                     ),
                     if (event.location.isNotEmpty)
                       _InfoRow(
                         icon: Icons.place_outlined,
-                        label: 'Location',
+                        label: 'Ort',
                         value: event.location,
                       ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                _SectionCard(
-                  title: 'Team',
-                  children: event.team.isEmpty
-                      ? const [
-                    Text(
-                      'No team members assigned.',
-                      style: TextStyle(color: Colors.black54),
-                    ),
-                  ]
-                      : event.team
-                      .map(
-                        (t) => Padding(
-                      padding:
-                      const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.person_outline,
-                              size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              t.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            t.role,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                      .toList(),
+                EventRoleDocsSection(
+                  event: event,
+                  flightSchool: fs,
+                  userId: user.id,
                 ),
+                // Team-Besetzung der anderen Positionen nur in Planungsstufe 2 & 3 sichtbar
+                if (effectiveStage >= 2) ...[
+                  const SizedBox(height: 12),
+                  _SectionCard(
+                    title: 'Team',
+                    children: event.team.isEmpty
+                        ? [
+                            Text(
+                              'Keine Teammitglieder eingeteilt.',
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                            ),
+                          ]
+                        : event.team
+                            .map(
+                              (t) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  children: [
+                                    UserAvatar(
+                                      avatarUrl: t.avatarUrl,
+                                      name: t.isSlot ? '' : t.name,
+                                      radius: 15,
+                                      isOpenSlot: t.isSlot,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        t.isSlot
+                                            ? 'Offene Stelle'
+                                            : (t.name.isEmpty
+                                                ? 'Teammitglied'
+                                                : t.name),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      t.roleLabel,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 _SectionCard(
-                  title: 'Notes',
+                  title: 'Notizen',
                   children: [
                     event.notes.isEmpty
                         ? const Text(
-                      'No notes.',
-                      style: TextStyle(color: Colors.black54),
-                    )
+                            'Keine Notizen vorhanden.',
+                            style: TextStyle(color: Colors.black54),
+                          )
                         : Text(event.notes),
                   ],
                 ),
@@ -192,40 +220,23 @@ class _CurrentEventViewState extends State<CurrentEventView> {
     );
   }
 
-  Widget _buildStatusIcon() {
-    return IconButton(
-      icon: widget.isLoading
-          ? const Icon(Icons.sync, color: Colors.blue)
-          : widget.hasConnection
-          ? const Icon(Icons.check_circle, color: Colors.green)
-          : const Icon(Icons.error, color: Colors.red),
-      onPressed: () {
-        if (widget.lastUpdated == null) return;
-
-        final time =
-            '${widget.lastUpdated!.hour.toString().padLeft(2, '0')}:${widget.lastUpdated!.minute.toString().padLeft(2, '0')}';
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.hasConnection
-                  ? 'Last update: $time'
-                  : 'Offline · Last update: $time',
-            ),
-          ),
-        );
-      },
-    );
+  List<Widget> _buildAppBarActions() {
+    return [
+      const AppModeSwitchChip(isAdminMode: false),
+      const AppBarActionDivider(),
+      ConnectionStatusAction(
+        isLoading: widget.isLoading,
+        hasConnection: widget.hasConnection,
+        lastUpdated: widget.lastUpdated,
+      ),
+    ];
   }
 
   static String _formatDate(DateTime date) {
-    return '${date.day}.${date.month}.${date.year} '
+    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year} '
         '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }
-
-
-
 
 class _HeaderCard extends StatelessWidget {
   final String fsName;
@@ -241,13 +252,10 @@ class _HeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
     return Card(
       elevation: 0,
       color: cs.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(
@@ -258,16 +266,15 @@ class _HeaderCard extends StatelessWidget {
               child: fsLogoLink.isEmpty
                   ? Icon(Icons.flight, color: cs.onSurfaceVariant)
                   : ClipOval(
-                child: Image.network(
-                  fsLogoLink,
-                  width: 44,
-                  height: 44,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      Icon(Icons.flight,
-                          color: cs.onSurfaceVariant),
-                ),
-              ),
+                      child: Image.network(
+                        fsLogoLink,
+                        width: 44,
+                        height: 44,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Icon(Icons.flight, color: cs.onSurfaceVariant),
+                      ),
+                    ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -275,27 +282,33 @@ class _HeaderCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    fsName,
+                    event.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      fontSize: 15.5,
+                      fontSize: 16,
                       color: cs.onSurface,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  Text(
+                    fsName,
+                    style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
                     runSpacing: 6,
                     children: [
                       _Pill(
                         icon: Icons.assignment_ind_outlined,
-                        text:event.assignmentStatus.label(context: EventUserStatusLabelContext.userView)
+                        text: event.assignmentStatus.label(
+                          context: EventUserStatusLabelContext.userView,
                         ),
+                      ),
                       _Pill(
                         icon: Icons.badge_outlined,
-                        text: event.role.label,
+                        text: event.roleLabel,
                       ),
                     ],
                   ),
@@ -313,15 +326,11 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _SectionCard({
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -364,7 +373,6 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -373,7 +381,7 @@ class _InfoRow extends StatelessWidget {
           Icon(icon, size: 18, color: cs.onSurfaceVariant),
           const SizedBox(width: 10),
           SizedBox(
-            width: 110,
+            width: 105,
             child: Text(
               label,
               style: TextStyle(
@@ -403,9 +411,8 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: cs.outlineVariant),
@@ -418,7 +425,7 @@ class _Pill extends StatelessWidget {
           Text(
             text,
             style: TextStyle(
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: cs.onSurface,
             ),

@@ -1,49 +1,97 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:inventar_manager/core/services/auth_service.dart';
 import 'package:inventar_manager/core/services/database_service.dart';
+import 'package:inventar_manager/core/services/web_url_helper.dart';
+import 'package:inventar_manager/core/theme.dart';
 import 'package:inventar_manager/features/auth/login_view.dart';
+import 'package:inventar_manager/features/auth/reset_password_view.dart';
 import 'package:inventar_manager/features/dashboard/main_scaffold.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize services
+
   AuthService().init();
   DatabaseService().init();
-  
+
   runApp(const InventarManagerApp());
 }
 
-class InventarManagerApp extends StatelessWidget {
+class InventarManagerApp extends StatefulWidget {
   const InventarManagerApp({super.key});
 
   @override
+  State<InventarManagerApp> createState() => _InventarManagerAppState();
+}
+
+class _InventarManagerAppState extends State<InventarManagerApp> {
+  late final Future<bool> _sessionCheckFuture;
+  PasswordRecoveryParams? _recoveryParams;
+
+  @override
+  void initState() {
+    super.initState();
+    _recoveryParams = extractPasswordRecoveryParams();
+    _sessionCheckFuture = _recoveryParams != null
+        ? Future.value(false)
+        : AuthService().isLoggedIn();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final recovery = _recoveryParams;
+
     return MaterialApp(
-      title: 'Inventarmanager',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3B82F6)),
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: IconThemeData(color: Color(0xFF0F172A)),
-        ),
-      ),
-      home: FutureBuilder<bool>(
-        future: AuthService().isLoggedIn(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          
-          bool loggedIn = snapshot.data ?? false;
-          return loggedIn ? const MainScaffold() : const LoginView();
-        },
-      ),
+      title: 'Inventar Manager',
+      debugShowCheckedModeBanner: false,
+      locale: const Locale('de', 'DE'),
+      supportedLocales: const [
+        Locale('de', 'DE'),
+        Locale('en', 'US'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      onGenerateRoute: (settings) {
+        final name = settings.name ?? '';
+        if (name.startsWith('/reset-password')) {
+          final routeUri = Uri.tryParse(name);
+          final params =
+              extractPasswordRecoveryParams(routeUri) ??
+              extractPasswordRecoveryParams();
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) => ResetPasswordView(
+              userId: params?.userId ?? '',
+              secret: params?.secret ?? '',
+            ),
+          );
+        }
+        return null;
+      },
+      home: recovery != null
+          ? ResetPasswordView(
+              userId: recovery.userId,
+              secret: recovery.secret,
+            )
+          : FutureBuilder<bool>(
+              future: _sessionCheckFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                final loggedIn = snapshot.data ?? false;
+                return loggedIn ? const MainScaffold() : const LoginView();
+              },
+            ),
     );
   }
 }

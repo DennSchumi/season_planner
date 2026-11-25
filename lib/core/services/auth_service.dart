@@ -1,13 +1,22 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
+import 'package:appwrite/enums.dart' as enums;
 import 'package:appwrite/models.dart' as models;
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:season_planner/core/appwrite_config.dart';
+import 'package:season_planner/core/services/notification_service.dart';
+import 'package:season_planner/user/data/models/user_model_userView.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
+  static const String _kHasSessionKey = 'sp_has_active_session';
+  static const String _kCachedUserKey = 'sp_cached_user_v1';
+
   final Client client = Client()
       .setEndpoint(AppwriteConfig().appwriteEnpoint)
-      .setProject(AppwriteConfig().projectId)
-      .setSelfSigned(status: true);
-
+      .setProject(AppwriteConfig().projectId);
 
   static final AuthService _instance = AuthService._internal();
 
@@ -17,86 +26,548 @@ class AuthService {
   AuthService._internal();
 
   late final Account _account;
+  late final TablesDB _tablesDB;
+  late final Storage _storage;
+  bool _initialized = false;
 
   void init() {
+    if (_initialized) return;
     _account = Account(client);
+    _tablesDB = TablesDB(client);
+    _storage = Storage(client);
+    _initialized = true;
   }
 
-Future<void> testLogin() async {
-  await _account.createEmailPasswordSession(email: "test@test.de", password: "testpass");
+  Account get account {
+    if (!_initialized) init();
+    return _account;
   }
 
-  /// Registers a new user with email, password, and name
-  Future<models.User> signUp(String email, String password, String name) async {
+  TablesDB get tablesDB {
+    if (!_initialized) init();
+    return _tablesDB;
+  }
+
+  Storage get storage {
+    if (!_initialized) init();
+    return _storage;
+  }
+
+  /// Startet eine E-Mail-Registrierung per 6-stelligem Einmal-Code (Email OTP).
+  /// Sendet den Code über Appwrite an [email] und gibt die zugehörige `userId` zurück.
+  Future<String> startEmailOtpRegistration(String email) async {
     try {
-      final user = await _account.create(
+      try {
+        await account.deleteSession(sessionId: 'current');
+      } catch (_) {}
+
+      final token = await account.createEmailToken(
+        userId: ID.unique(),
+        email: email.trim(),
+      );
+      return token.userId;
+    } on AppwriteException catch (e) {
+      debugPrint(
+        "Appwrite startEmailOtpRegistration failed: ${e.type} (${e.code}) ${e.message}",
+      );
+      rethrow;
+    }
+  }
+
+  /// Schließt die E-Mail-OTP-Registrierung ab: prüft den 6-stelligen [otpCode],
+  /// startet die Session, setzt Passwort + Name (nur bei neuem Konto) und legt
+  /// erst danach die Profil-Zeile in `core_db.users` an.
+  Future<({models.User user, bool alreadyExisted})>
+      completeEmailOtpRegistration({
+    required String userId,
+    required String otpCode,
+    required String password,
+    required String name,
+    String phone = '',
+    bool legalAccepted = false,
+  }) async {
+    try {
+      try {
+        await account.deleteSession(sessionId: 'current');
+      } catch (_) {}
+
+      await account.createSession(
+        userId: userId.trim(),
+        secret: otpCode.trim(),
+      );
+      await _setLocalSessionFlag(true);
+
+      var user = await account.get();
+      final alreadyHasPassword = user.passwordUpdate.trim().isNotEmpty;
+
+      if (!alreadyHasPassword) {
+        user = await account.updatePassword(password: password);
+        if (name.trim().isNotEmpty) {
+          user = await account.updateName(name: name.trim());
+        }
+      } else if (user.name.trim().isEmpty && name.trim().isNotEmpty) {
+        try {
+          user = await account.updateName(name: name.trim());
+        } catch (_) {}
+      }
+
+      if (phone.trim().isNotEmpty || legalAccepted) {
+        try {
+          final mergedPrefs = Map<String, dynamic>.from(user.prefs.data);
+          if (phone.trim().isNotEmpty) {
+            mergedPrefs['phone'] = phone.trim();
+          }
+          if (legalAccepted) {
+            mergedPrefs['legal_accepted_at'] = DateTime.now().toIso8601String();
+            mergedPrefs['legal_version'] = '2026-11';
+          }
+          await account.updatePrefs(prefs: mergedPrefs);
+        } catch (_) {}
+      }
+
+      await ensureUserProfileRow(
+        user: user,
+        phoneOverride: phone.trim(),
+      );
+
+      return (user: user, alreadyExisted: alreadyHasPassword);
+    } on AppwriteException catch (e) {
+      debugPrint(
+        "Appwrite completeEmailOtpRegistration failed: ${e.type} (${e.code}) ${e.message}",
+      );
+      rethrow;
+    }
+  }
+
+  /// Registriert einen neuen Benutzer direkt (Legacy-Fallback), meldet ihn an
+  /// und legt die zugehörige Zeile in `core_db.users` an.
+  Future<models.User> signUp(
+    String email,
+    String password,
+    String name, {
+    String phone = '',
+  }) async {
+    try {
+      final user = await account.create(
         userId: ID.unique(),
         email: email,
         password: password,
         name: name,
       );
 
+      // Direkt anmelden, damit der Nutzer im Onboarding sofort Aktionen ausführen kann
+      try {
+        await account.deleteSession(sessionId: 'current');
+      } catch (_) {}
+
+      await account.createEmailPasswordSession(
+        email: email,
+        password: password,
+      );
+      await _setLocalSessionFlag(true);
+
+      if (phone.trim().isNotEmpty) {
+        try {
+          await account.updatePrefs(prefs: {'phone': phone.trim()});
+        } catch (_) {}
+      }
+
+      await ensureUserProfileRow(
+        user: user,
+        phoneOverride: phone.trim(),
+      );
+
       return user;
     } on AppwriteException catch (e) {
-      print("Appwrite signUp failed: ${e.type} (${e.code}) ${e.message}");
+      debugPrint("Appwrite signUp failed: ${e.type} (${e.code}) ${e.message}");
       rethrow;
     } catch (e) {
-      print("Unknown signUp error: $e");
+      debugPrint("Unknown signUp error: $e");
       rethrow;
     }
   }
 
-
-  /// Logs in a user with email and password
-  Future<Object> login(String email, String password) async {
+  /// Lädt – sofern der aktuelle Login über OAuth (z. B. Google) erfolgte –
+  /// das Profilbild einmalig herunter und spiegelt es DSGVO-konform in den
+  /// eigenen Appwrite-Bucket `user_avatars`, damit beim Anzeigen von Teamlisten
+  /// keine externen Anfragen an Google-Server (`lh3.googleusercontent.com`)
+  /// ausgelöst werden.
+  Future<({String url, String fileId})?> _mirrorOAuthAvatarToOwnStorage() async {
     try {
-      var result = await _account.createEmailPasswordSession(email: email, password: password);
-      print(result);
-      return "";
+      final session = await account.getSession(sessionId: 'current');
+      final provider = session.provider.toLowerCase();
+      final token = session.providerAccessToken;
+      if (token.isEmpty) return null;
+
+      if (provider == 'google') {
+        final res = await http.get(
+          Uri.parse('https://www.googleapis.com/oauth2/v3/userinfo'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (res.statusCode == 200) {
+          final json = jsonDecode(res.body);
+          if (json is Map && json['picture'] is String) {
+            final pic = (json['picture'] as String).trim();
+            if (pic.isEmpty) return null;
+            final imgRes = await http.get(Uri.parse(pic));
+            if (imgRes.statusCode != 200 || imgRes.bodyBytes.isEmpty) {
+              return null;
+            }
+            if (imgRes.bodyBytes.length > 5 * 1024 * 1024) return null;
+
+            final contentType =
+                (imgRes.headers['content-type'] ?? '').toLowerCase();
+            final ext = contentType.contains('png')
+                ? 'png'
+                : contentType.contains('webp')
+                    ? 'webp'
+                    : 'jpg';
+            final cfg = AppwriteConfig();
+            final uploaded = await storage.createFile(
+              bucketId: cfg.userAvatarsBucketId,
+              fileId: ID.unique(),
+              file: InputFile.fromBytes(
+                bytes: imgRes.bodyBytes,
+                filename: 'oauth_avatar.$ext',
+              ),
+              permissions: [
+                Permission.read(Role.users()),
+                Permission.update(Role.user(session.userId)),
+                Permission.delete(Role.user(session.userId)),
+              ],
+            );
+            return (
+              url: cfg.fileViewUrl(cfg.userAvatarsBucketId, uploaded.$id),
+              fileId: uploaded.$id,
+            );
+          }
+        }
+      }
     } catch (e) {
-      print("Error during login: $e");
-      return e;
+      debugPrint('_mirrorOAuthAvatarToOwnStorage error: $e');
     }
+    return null;
   }
 
-  /// Logs out the current user by deleting the active session
-  Future<void> logout() async {
-    try {
-      await _account.deleteSession(sessionId: 'current');
-    } catch (e) {
-      print("Error during logout: $e");
-    }
-  }
+  /// Stellt sicher, dass für den angemeldeten Appwrite-Auth-User eine
+  /// passende Zeile in `core_db.users` existiert und gibt sie zurück.
+  Future<models.Row?> ensureUserProfileRow({
+    models.User? user,
+    String? phoneOverride,
+  }) async {
+    final current = user ?? await getCurrentUser();
+    if (current == null) return null;
 
-  /// Retrieves the currently logged-in user's details
-  Future<models.User?> getCurrentUser() async {
+    final cfg = AppwriteConfig();
+    final phone = (phoneOverride != null && phoneOverride.isNotEmpty)
+        ? phoneOverride
+        : (current.phone.isNotEmpty
+            ? current.phone
+            : (current.prefs.data['phone'] ?? '').toString());
+
     try {
-      return await _account.get();
+      final existing = await tablesDB.listRows(
+        databaseId: cfg.mainDatabaseId,
+        tableId: cfg.usersCollectionID,
+        queries: [
+          Query.or([
+            Query.equal('\$id', current.$id),
+            Query.equal('auth_id', current.$id),
+          ]),
+          Query.limit(1),
+        ],
+      );
+
+      if (existing.rows.isEmpty) {
+        final mirroredAvatar = await _mirrorOAuthAvatarToOwnStorage();
+        return await tablesDB.createRow(
+          databaseId: cfg.mainDatabaseId,
+          tableId: cfg.usersCollectionID,
+          rowId: current.$id,
+          data: {
+            'auth_id': current.$id,
+            'name': current.name,
+            'email': current.email,
+            'phone': phone,
+            if (mirroredAvatar != null) ...{
+              'avatar_url': mirroredAvatar.url,
+              'avatar_file_id': mirroredAvatar.fileId,
+            },
+          },
+          permissions: [
+            Permission.read(Role.user(current.$id)),
+            Permission.update(Role.user(current.$id)),
+          ],
+        );
+      } else {
+        // Fehlende Felder nachpflegen; externe Google-Avatar-URLs ggf. lokal spiegeln
+        final row = existing.rows.first;
+        final updates = <String, dynamic>{};
+        if ((row.data['auth_id'] ?? '').toString().isEmpty) {
+          updates['auth_id'] = current.$id;
+        }
+        if ((row.data['name'] ?? '').toString().isEmpty &&
+            current.name.isNotEmpty) {
+          updates['name'] = current.name;
+        }
+        if ((row.data['email'] ?? '').toString().isEmpty &&
+            current.email.isNotEmpty) {
+          updates['email'] = current.email;
+        }
+        final existingAvatar =
+            (row.data['avatar_url'] ?? '').toString().trim();
+        final isExternalGoogleAvatar =
+            existingAvatar.contains('googleusercontent.com');
+        if (existingAvatar.isEmpty || isExternalGoogleAvatar) {
+          final mirroredAvatar = await _mirrorOAuthAvatarToOwnStorage();
+          if (mirroredAvatar != null) {
+            updates['avatar_url'] = mirroredAvatar.url;
+            updates['avatar_file_id'] = mirroredAvatar.fileId;
+          }
+        }
+        if (updates.isNotEmpty) {
+          return await tablesDB.updateRow(
+            databaseId: cfg.mainDatabaseId,
+            tableId: cfg.usersCollectionID,
+            rowId: row.$id,
+            data: updates,
+          );
+        }
+        return row;
+      }
     } catch (e) {
-      print("Error retrieving user: $e");
+      debugPrint('ensureUserProfileRow error: $e');
       return null;
     }
   }
 
-  /// Checks if the user has an active session
+  /// Meldet einen Benutzer per E-Mail und Passwort an.
+  Future<Object> login(String email, String password) async {
+    try {
+      try {
+        await account.deleteSession(sessionId: 'current');
+      } catch (_) {}
+
+      await account.createEmailPasswordSession(
+        email: email,
+        password: password,
+      );
+      await _setLocalSessionFlag(true);
+      await ensureUserProfileRow();
+      return "";
+    } catch (e) {
+      debugPrint("Error during login: $e");
+      rethrow;
+    }
+  }
+
+  /// Meldet einen Benutzer per OAuth2 (Google oder Apple) über Appwrite an
+  /// bzw. registriert ihn automatisch beim ersten Login.
+  Future<bool> loginWithOAuth(enums.OAuthProvider provider) async {
+    try {
+      final successUrl = kIsWeb ? '${Uri.base.origin}/' : null;
+      final failureUrl = kIsWeb ? '${Uri.base.origin}/?oauth=failed' : null;
+
+      await account.createOAuth2Session(
+        provider: provider,
+        success: successUrl,
+        failure: failureUrl,
+      );
+
+      final user = await getCurrentUser();
+      if (user != null) {
+        await _setLocalSessionFlag(true);
+        await ensureUserProfileRow(user: user);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Error during OAuth (${provider.value}): $e");
+      rethrow;
+    }
+  }
+
+  /// Meldet den aktuellen Benutzer ab und löscht lokale Session-/Cache-Daten.
+  Future<void> logout() async {
+    try {
+      await account.deleteSession(sessionId: 'current');
+    } catch (e) {
+      debugPrint("Error during logout: $e");
+    } finally {
+      await clearLocalSessionData();
+      await NotificationService().resetOnLogout();
+    }
+  }
+
+  /// Gibt den aktuell eingeloggten Appwrite-Auth-Benutzer zurück.
+  Future<models.User?> getCurrentUser() async {
+    try {
+      return await account.get();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Prüft, ob der Nutzer dauerhaft angemeldet ist:
+  /// - Gültige Appwrite-Session -> bleibt angemeldet (`true`).
+  /// - Explizites HTTP 401 (Session abgelaufen/widerrufen) -> abgemeldet (`false`).
+  /// - Offline / Timeout / temporärer Fehler -> bleibt angemeldet, wenn lokal
+  ///   eine aktive Session gespeichert war (kein ungewollter Rauswurf bei
+  ///   schlechtem Empfang z. B. am Startplatz).
   Future<bool> isLoggedIn() async {
     try {
-      final sessionList = await _account.listSessions();
-      return sessionList.sessions.isNotEmpty;
-    } catch (e) {
-      print("Error checking session: $e");
+      await account.get().timeout(const Duration(seconds: 8));
+      await _setLocalSessionFlag(true);
+      return true;
+    } on AppwriteException catch (e) {
+      if (e.code == 401) {
+        await clearLocalSessionData();
+        return false;
+      }
+      return hasLocalSessionFlag();
+    } catch (_) {
+      return hasLocalSessionFlag();
+    }
+  }
+
+  /// Prüft gezielt, ob der Server die Session mit HTTP 401 abgelehnt hat.
+  Future<bool> isSessionRevoked() async {
+    try {
+      await account.get().timeout(const Duration(seconds: 6));
+      return false;
+    } on AppwriteException catch (e) {
+      return e.code == 401;
+    } catch (_) {
       return false;
     }
   }
 
-  /// Sends a password reset email to the user
-  Future<bool> resetPassword(String email) async {
+  Future<void> _setLocalSessionFlag(bool value) async {
     try {
-      await _account.createRecovery(email: email, url: "https://your-app.com/reset-password");
-      return true;
-    } catch (e) {
-      print("Error resetting password: $e");
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kHasSessionKey, value);
+    } catch (_) {}
+  }
+
+  Future<bool> hasLocalSessionFlag() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_kHasSessionKey) ?? false;
+    } catch (_) {
       return false;
     }
+  }
+
+  Future<void> saveCachedUser(UserModelUserView user) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // DSGVO-Datenminimierung im Web-localStorage (geteilte Flugschul-PCs):
+      // hochsensible Stammdaten nicht im Browser-Storage persistieren.
+      final sanitized = kIsWeb
+          ? user.copyWith(
+              phone: '',
+              address: '',
+              birthDate: '',
+              emergencyContactName: '',
+              emergencyContactRelation: '',
+              emergencyContactPhone: '',
+              licenseNumber: '',
+              licenseRatings: '',
+            )
+          : user;
+      await prefs.setString(_kCachedUserKey, jsonEncode(sanitized.toJson()));
+      await prefs.setBool(_kHasSessionKey, true);
+    } catch (e) {
+      debugPrint('saveCachedUser error: $e');
+    }
+  }
+
+  Future<UserModelUserView?> loadCachedUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kCachedUserKey);
+      if (raw == null || raw.isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        final user = UserModelUserView.fromJson(decoded);
+        if (user.id.isNotEmpty) return user;
+      }
+    } catch (e) {
+      debugPrint('loadCachedUser error: $e');
+    }
+    return null;
+  }
+
+  Future<void> clearLocalSessionData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kHasSessionKey);
+      await prefs.remove(_kCachedUserKey);
+    } catch (_) {}
+  }
+
+  /// Sendet eine Passwort-Zurücksetzen-E-Mail über Appwrite Auth Recovery.
+  Future<void> resetPassword(String email) async {
+    final cfg = AppwriteConfig();
+    final baseUrl = kIsWeb && Uri.base.origin.startsWith('http')
+        ? Uri.base.origin
+        : cfg.webBaseUrl;
+    final cleanBase = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    await account.createRecovery(
+      email: email.trim(),
+      url: "$cleanBase/reset-password",
+    );
+  }
+
+  /// Schließt das Zurücksetzen des Passworts mit dem Link-Token (`userId` + `secret`) ab.
+  Future<void> completePasswordRecovery({
+    required String userId,
+    required String secret,
+    required String newPassword,
+  }) async {
+    await account.updateRecovery(
+      userId: userId.trim(),
+      secret: secret.trim(),
+      password: newPassword,
+    );
+  }
+
+  /// Übersetzt häufige Appwrite-Auth-Fehler in verständliche deutsche Hinweise.
+  static String formatAuthError(Object error) {
+    if (error is AppwriteException) {
+      final type = (error.type ?? '').toLowerCase();
+      final msg = (error.message ?? '').toLowerCase();
+      if (type.contains('smtp_disabled') || msg.contains('smtp')) {
+        return 'Der E-Mail-Versand (SMTP) ist auf dem Server noch nicht aktiv eingerichtet.';
+      }
+      if (type.contains('auth_method_disabled') ||
+          msg.contains('auth method') && msg.contains('disabled')) {
+        return 'Die E-Mail-Code-Anmeldung (Email OTP) ist in Appwrite noch nicht aktiviert.';
+      }
+      if (type.contains('rate_limit')) {
+        return 'Zu viele Versuche in kurzer Zeit. Bitte warte einen Moment und versuche es erneut.';
+      }
+      if (type.contains('user_not_found')) {
+        return 'Für diese E-Mail-Adresse wurde kein Benutzerkonto gefunden.';
+      }
+      if (type.contains('invalid_token') ||
+          type.contains('expired') ||
+          msg.contains('invalid token') ||
+          msg.contains('expired')) {
+        return 'Der Code bzw. Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.';
+      }
+      if (msg.contains('password') && msg.contains('8')) {
+        return 'Das neue Passwort muss mindestens 8 Zeichen lang sein.';
+      }
+      if (msg.contains('invalid `url`') || type.contains('argument_invalid')) {
+        return 'Die Ziel-URL für den Reset-Link ist in Appwrite nicht als erlaubte Web-Plattform hinterlegt.';
+      }
+      if (error.message != null && error.message!.trim().isNotEmpty) {
+        return error.message!.trim();
+      }
+    }
+    return error.toString();
   }
 }

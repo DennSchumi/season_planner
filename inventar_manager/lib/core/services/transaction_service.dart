@@ -1,6 +1,7 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
 import 'package:inventar_manager/core/services/database_service.dart';
+import 'package:inventar_manager/core/services/security_privacy_service.dart';
 import 'package:inventar_manager/core/appwrite_config.dart';
 
 class TransactionModel {
@@ -126,7 +127,12 @@ class TransactionService extends ChangeNotifier {
   }
 
   Future<TransactionModel?> addTransaction(TransactionModel transaction) async {
-    final doc = await DatabaseService().createDocument(AppwriteConfig.transactionsCollectionId, transaction.toMap());
+    final doc = await DatabaseService().createDocument(
+      AppwriteConfig.transactionsCollectionId,
+      transaction.toMap(),
+      permissions:
+          SecurityPrivacyService.schoolMemberUpdatePerms(transaction.schoolId),
+    );
     if (doc != null) {
       transaction.id = doc.$id;
       _transactions.insert(0, transaction); // prepend since sorted descending
@@ -217,6 +223,24 @@ class TransactionService extends ChangeNotifier {
       }
     } catch (e) {
       print("Error updating transaction status: $e");
+    }
+  }
+
+  Future<void> updateTransactionDetails(String txId, String newDetails) async {
+    try {
+      await DatabaseService().updateDocument(
+        AppwriteConfig.transactionsCollectionId,
+        txId,
+        {'details': newDetails}
+      );
+      
+      final index = _transactions.indexWhere((tx) => tx.id == txId);
+      if (index != -1) {
+        _transactions[index].details = newDetails;
+        notifyListeners();
+      }
+    } catch (e) {
+      print("Error updating transaction details: $e");
     }
   }
 }

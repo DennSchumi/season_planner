@@ -1,6 +1,7 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
 import 'package:inventar_manager/core/services/database_service.dart';
+import 'package:inventar_manager/core/services/security_privacy_service.dart';
 import 'package:inventar_manager/core/appwrite_config.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -34,14 +35,18 @@ class CategoryModel {
       iconData: d.data['iconData'] ?? 'support',
     );
   }
-  
+
   IconData get icon {
     switch (iconData) {
-      case 'radio': return Icons.radio;
-      case 'paragliding': return Icons.paragliding;
-      case 'airline_seat_recline_normal': return Icons.airline_seat_recline_normal;
+      case 'radio':
+        return Icons.radio;
+      case 'paragliding':
+        return Icons.paragliding;
+      case 'airline_seat_recline_normal':
+        return Icons.airline_seat_recline_normal;
       case 'support':
-      default: return Icons.support;
+      default:
+        return Icons.support;
     }
   }
 
@@ -49,20 +54,36 @@ class CategoryModel {
     return CategoryModel.buildIconWidget(iconData, color: color, size: size);
   }
 
-  static Widget buildIconWidget(String iconDataStr, {Color? color, double size = 24}) {
+  static Widget buildIconWidget(
+    String iconDataStr, {
+    Color? color,
+    double size = 24,
+  }) {
     if (iconDataStr.endsWith('.svg')) {
       return SvgPicture.asset(
         iconDataStr,
         width: size,
         height: size,
-        colorFilter: color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
+        colorFilter: color != null
+            ? ColorFilter.mode(color, BlendMode.srcIn)
+            : null,
+        errorBuilder: (_, _, _) => Icon(
+          iconDataStr.contains('gleitschirm')
+              ? Icons.paragliding
+              : Icons.inventory_2_outlined,
+          color: color,
+          size: size,
+        ),
       );
     }
-    
+
     IconData fallbackIcon = Icons.support;
-    if (iconDataStr == 'radio') fallbackIcon = Icons.radio;
-    else if (iconDataStr == 'paragliding') fallbackIcon = Icons.paragliding;
-    else if (iconDataStr == 'airline_seat_recline_normal') fallbackIcon = Icons.airline_seat_recline_normal;
+    if (iconDataStr == 'radio') {
+      fallbackIcon = Icons.radio;
+    } else if (iconDataStr == 'paragliding')
+      fallbackIcon = Icons.paragliding;
+    else if (iconDataStr == 'airline_seat_recline_normal')
+      fallbackIcon = Icons.airline_seat_recline_normal;
 
     return Icon(fallbackIcon, color: color, size: size);
   }
@@ -90,12 +111,12 @@ class CategoryService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final queries = [
-        Query.equal('schoolId', schoolId),
-        Query.limit(100)
-      ];
-      final docs = await DatabaseService().getDocuments(AppwriteConfig.categoriesCollectionId, queries: queries);
-      
+      final queries = [Query.equal('schoolId', schoolId), Query.limit(100)];
+      final docs = await DatabaseService().getDocuments(
+        AppwriteConfig.categoriesCollectionId,
+        queries: queries,
+      );
+
       final loadedCats = <CategoryModel>[];
       for (var d in docs) {
         try {
@@ -123,7 +144,12 @@ class CategoryService extends ChangeNotifier {
       'serviceRequiresDoc': category.serviceRequiresDocument,
       'iconData': category.iconData,
     };
-    final doc = await DatabaseService().createDocument(AppwriteConfig.categoriesCollectionId, data);
+    final doc = await DatabaseService().createDocument(
+      AppwriteConfig.categoriesCollectionId,
+      data,
+      permissions:
+          SecurityPrivacyService.schoolMemberUpdatePerms(category.schoolId),
+    );
     if (doc != null) {
       category.id = doc.$id;
       _categories.add(category);
@@ -139,7 +165,11 @@ class CategoryService extends ChangeNotifier {
       'serviceRequiresDoc': category.serviceRequiresDocument,
       'iconData': category.iconData,
     };
-    final doc = await DatabaseService().updateDocument(AppwriteConfig.categoriesCollectionId, category.id, data);
+    final doc = await DatabaseService().updateDocument(
+      AppwriteConfig.categoriesCollectionId,
+      category.id,
+      data,
+    );
     if (doc != null) {
       final index = _categories.indexWhere((c) => c.id == category.id);
       if (index != -1) {

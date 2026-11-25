@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:season_planner/core/data/enums/event_status_enum.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
+import 'package:season_planner/core/theme.dart';
+import 'package:season_planner/core/widgets/ux_components.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 
 class EventCardTile extends StatelessWidget {
@@ -20,52 +22,78 @@ class EventCardTile extends StatelessWidget {
     required this.onTap,
   });
 
-  String _getStatusText(EventStatusEnum status) {
-    switch (status) {
-      case EventStatusEnum.scheduled:
-        return EventStatusEnum.scheduled.label;
-      case EventStatusEnum.provisional:
-        return EventStatusEnum.provisional.label;
-      case EventStatusEnum.canceled:
-        return EventStatusEnum.canceled.label;
-      default:
-        return "none";
+  int get _effectiveStage =>
+      flightSchool?.effectiveStageFor(event) ?? event.planningStage;
+
+  bool get _isStage1Preview =>
+      _effectiveStage == 1 && !event.isOwnBindingAssignment;
+
+  String _fmtTime(DateTime d) =>
+      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+  Widget _buildAssignmentPill() {
+    if (_isStage1Preview) {
+      return const StatusPill(
+        label: 'Stufe 1 – Verfügbarkeit',
+        foreground: AppTheme.stage1Color,
+        background: AppTheme.stage1Bg,
+        fontSize: 10.5,
+      );
     }
-  }
-
-  Widget? _buildAssignmentIndicator(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
+    if (event.swapOffered && !event.isSwapOfferFromOther) {
+      return const StatusPill(
+        label: 'Tausch offen',
+        icon: Icons.swap_horiz,
+        foreground: AppTheme.swapColor,
+        background: AppTheme.swapBg,
+        fontSize: 10.5,
+      );
+    }
     switch (event.assignmentStatus) {
       case EventUserStatusEnum.user_requests_change:
-        return Tooltip(
-          message: 'Change requested',
-          child: Icon(Icons.change_circle, color: Colors.orange, size: 20),
-        );
-      case EventUserStatusEnum.accepted_user:
-        return Tooltip(
-          message: 'Confirmed',
-          child: Icon(Icons.check_circle, color: Colors.green, size: 20),
-        );
-      case EventUserStatusEnum.accepted_flight_school:
-        return Tooltip(
-          message: 'Confirmed',
-          child: Icon(Icons.check_circle, color: Colors.green, size: 20),
-        );
-      case EventUserStatusEnum.denied_user:
-        return Tooltip(
-          message: 'Denied',
-          child: Icon(Icons.cancel, color: Colors.red, size: 20),
+        return const StatusPill(
+          label: 'Änderung angefragt',
+          foreground: AppTheme.warningColor,
+          background: AppTheme.warningBg,
+          fontSize: 10.5,
         );
       case EventUserStatusEnum.pending_user:
-        return null;
+        return const StatusPill(
+          label: 'Arbeitseinsatz angefragt',
+          foreground: AppTheme.warningColor,
+          background: AppTheme.warningBg,
+          fontSize: 10.5,
+        );
+      case EventUserStatusEnum.accepted_user:
+      case EventUserStatusEnum.accepted_flight_school:
+        return const StatusPill(
+          label: 'Arbeitseinsatz bestätigt',
+          foreground: AppTheme.successColor,
+          background: AppTheme.successBg,
+          fontSize: 10.5,
+        );
+      case EventUserStatusEnum.denied_user:
+      case EventUserStatusEnum.denied_flight_school:
+        return const StatusPill(
+          label: 'Arbeitseinsatz abgelehnt',
+          foreground: AppTheme.dangerColor,
+          background: AppTheme.dangerBg,
+          fontSize: 10.5,
+        );
       case EventUserStatusEnum.pending_flight_school:
-        return Tooltip(
-          message: 'Pending confirmation',
-          child: Icon(Icons.hourglass_top, color: Colors.blueGrey, size: 20),
+        return const StatusPill(
+          label: 'Beworben',
+          foreground: AppTheme.textSecondary,
+          background: AppTheme.backgroundColor,
+          fontSize: 10.5,
         );
       default:
-        return null;
+        return const StatusPill(
+          label: 'Offene Stelle',
+          foreground: AppTheme.infoColor,
+          background: AppTheme.infoBg,
+          fontSize: 10.5,
+        );
     }
   }
 
@@ -73,120 +101,95 @@ class EventCardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final fs = flightSchool;
-    final logo = (fs?.logoLink ?? '').toString();
-    final fsName = fs?.displayShortName ?? fs?.displayName ?? 'Flight School';
+    final isStage1Preview = _isStage1Preview;
+    final isCanceled = status == EventStatusEnum.canceled;
+    final fsLabel = (fs?.displayShortName.trim().isNotEmpty == true)
+        ? fs!.displayShortName.trim()
+        : (fs?.displayName ?? '');
 
-    return Card(
-      elevation: 1.5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+    final sameDay = event.startTime.year == event.endTime.year &&
+        event.startTime.month == event.endTime.month &&
+        event.startTime.day == event.endTime.day;
+    final timeLabel = sameDay
+        ? '${_fmtTime(event.startTime)}–${_fmtTime(event.endTime)}'
+        : dateText;
+
+    final metaParts = <String>[
+      timeLabel,
+      if (!isStage1Preview && event.role.isNotEmpty) event.roleLabel,
+      if (event.location.isNotEmpty) event.location,
+      if (fsLabel.isNotEmpty) fsLabel,
+    ];
+
+    final assignmentPill = _buildAssignmentPill();
+
+    return CanceledEventDecorator(
+      isCanceled: isCanceled,
+      borderRadius: BorderRadius.circular(20),
+      child: SoftCard(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: cs.surfaceContainerHighest,
-                child: logo.isEmpty
-                    ? Icon(Icons.flight, color: cs.onSurfaceVariant)
-                    : ClipOval(
-                  child: Image.network(
-                    logo,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        Icon(Icons.flight, color: cs.onSurfaceVariant),
+        padding: const EdgeInsets.all(14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 430;
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                DateBadgeBox(
+                  date: event.startTime,
+                  accentColor: isStage1Preview
+                      ? AppTheme.stage1Color
+                      : eventStatusColor(status.name),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: cs.onSurface,
+                          decoration:
+                              isCanceled ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        metaParts.join(' · '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: cs.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                      ),
+                      if (!isWide) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 5,
+                          children: [assignmentPill],
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            event.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                        if (_buildAssignmentIndicator(context) != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: _buildAssignmentIndicator(context),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 4,
-                      children: [
-                        _InfoChip(
-                          icon: Icons.calendar_today_outlined,
-                          text: dateText,
-                        ),
-                        if ((event.location ?? '').toString().isNotEmpty)
-                          _InfoChip(
-                            icon: Icons.place_outlined,
-                            text: event.location!,
-                          ),
-                        _InfoChip(
-                          icon: Icons.question_answer_outlined,
-                          text: _getStatusText(status),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+                if (isWide) ...[
+                  const SizedBox(width: 12),
+                  assignmentPill,
+                ],
+              ],
+            );
+          },
         ),
       ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _InfoChip({
-    required this.icon,
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: cs.onSurfaceVariant),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12.5,
-            color: cs.onSurfaceVariant,
-          ),
-        ),
-      ],
     );
   }
 }

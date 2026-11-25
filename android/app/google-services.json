@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "217934480462",
+    "project_id": "tragegurt-season-planner",
+    "storage_bucket": "tragegurt-season-planner.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:217934480462:android:cf7ad6b608b868f7396f1f",
+        "android_client_info": {
+          "package_name": "com.tragegurt.seasonplanner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNSBZnzbdy83LWmFLggDkOpLEQ0hayCYE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

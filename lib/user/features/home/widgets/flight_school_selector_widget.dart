@@ -1,15 +1,16 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:season_planner/core/theme.dart';
 import 'package:season_planner/user/data/models/flight_school_model_user_view.dart';
 
 class FlightSchoolSelector extends StatefulWidget {
   final List<FlightSchoolUserView> flightSchools;
+  final Set<String>? selectedIds;
   final void Function(Set<String> selectedIds) onSelectionChanged;
 
   const FlightSchoolSelector({
     super.key,
     required this.flightSchools,
+    this.selectedIds,
     required this.onSelectionChanged,
   });
 
@@ -18,198 +19,221 @@ class FlightSchoolSelector extends StatefulWidget {
 }
 
 class _FlightSchoolSelectorState extends State<FlightSchoolSelector> {
-  late Set<String> selectedIds;
+  late Set<String> _internalSelectedIds;
 
-  bool get allSelected => selectedIds.length == widget.flightSchools.length;
+  Set<String> get selectedIds => widget.selectedIds ?? _internalSelectedIds;
+
+  bool get allSelected =>
+      widget.flightSchools.isNotEmpty &&
+      selectedIds.length == widget.flightSchools.length;
 
   @override
   void initState() {
     super.initState();
-    selectedIds = widget.flightSchools.map((fs) => fs.id).toSet();
+    _internalSelectedIds = widget.selectedIds != null
+        ? Set<String>.from(widget.selectedIds!)
+        : widget.flightSchools.map((fs) => fs.id).toSet();
   }
 
-  void toggleSelectAll(bool? value) {
-    setState(() {
-      if (value == true) {
-        selectedIds = widget.flightSchools.map((fs) => fs.id).toSet();
-      } else {
-        selectedIds.clear();
+  @override
+  void didUpdateWidget(covariant FlightSchoolSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIds != null) {
+      _internalSelectedIds = Set<String>.from(widget.selectedIds!);
+      return;
+    }
+    final validIds = widget.flightSchools.map((fs) => fs.id).toSet();
+    final oldIds = oldWidget.flightSchools.map((fs) => fs.id).toSet();
+    if (validIds.length != oldIds.length || !validIds.containsAll(oldIds)) {
+      _internalSelectedIds = _internalSelectedIds.intersection(validIds);
+      for (final id in validIds) {
+        if (!oldIds.contains(id)) _internalSelectedIds.add(id);
       }
-    });
-    widget.onSelectionChanged(selectedIds);
+    }
+  }
+
+  void toggleSelectAll() {
+    final next = allSelected
+        ? <String>{}
+        : widget.flightSchools.map((fs) => fs.id).toSet();
+    setState(() => _internalSelectedIds = next);
+    widget.onSelectionChanged(Set<String>.from(next));
   }
 
   void toggleFlightSchool(String id) {
-    setState(() {
-      if (selectedIds.contains(id)) {
-        selectedIds.remove(id);
-      } else {
-        selectedIds.add(id);
-      }
-    });
-    widget.onSelectionChanged(selectedIds);
+    final next = Set<String>.from(selectedIds);
+    if (next.contains(id)) {
+      next.remove(id);
+    } else {
+      next.add(id);
+    }
+    setState(() => _internalSelectedIds = next);
+    widget.onSelectionChanged(Set<String>.from(next));
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SizedBox(
-      height: 92,
-      child: Row(
+      height: 28,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 12, right: 8),
-            child: _SelectAllCard(
-              checked: allSelected,
-              onChanged: toggleSelectAll,
+          // Dezenter, kompakter „Alle“-Pill-Filter
+          _SchoolFilterPill(
+            selected: allSelected,
+            isDark: isDark,
+            colorScheme: cs,
+            onTap: toggleSelectAll,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  allSelected
+                      ? Icons.done_all_rounded
+                      : Icons.filter_list_rounded,
+                  size: 13,
+                  color: allSelected
+                      ? (isDark ? cs.onPrimaryContainer : AppTheme.primaryColor)
+                      : cs.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Alle',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: allSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: allSelected
+                        ? (isDark
+                            ? cs.onPrimaryContainer
+                            : AppTheme.primaryColor)
+                        : cs.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
-
-          Expanded(
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.only(right: 12),
-              itemCount: widget.flightSchools.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                final fs = widget.flightSchools[index];
+          const SizedBox(width: 6),
+          for (var i = 0; i < widget.flightSchools.length; i++) ...[
+            Builder(
+              builder: (context) {
+                final fs = widget.flightSchools[i];
                 final selected = selectedIds.contains(fs.id);
-
-                return _FlightSchoolChipCard(
-                  label: fs.displayShortName,
+                final label = fs.displayShortName.trim().isNotEmpty
+                    ? fs.displayShortName.trim()
+                    : fs.displayName;
+                return _SchoolFilterPill(
                   selected: selected,
-                  logoUrl: fs.logoLink,
+                  isDark: isDark,
+                  colorScheme: cs,
                   onTap: () => toggleFlightSchool(fs.id),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Opacity(
+                        opacity: selected ? 1.0 : 0.4,
+                        child: _MiniSchoolLogo(logoUrl: fs.logoLink),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight:
+                              selected ? FontWeight.w700 : FontWeight.w500,
+                          color: selected
+                              ? (isDark
+                                  ? cs.onPrimaryContainer
+                                  : AppTheme.primaryColor)
+                              : cs.onSurfaceVariant.withValues(alpha: 0.78),
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SelectAllCard extends StatelessWidget {
-  final bool checked;
-  final ValueChanged<bool?> onChanged;
-
-  const _SelectAllCard({
-    required this.checked,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 72,
-      height: 76,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Checkbox(
-            value: checked,
-            onChanged: onChanged,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "All",
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-class _FlightSchoolChipCard extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final String logoUrl;
-
-  const _FlightSchoolChipCard({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    required this.logoUrl,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 100,
-      height: 85,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-
-
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: logoUrl.isEmpty
-                      ? Image.asset(
-                    "lib/assets/images/fsBaseImage.webp",
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.cover,
-                  )
-                      : Image.network(
-                    logoUrl,
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Image.asset(
-                      "lib/assets/images/fsBaseImage.webp",
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-
-                if (selected)
-                  Positioned(
-                    right: -6,
-                    bottom: -6,
-                    child: Icon(
-                      Icons.check_circle,
-                      size: 20,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            if (i != widget.flightSchools.length - 1) const SizedBox(width: 6),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SchoolFilterPill extends StatelessWidget {
+  final bool selected;
+  final bool isDark;
+  final ColorScheme colorScheme;
+  final VoidCallback onTap;
+  final Widget child;
+
+  const _SchoolFilterPill({
+    required this.selected,
+    required this.isDark,
+    required this.colorScheme,
+    required this.onTap,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = selected
+        ? (isDark
+            ? colorScheme.primaryContainer.withValues(alpha: 0.65)
+            : AppTheme.primaryTint.withValues(alpha: 0.75))
+        : colorScheme.onSurface.withValues(alpha: isDark ? 0.08 : 0.05);
+    final borderColor = selected
+        ? (isDark
+            ? colorScheme.primary.withValues(alpha: 0.35)
+            : AppTheme.primaryColor.withValues(alpha: 0.22))
+        : Colors.transparent;
+
+    return Material(
+      color: bg,
+      clipBehavior: Clip.antiAlias,
+      shape: StadiumBorder(side: BorderSide(color: borderColor, width: 0.8)),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          child: Center(child: child),
         ),
       ),
     );
   }
 }
 
+class _MiniSchoolLogo extends StatelessWidget {
+  final String logoUrl;
 
+  const _MiniSchoolLogo({required this.logoUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: logoUrl.isEmpty
+          ? Image.asset(
+              "lib/assets/images/fsBaseImage.webp",
+              width: 15,
+              height: 15,
+              fit: BoxFit.cover,
+            )
+          : Image.network(
+              logoUrl,
+              width: 15,
+              height: 15,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Image.asset(
+                "lib/assets/images/fsBaseImage.webp",
+                width: 15,
+                height: 15,
+                fit: BoxFit.cover,
+              ),
+            ),
+    );
+  }
+}

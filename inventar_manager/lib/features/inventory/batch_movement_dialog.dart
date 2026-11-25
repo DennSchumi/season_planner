@@ -3,22 +3,28 @@ import 'package:inventar_manager/core/services/category_service.dart';
 import 'package:inventar_manager/core/services/item_service.dart';
 import 'package:inventar_manager/core/services/transaction_service.dart';
 import 'package:inventar_manager/core/services/auth_service.dart';
+import 'package:inventar_manager/core/theme.dart';
 
 class BatchMovementDialog extends StatefulWidget {
   final CategoryModel category;
   final List<ItemModel> items;
 
   const BatchMovementDialog({
-    Key? key,
+    super.key,
     required this.category,
     required this.items,
-  }) : super(key: key);
+  });
 
-  static Future<void> show(BuildContext context, CategoryModel category, List<ItemModel> items) {
+  static Future<void> show(
+    BuildContext context,
+    CategoryModel category,
+    List<ItemModel> items,
+  ) {
     return showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => BatchMovementDialog(category: category, items: items),
+      builder: (context) =>
+          BatchMovementDialog(category: category, items: items),
     );
   }
 
@@ -48,9 +54,13 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
 
     final isCheckout = _selectedAction == 'Auslagerung';
 
-    if (!isCheckout && _lockAfterCheckIn && _lockReasonController.text.trim().isEmpty) {
+    if (!isCheckout &&
+        _lockAfterCheckIn &&
+        _lockReasonController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bitte gib einen Grund für die Sperre ein!')),
+        const SnackBar(
+          content: Text('Bitte gib einen Grund für die Sperre ein!'),
+        ),
       );
       return;
     }
@@ -62,7 +72,9 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
       final itemService = ItemService();
       final user = await AuthService().getCurrentUser();
       final currentUserName = user?.name ?? "Unbekannt";
-      final initiator = _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : currentUserName;
+      final initiator = _nameController.text.trim().isNotEmpty
+          ? _nameController.text.trim()
+          : currentUserName;
 
       final isCheckout = _selectedAction == 'Auslagerung';
 
@@ -84,11 +96,17 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
               date: DateTime.now(),
             );
             final txResult = await transactionService.addTransaction(tx);
-            if (txResult == null) throw Exception("Transaktion für ${item.materialNumber} fehlgeschlagen");
+            if (txResult == null)
+              throw Exception(
+                "Transaktion für ${item.materialNumber} fehlgeschlagen",
+              );
 
             item.status = 'out';
             final updateSuccess = await itemService.updateItem(item);
-            if (!updateSuccess) throw Exception("Update für ${item.materialNumber} fehlgeschlagen");
+            if (!updateSuccess)
+              throw Exception(
+                "Update für ${item.materialNumber} fehlgeschlagen",
+              );
           } else {
             final tx = TransactionModel(
               id: '',
@@ -102,7 +120,10 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
               date: DateTime.now(),
             );
             final txResult = await transactionService.addTransaction(tx);
-            if (txResult == null) throw Exception("Transaktion für ${item.materialNumber} fehlgeschlagen");
+            if (txResult == null)
+              throw Exception(
+                "Transaktion für ${item.materialNumber} fehlgeschlagen",
+              );
             await transactionService.closeOpenCheckout(item.id);
 
             item.status = 'in_stock';
@@ -111,25 +132,30 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
               item.lockReason = _lockReasonController.text.trim();
             }
             final updateSuccess = await itemService.updateItem(item);
-            if (!updateSuccess) throw Exception("Update für ${item.materialNumber} fehlgeschlagen");
+            if (!updateSuccess)
+              throw Exception(
+                "Update für ${item.materialNumber} fehlgeschlagen",
+              );
 
             if (_lockAfterCheckIn) {
               final lockTx = TransactionModel(
-                 id: '',
-                 schoolId: item.schoolId,
-                 itemId: item.id,
-                 type: 'service_lock',
-                 status: 'closed',
-                 initiator: 'System', 
-                 captureMethod: 'manual',
-                 details: 'Gesperrt: ${item.lockReason}',
-                 date: DateTime.now(),
+                id: '',
+                schoolId: item.schoolId,
+                itemId: item.id,
+                type: 'service_lock',
+                status: 'closed',
+                initiator: 'System',
+                captureMethod: 'manual',
+                details: 'Gesperrt: ${item.lockReason}',
+                date: DateTime.now(),
               );
               await transactionService.addTransaction(lockTx);
             }
           }
         } catch (itemError) {
-          debugPrint("Fehler bei Gegenstand ${item.materialNumber}: $itemError");
+          debugPrint(
+            "Fehler bei Gegenstand ${item.materialNumber}: $itemError",
+          );
           item.status = oldStatus;
         }
       }
@@ -139,9 +165,9 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isCheckout 
-                ? '${_selectedItemIds.length} Gegenstände erfolgreich ausgegeben' 
-                : '${_selectedItemIds.length} Gegenstände erfolgreich zurückgenommen'
+              isCheckout
+                  ? '${_selectedItemIds.length} Gegenstände erfolgreich ausgegeben'
+                  : '${_selectedItemIds.length} Gegenstände erfolgreich zurückgenommen',
             ),
             backgroundColor: const Color(0xFF10B981),
           ),
@@ -149,9 +175,9 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Allgemeiner Fehler: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Allgemeiner Fehler: $e')));
       }
     } finally {
       if (mounted) {
@@ -164,18 +190,19 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
   Widget build(BuildContext context) {
     // Determine visible items based on action and validity
     final isCheckout = _selectedAction == 'Auslagerung';
-    
+
     // We only show items that are not disposed, and not in troubleticket.
     // For checkout, we need items in_stock.
     // For checkin, we need items that are out.
     final visibleItems = widget.items.where((item) {
-      if (item.status == 'disposed' || item.status == 'troubleticket') return false;
-      
+      if (item.status == 'disposed' || item.status == 'troubleticket')
+        return false;
+
       // Filter out items with expired service if checkout
       if (isCheckout) {
         if (item.status != 'in_stock') return false;
         if (item.isLocked) return false;
-        
+
         final nextService = item.nextServiceDate;
         if (nextService != null && nextService.isBefore(DateTime.now())) {
           return false; // Service expired, can't checkout
@@ -187,7 +214,10 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
     }).toList();
 
     return AlertDialog(
-      title: Text("Sammelbewegung - ${widget.category.name}", style: const TextStyle(fontWeight: FontWeight.bold)),
+      title: Text(
+        "Sammelbewegung - ${widget.category.name}",
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
       content: SizedBox(
         width: 600,
         child: Column(
@@ -253,7 +283,7 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
                 subtitle: const Text("Z.B. wegen Service-Bedarf"),
                 value: _lockAfterCheckIn,
                 onChanged: (val) => setState(() => _lockAfterCheckIn = val),
-                activeColor: const Color(0xFF9333EA),
+                activeThumbColor: const Color(0xFF9333EA),
               ),
             if (!isCheckout && _lockAfterCheckIn) const SizedBox(height: 8),
             if (!isCheckout && _lockAfterCheckIn)
@@ -276,10 +306,13 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  isCheckout 
-                    ? "Keine Gegenst\u00e4nde im Lager verf\u00fcgbar (oder Service abgelaufen)."
-                    : "Alle Gegenst\u00e4nde sind bereits im Lager.",
-                  style: const TextStyle(color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+                  isCheckout
+                      ? "Keine Gegenst\u00e4nde im Lager verf\u00fcgbar (oder Service abgelaufen)."
+                      : "Alle Gegenst\u00e4nde sind bereits im Lager.",
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               )
             else
@@ -290,6 +323,9 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
                     runSpacing: 8,
                     children: visibleItems.map((item) {
                       final isSelected = _selectedItemIds.contains(item.id);
+                      final cs = Theme.of(context).colorScheme;
+                      final isDark =
+                          Theme.of(context).brightness == Brightness.dark;
                       return InkWell(
                         onTap: () {
                           setState(() {
@@ -300,15 +336,21 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
                             }
                           });
                         },
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         child: Container(
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(8),
+                            color: isSelected
+                                ? AppTheme.primaryColor
+                                : (isDark
+                                      ? AppTheme.darkCardElevated
+                                      : AppTheme.backgroundColor),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1),
+                              color: isSelected
+                                  ? AppTheme.primaryDark
+                                  : cs.outlineVariant,
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -317,11 +359,15 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
                             children: [
                               Center(
                                 child: Text(
-                                  item.materialNumber.isNotEmpty ? item.materialNumber : '-',
+                                  item.materialNumber.isNotEmpty
+                                      ? item.materialNumber
+                                      : '-',
                                   style: TextStyle(
-                                    color: isSelected ? Colors.white : const Color(0xFF334155),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : cs.onSurface,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15.5,
                                   ),
                                 ),
                               ),
@@ -329,7 +375,11 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
                                 const Positioned(
                                   top: 4,
                                   right: 4,
-                                  child: Icon(Icons.check_circle, color: Colors.white, size: 16),
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
                                 ),
                             ],
                           ),
@@ -345,17 +395,20 @@ class _BatchMovementDialogState extends State<BatchMovementDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.pop(context),
-          child: const Text("Abbrechen", style: TextStyle(color: Color(0xFF64748B))),
+          child: const Text("Abbrechen"),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: (_selectedItemIds.isEmpty || _isLoading) ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF3B82F6),
-            foregroundColor: Colors.white,
-          ),
-          child: _isLoading 
-            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : Text(isCheckout ? "Auslagern" : "Einlagern"),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(isCheckout ? "Auslagern" : "Einlagern"),
         ),
       ],
     );

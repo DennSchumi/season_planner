@@ -40,22 +40,30 @@ class FlightSchoolService extends ChangeNotifier {
         throw Exception("Kein eingeloggter Nutzer gefunden.");
       }
 
-      // 1. Fetch user profile from Season Planner DB to get memberships
+      // 1. Fetch user profile from Core DB to get memberships
       final userDocs = await DatabaseService().getDocuments(
         AppwriteConfig.spUsersCollectionId,
-        databaseId: AppwriteConfig.seasonPlannerDatabaseId,
-        queries: [Query.equal("auth_id", user.$id)],
+        databaseId: AppwriteConfig.coreDatabaseId,
+        queries: [
+          Query.or([
+            Query.equal("\$id", user.$id),
+            Query.equal("auth_id", user.$id),
+          ]),
+        ],
       );
 
       Set<String> allowedSchoolIds = {};
       if (userDocs.isNotEmpty) {
         final userIdInDb = userDocs.first.$id;
         
-        // Fetch memberships directly from the memberships collection
+        // Fetch memberships directly from the memberships table (with expanded flightSchools relation)
         final membershipsDocs = await DatabaseService().getDocuments(
           AppwriteConfig.spMembershipsCollectionId,
-          databaseId: AppwriteConfig.seasonPlannerDatabaseId,
-          queries: [Query.equal("users", userIdInDb)],
+          databaseId: AppwriteConfig.coreDatabaseId,
+          queries: [
+            Query.equal("users", userIdInDb),
+            Query.select(['*', 'flightSchools.*']),
+          ],
         );
 
         for (var mDoc in membershipsDocs) {
@@ -72,13 +80,13 @@ class FlightSchoolService extends ChangeNotifier {
 
       if (allowedSchoolIds.isEmpty) {
         _schools = [];
-        errorMessage = "Du bist keiner Flugschule im Season Planner zugeordnet.\n(Debug: DB-User-ID: ${userDocs.isNotEmpty ? userDocs.first.$id : 'Nicht gefunden'} | Auth-ID: ${user.$id})";
+        errorMessage = "Du bist keiner Flugschule zugeordnet.\n(Debug: DB-User-ID: ${userDocs.isNotEmpty ? userDocs.first.$id : 'Nicht gefunden'} | Auth-ID: ${user.$id})";
       } else {
-        // 2. Fetch flight schools from Season Planner DB
+        // 2. Fetch flight schools from Core DB
         try {
           final docs = await DatabaseService().getDocuments(
             AppwriteConfig.spFlightSchoolsCollectionId, 
-            databaseId: AppwriteConfig.seasonPlannerDatabaseId,
+            databaseId: AppwriteConfig.coreDatabaseId,
             queries: [
               Query.equal("\$id", allowedSchoolIds.toList()),
               Query.limit(100)

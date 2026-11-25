@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:inventar_manager/core/services/item_service.dart';
 import 'package:inventar_manager/core/services/transaction_service.dart';
+import 'package:inventar_manager/core/theme.dart';
 
 class CheckInOutDialog extends StatefulWidget {
   final ItemModel item;
 
-  const CheckInOutDialog({Key? key, required this.item}) : super(key: key);
+  const CheckInOutDialog({super.key, required this.item});
 
   static void show(BuildContext context, ItemModel item) {
     if (item.status != 'out' && (item.isLocked || item.status == 'defekt')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dieses Gerät ist gesperrt oder defekt und kann nicht ausgegeben werden!')),
+        const SnackBar(
+          content: Text(
+            'Dieses Gerät ist gesperrt oder defekt und kann nicht ausgegeben werden!',
+          ),
+        ),
       );
       return;
     }
@@ -44,7 +49,7 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
   Future<void> _submit() async {
     final name = _nameController.text.trim();
     final bool checkingIn = isOut; // Cache initial status
-    
+
     if (!checkingIn && name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bitte gib einen Namen ein!')),
@@ -52,9 +57,13 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
       return;
     }
 
-    if (checkingIn && _lockAfterCheckIn && _lockReasonController.text.trim().isEmpty) {
+    if (checkingIn &&
+        _lockAfterCheckIn &&
+        _lockReasonController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bitte gib einen Grund für die Sperre ein!')),
+        const SnackBar(
+          content: Text('Bitte gib einen Grund für die Sperre ein!'),
+        ),
       );
       return;
     }
@@ -80,7 +89,8 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
           date: DateTime.now(),
         );
         final txResult = await transactionService.addTransaction(tx);
-        if (txResult == null) throw Exception("Transaktion konnte nicht gespeichert werden");
+        if (txResult == null)
+          throw Exception("Transaktion konnte nicht gespeichert werden");
         await transactionService.closeOpenCheckout(widget.item.id);
 
         widget.item.status = 'in_stock';
@@ -88,23 +98,24 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
           widget.item.isLocked = true;
           widget.item.lockReason = _lockReasonController.text.trim();
         }
-        
+
         final updateSuccess = await itemService.updateItem(widget.item);
-        if (!updateSuccess) throw Exception("Gegenstand konnte nicht aktualisiert werden");
+        if (!updateSuccess)
+          throw Exception("Gegenstand konnte nicht aktualisiert werden");
 
         if (_lockAfterCheckIn) {
-           final lockTx = TransactionModel(
-             id: '',
-             schoolId: widget.item.schoolId,
-             itemId: widget.item.id,
-             type: 'service_lock',
-             status: 'closed',
-             initiator: 'System', 
-             captureMethod: 'manual',
-             details: 'Gesperrt: ${widget.item.lockReason}',
-             date: DateTime.now(),
-           );
-           await transactionService.addTransaction(lockTx);
+          final lockTx = TransactionModel(
+            id: '',
+            schoolId: widget.item.schoolId,
+            itemId: widget.item.id,
+            type: 'service_lock',
+            status: 'closed',
+            initiator: 'System',
+            captureMethod: 'manual',
+            details: 'Gesperrt: ${widget.item.lockReason}',
+            date: DateTime.now(),
+          );
+          await transactionService.addTransaction(lockTx);
         }
       } else {
         // Checking OUT
@@ -120,18 +131,24 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
           date: DateTime.now(),
         );
         final txResult = await transactionService.addTransaction(tx);
-        if (txResult == null) throw Exception("Transaktion konnte nicht gespeichert werden");
+        if (txResult == null)
+          throw Exception("Transaktion konnte nicht gespeichert werden");
 
         widget.item.status = 'out';
         final updateSuccess = await itemService.updateItem(widget.item);
-        if (!updateSuccess) throw Exception("Gegenstand konnte nicht aktualisiert werden");
+        if (!updateSuccess)
+          throw Exception("Gegenstand konnte nicht aktualisiert werden");
       }
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(checkingIn ? 'Erfolgreich zur\u00fcckgenommen' : 'Erfolgreich ausgegeben'),
+            content: Text(
+              checkingIn
+                  ? 'Erfolgreich zur\u00fcckgenommen'
+                  : 'Erfolgreich ausgegeben',
+            ),
             backgroundColor: const Color(0xFF10B981),
           ),
         );
@@ -139,9 +156,9 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
     } catch (e) {
       widget.item.status = oldStatus; // Rollback on error
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Fehler: $e')));
       }
     } finally {
       if (mounted) {
@@ -153,7 +170,11 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(isOut ? "R\u00fccknahme: ${widget.item.serialNumber}" : "Ausgeben: ${widget.item.serialNumber}"),
+      title: Text(
+        isOut
+            ? "R\u00fccknahme: ${widget.item.serialNumber}"
+            : "Ausgeben: ${widget.item.serialNumber}",
+      ),
       content: SizedBox(
         width: 400,
         child: Column(
@@ -182,11 +203,12 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
             if (isOut) const SizedBox(height: 16),
             if (isOut)
               SwitchListTile(
+                contentPadding: EdgeInsets.zero,
                 title: const Text("Nach Rücknahme sperren"),
                 subtitle: const Text("Z.B. wegen Service-Bedarf"),
                 value: _lockAfterCheckIn,
                 onChanged: (val) => setState(() => _lockAfterCheckIn = val),
-                activeColor: const Color(0xFF9333EA),
+                activeThumbColor: AppTheme.stage1Color,
               ),
             if (isOut && _lockAfterCheckIn) const SizedBox(height: 8),
             if (isOut && _lockAfterCheckIn)
@@ -194,7 +216,6 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
                 controller: _lockReasonController,
                 decoration: const InputDecoration(
                   labelText: "Grund für Sperre",
-                  border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.lock_rounded),
                 ),
                 maxLines: 1,
@@ -207,15 +228,24 @@ class _CheckInOutDialogState extends State<CheckInOutDialog> {
           onPressed: _isLoading ? null : () => Navigator.pop(context),
           child: const Text("Abbrechen"),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: _isLoading ? null : _submit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isOut ? const Color(0xFF10B981) : const Color(0xFF3B82F6),
+          style: FilledButton.styleFrom(
+            backgroundColor: isOut
+                ? AppTheme.successColor
+                : AppTheme.primaryColor,
             foregroundColor: Colors.white,
           ),
-          child: _isLoading 
-            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : Text(isOut ? "Zur\u00fccknehmen" : "Ausgeben"),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(isOut ? "Zur\u00fccknehmen" : "Ausgeben"),
         ),
       ],
     );

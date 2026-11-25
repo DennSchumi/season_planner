@@ -1,13 +1,11 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
-import 'package:inventar_manager/core/appwrite_config.dart';
 import 'package:flutter/foundation.dart';
+import 'package:inventar_manager/core/appwrite_config.dart';
+import 'package:inventar_manager/core/services/auth_service.dart';
 
 class DatabaseService {
-  final Client client = Client()
-      .setEndpoint(AppwriteConfig.endpoint)
-      .setProject(AppwriteConfig.projectId)
-      .setSelfSigned(status: kDebugMode);
+  Client get client => AuthService().client;
 
   static final DatabaseService _instance = DatabaseService._internal();
 
@@ -16,80 +14,118 @@ class DatabaseService {
   }
   DatabaseService._internal();
 
-  late final Databases _databases;
+  late final TablesDB _tablesDB;
   late final Storage _storage;
+  bool _initialized = false;
 
   void init() {
-    _databases = Databases(client);
+    if (_initialized) return;
+    _tablesDB = TablesDB(client);
     _storage = Storage(client);
+    _initialized = true;
   }
 
-  // Generic method to fetch documents
-  Future<List<models.Document>> getDocuments(String collectionId, {List<String>? queries, String? databaseId}) async {
+  TablesDB get tablesDB {
+    if (!_initialized) init();
+    return _tablesDB;
+  }
+
+  Storage get storage {
+    if (!_initialized) init();
+    return _storage;
+  }
+
+  // Generic method to fetch rows (Appwrite 2.x TablesDB)
+  Future<List<models.Row>> getDocuments(
+    String tableId, {
+    List<String>? queries,
+    String? databaseId,
+  }) async {
     try {
-      final response = await _databases.listDocuments(
+      final response = await tablesDB.listRows(
         databaseId: databaseId ?? AppwriteConfig.inventoryDatabaseId,
-        collectionId: collectionId,
+        tableId: tableId,
         queries: queries,
       );
-      return response.documents;
+      return response.rows;
     } catch (e) {
-      debugPrint("Error fetching documents from $collectionId: $e");
+      debugPrint("Error fetching rows from $tableId: $e");
       rethrow;
     }
   }
 
-  // Generic method to create document
-  Future<models.Document?> createDocument(String collectionId, Map<String, dynamic> data, {String? databaseId}) async {
+  // Generic method to create row
+  Future<models.Row?> createDocument(
+    String tableId,
+    Map<String, dynamic> data, {
+    String? databaseId,
+    List<String>? permissions,
+  }) async {
     try {
-      return await _databases.createDocument(
+      return await tablesDB.createRow(
         databaseId: databaseId ?? AppwriteConfig.inventoryDatabaseId,
-        collectionId: collectionId,
-        documentId: ID.unique(),
+        tableId: tableId,
+        rowId: ID.unique(),
         data: data,
+        permissions: permissions,
       );
     } catch (e) {
-      print("Error creating document in $collectionId: $e");
+      debugPrint("Error creating row in $tableId: $e");
       return null;
     }
   }
 
-  // Generic method to update document
-  Future<models.Document?> updateDocument(String collectionId, String documentId, Map<String, dynamic> data, {String? databaseId}) async {
+  // Generic method to update row
+  Future<models.Row?> updateDocument(
+    String tableId,
+    String rowId,
+    Map<String, dynamic> data, {
+    String? databaseId,
+  }) async {
     try {
-      return await _databases.updateDocument(
+      return await tablesDB.updateRow(
         databaseId: databaseId ?? AppwriteConfig.inventoryDatabaseId,
-        collectionId: collectionId,
-        documentId: documentId,
+        tableId: tableId,
+        rowId: rowId,
         data: data,
       );
     } catch (e) {
-      print("Error updating document $documentId in $collectionId: $e");
+      debugPrint("Error updating row $rowId in $tableId: $e");
       return null;
     }
   }
 
-  // Generic method to delete document
-  Future<void> deleteDocument(String collectionId, String documentId, {String? databaseId}) async {
+  // Generic method to delete row
+  Future<void> deleteDocument(
+    String tableId,
+    String rowId, {
+    String? databaseId,
+  }) async {
     try {
-      await _databases.deleteDocument(
+      await tablesDB.deleteRow(
         databaseId: databaseId ?? AppwriteConfig.inventoryDatabaseId,
-        collectionId: collectionId,
-        documentId: documentId,
+        tableId: tableId,
+        rowId: rowId,
       );
     } catch (e) {
-      debugPrint("Error deleting document $documentId in $collectionId: $e");
+      debugPrint("Error deleting row $rowId in $tableId: $e");
       rethrow;
     }
   }
 
   // Storage Methods
-  Future<models.File?> uploadFile(String bucketId, String fileName, Uint8List fileBytes) async {
+  Future<models.File?> uploadFile(
+    String bucketId,
+    String fileName,
+    Uint8List fileBytes, {
+    List<String>? permissions,
+  }) async {
     try {
-      return await _storage.createFile(
+      return await storage.createFile(
         bucketId: bucketId,
         fileId: ID.unique(),
         file: InputFile.fromBytes(bytes: fileBytes, filename: fileName),
+        permissions: permissions,
       );
     } catch (e) {
       debugPrint("Error uploading file to bucket $bucketId: $e");
@@ -98,6 +134,6 @@ class DatabaseService {
   }
 
   String getFileViewUrl(String bucketId, String fileId) {
-    return "${AppwriteConfig.endpoint}/storage/buckets/$bucketId/files/$fileId/view?project=${AppwriteConfig.projectId}";
+    return AppwriteConfig.fileViewUrl(bucketId, fileId);
   }
 }

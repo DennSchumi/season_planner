@@ -1,5 +1,12 @@
-import 'user_summary_flight_school_view.dart';
+import 'package:season_planner/core/data/enums/event_role_enum.dart';
+import 'package:season_planner/core/data/enums/subscription_status_enum.dart';
+import 'package:season_planner/core/data/models/audit_export_model.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
+import 'package:season_planner/core/data/models/planning_period_model.dart';
+import 'package:season_planner/core/data/models/tandem_model.dart';
+import 'package:season_planner/core/data/models/team_role_model.dart';
+import 'package:season_planner/core/data/models/timesheet_model.dart';
+import 'user_summary_flight_school_view.dart';
 
 class FlightSchoolModelFlightSchoolView {
   final String id;
@@ -12,10 +19,24 @@ class FlightSchoolModelFlightSchoolView {
   final String logoLink;
   final String logoId;
   final List<String> adminUserIds;
+  final SubscriptionStatusEnum subscriptionStatus;
+  final String icsToken;
 
   final List<UserSummary> members;
+  final List<UserSummary> pendingRequests;
   final List<Event> events;
+  final List<TeamRole> teamRoles;
+  final List<Qualification> qualifications;
+  final List<PlanningPeriod> planningPeriods;
+  final bool tandemEnabled;
+  final List<TandemDuty> tandemDuties;
+  final List<TandemDemand> tandemDemands;
+  final bool timesheetEnabled;
+  final List<String> timesheetQualificationIds;
+  final bool auditExportsEnabled;
+  final FlightSchoolAuditProfile auditProfile;
   final Map<String, dynamic> settings;
+  final bool hasLoadedArchive;
 
   FlightSchoolModelFlightSchoolView({
     required this.id,
@@ -28,49 +49,120 @@ class FlightSchoolModelFlightSchoolView {
     required this.logoLink,
     required this.logoId,
     required this.adminUserIds,
+    this.subscriptionStatus = SubscriptionStatusEnum.active,
+    this.icsToken = '',
     required this.members,
+    this.pendingRequests = const [],
     required this.events,
+    this.teamRoles = const [],
+    this.qualifications = const [],
+    this.planningPeriods = const [],
+    this.tandemEnabled = true,
+    this.tandemDuties = const [],
+    this.tandemDemands = const [],
+    this.timesheetEnabled = true,
+    this.timesheetQualificationIds = const [],
+    this.auditExportsEnabled = true,
+    this.auditProfile = const FlightSchoolAuditProfile(),
     required this.settings,
+    this.hasLoadedArchive = false,
   });
 
-  factory FlightSchoolModelFlightSchoolView.fromJson(Map<String, dynamic> json) {
-    return FlightSchoolModelFlightSchoolView(
-      id: json['id'] as String,
-      displayName: json['displayName'] as String,
-      displayShortName:  json['displayShortName'] as String,
-      databaseId: json['databaseId'] as String,
-      teamAssignmentsEventsCollectionId: json['teamAssignmentsEventsCollectionId'] as String,
-      eventsCollectionId: json['eventsCollectionId'] as String,
-      auditLogsCollectionId: json['auditLogsCollectionId'] as String,
-      logoLink: json['logoLink'] as String,
-      logoId: json['logoid'] as String,
-      adminUserIds: List<String>.from(json['adminUserIds'] ?? []),
-      members: (json['members'] as List? ?? [])
-          .map((m) => UserSummary.fromJson(m as Map<String, dynamic>))
-          .toList(),
-      events: (json['events'] as List? ?? [])
-          .map((e) => Event.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      settings: (json['settings'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-    );
+  bool get isSubscriptionActive => subscriptionStatus.isActive;
+
+  Set<String> get effectiveTimesheetQualificationIds =>
+      resolveEffectiveTimesheetQualificationIds(
+        allQualifications: qualifications,
+        configuredIds: timesheetQualificationIds,
+      );
+
+  bool memberRequiresTimesheet(UserSummary member) =>
+      memberQualifiesForTimesheet(
+        timesheetEnabled: timesheetEnabled,
+        schoolQualifications: qualifications,
+        configuredQualIds: timesheetQualificationIds,
+        memberQualificationIds: member.qualificationIds,
+      );
+
+  bool memberHasTandemRole(UserSummary member) => member.roles.any(
+        (r) => EventRoleEnum.displayLabel(r).toLowerCase().contains('tandem'),
+      );
+
+  bool memberHasTandemQualification(UserSummary member) {
+    for (final qId in member.qualificationIds) {
+      final q = findQualificationById(qId);
+      if (q != null && q.name.toLowerCase().contains('tandem')) return true;
+      if (qId.toLowerCase().contains('tandem')) return true;
+    }
+    return false;
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'displayName': displayName,
-      'displayShortName': displayShortName,
-      'databaseId': databaseId,
-      'teamAssignmentsEventsCollectionId': teamAssignmentsEventsCollectionId,
-      'eventsCollectionId': eventsCollectionId,
-      'auditLogsCollectionId': auditLogsCollectionId,
-      'logoLink': logoLink,
-      'logoId':logoId,
-      'adminUserIds': adminUserIds,
-      'members': members.map((m) => m.toJson()).toList(),
-      'events': events.map((e) => e.toJson()).toList(),
-      'settings': settings,
-    };
+  List<UserSummary> get tandemPilots => members
+      .where((m) => memberHasTandemRole(m) || memberHasTandemQualification(m))
+      .toList();
+
+  List<String> get availableRoleNames => teamRoles.isNotEmpty
+      ? teamRoles.map((r) => r.name).toList()
+      : List<String>.from(kDefaultTeamRoleNames);
+
+  Qualification? findQualificationById(String qualId) {
+    for (final q in qualifications) {
+      if (q.id == qualId) return q;
+    }
+    return null;
+  }
+
+  String qualificationName(String qualId) {
+    return findQualificationById(qualId)?.name ?? qualId;
+  }
+
+  int get openQualificationRequestCount => members.fold<int>(
+        0,
+        (sum, m) => sum + m.requestedQualificationIds.length,
+      );
+
+  /// Ermittelt die maßgebliche Saison für ein Datum (primär über den Saison-Zeitraum).
+  PlanningPeriod? periodForDate(DateTime date, {String? fallbackPeriodId}) =>
+      resolvePlanningPeriod(
+        planningPeriods,
+        date,
+        fallbackPeriodId: fallbackPeriodId,
+      );
+
+  /// Ermittelt die maßgebliche Saison für ein Event anhand seines Startdatums.
+  PlanningPeriod? periodForEvent(Event event) => periodForDate(
+        event.startTime,
+        fallbackPeriodId: event.planningPeriodId,
+      );
+
+  /// Ermittelt die wirksame Planungsstufe (1, 2 oder 3) für ein Event live
+  /// anhand der Saison-Zeiträume dieser Flugschule (Standard: Stufe 3).
+  int effectiveStageFor(Event event) => periodForEvent(event)?.stage.value ?? 3;
+
+  /// Sucht ein Mitglied anhand seiner Auth-ID oder `core_db.users`-Row-ID.
+  UserSummary? findMemberByAnyId(String userId) {
+    final trimmed = userId.trim();
+    if (trimmed.isEmpty) return null;
+    for (final m in [...members, ...pendingRequests]) {
+      if (m.matchesId(trimmed)) return m;
+    }
+    return null;
+  }
+
+  /// Löst eine Benutzer-ID (Auth-ID oder Row-ID) lesbar in den Namen auf.
+  String resolveMemberName(
+    String userId, {
+    String? fallbackName,
+    String emptyLabel = 'System',
+  }) {
+    final trimmed = userId.trim();
+    if (trimmed.isEmpty) return emptyLabel;
+    final m = findMemberByAnyId(trimmed);
+    if (m != null) return m.displayName;
+    if (fallbackName != null && fallbackName.trim().isNotEmpty) {
+      return fallbackName.trim();
+    }
+    return 'Unbekanntes Mitglied';
   }
 
   FlightSchoolModelFlightSchoolView copyWith({
@@ -84,9 +176,23 @@ class FlightSchoolModelFlightSchoolView {
     String? logoLink,
     String? logoId,
     List<String>? adminUserIds,
+    SubscriptionStatusEnum? subscriptionStatus,
+    String? icsToken,
     List<UserSummary>? members,
+    List<UserSummary>? pendingRequests,
     List<Event>? events,
+    List<TeamRole>? teamRoles,
+    List<Qualification>? qualifications,
+    List<PlanningPeriod>? planningPeriods,
+    bool? tandemEnabled,
+    List<TandemDuty>? tandemDuties,
+    List<TandemDemand>? tandemDemands,
+    bool? timesheetEnabled,
+    List<String>? timesheetQualificationIds,
+    bool? auditExportsEnabled,
+    FlightSchoolAuditProfile? auditProfile,
     Map<String, dynamic>? settings,
+    bool? hasLoadedArchive,
   }) {
     return FlightSchoolModelFlightSchoolView(
       id: id ?? this.id,
@@ -94,15 +200,32 @@ class FlightSchoolModelFlightSchoolView {
       displayShortName: displayShortName ?? this.displayShortName,
       databaseId: databaseId ?? this.databaseId,
       teamAssignmentsEventsCollectionId:
-      teamAssignmentsEventsCollectionId ?? this.teamAssignmentsEventsCollectionId,
+          teamAssignmentsEventsCollectionId ??
+              this.teamAssignmentsEventsCollectionId,
       eventsCollectionId: eventsCollectionId ?? this.eventsCollectionId,
-      auditLogsCollectionId: auditLogsCollectionId ?? this.auditLogsCollectionId,
+      auditLogsCollectionId:
+          auditLogsCollectionId ?? this.auditLogsCollectionId,
       logoLink: logoLink ?? this.logoLink,
       logoId: logoId ?? this.logoId,
       adminUserIds: adminUserIds ?? this.adminUserIds,
+      subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
+      icsToken: icsToken ?? this.icsToken,
       members: members ?? this.members,
+      pendingRequests: pendingRequests ?? this.pendingRequests,
       events: events ?? this.events,
+      teamRoles: teamRoles ?? this.teamRoles,
+      qualifications: qualifications ?? this.qualifications,
+      planningPeriods: planningPeriods ?? this.planningPeriods,
+      tandemEnabled: tandemEnabled ?? this.tandemEnabled,
+      tandemDuties: tandemDuties ?? this.tandemDuties,
+      tandemDemands: tandemDemands ?? this.tandemDemands,
+      timesheetEnabled: timesheetEnabled ?? this.timesheetEnabled,
+      timesheetQualificationIds:
+          timesheetQualificationIds ?? this.timesheetQualificationIds,
+      auditExportsEnabled: auditExportsEnabled ?? this.auditExportsEnabled,
+      auditProfile: auditProfile ?? this.auditProfile,
       settings: settings ?? this.settings,
+      hasLoadedArchive: hasLoadedArchive ?? this.hasLoadedArchive,
     );
   }
 
@@ -118,17 +241,15 @@ class FlightSchoolModelFlightSchoolView {
       logoLink: '',
       logoId: '',
       adminUserIds: const [],
+      subscriptionStatus: SubscriptionStatusEnum.pending,
+      icsToken: '',
       members: const [],
+      pendingRequests: const [],
       events: const [],
+      teamRoles: const [],
+      qualifications: const [],
+      planningPeriods: const [],
       settings: const {},
     );
-  }
-
-  @override
-  String toString() {
-    return 'FlightSchoolModelFlightSchoolView(id: $id, displayName: $displayName,displayShortName: $displayShortName, databaseId: $databaseId, '
-        'teamAssignmentsEventsCollectionId: $teamAssignmentsEventsCollectionId, eventsCollectionId: $eventsCollectionId, '
-        'auditLogsCollectionId: $auditLogsCollectionId, logoLink: $logoLink, logoId: $logoId adminUserIds: $adminUserIds, '
-        'members: ${members.length}, events: ${events.length})';
   }
 }

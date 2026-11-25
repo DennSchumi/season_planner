@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tragegurt — Software für Flugschulen</title>
+<meta name="description" content="Tragegurt verbindet Season Planner und Inventar Manager unter einem Konto: Saisonplanung in 3 Stufen, Tandem-Einteilung, Qualifikationsmappe, Stundenzettel, Audit-Exports sowie QR-Inventar & Wartungsprotokolle — gehostet in Deutschland." />
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="container">
+    <a href="#top" class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="bm" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#8B74FA"/><stop offset="1" stop-color="#5B3DF5"/>
+          </linearGradient>
+        </defs>
+        <rect width="40" height="40" rx="11" fill="url(#bm)"/>
+        <path d="M11 7L20 32L29 7" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M15 19.5L25 19.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+        <circle cx="20" cy="19.5" r="2.6" fill="#9CA3AF"/>
+        <circle cx="20" cy="32" r="2.6" fill="#FF5A36"/>
+      </svg>
+      Tragegurt
+    </a>
+    <nav class="nav-links">
+      <a href="#planner">Season Planner</a>
+      <a href="#inventar">Inventar Manager</a>
+      <a href="#plattform">Datenschutz & Hosting</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-primary btn-sm" href="https://planner.tragegurt.com" target="_blank" rel="noopener">Zum Season Planner</a>
+    </div>
+    <button class="nav-toggle" aria-label="Menü öffnen" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="mobile-panel">
+  <a href="#planner">Season Planner</a>
+  <a href="#inventar">Inventar Manager</a>
+  <a href="#plattform">Datenschutz & Hosting</a>
+  <a class="btn btn-primary" href="https://planner.tragegurt.com" target="_blank" rel="noopener">Zum Season Planner</a>
+</div>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="container">
+      <div class="hero-inner">
+        <span class="eyebrow reveal in-view">Tragegurt Plattform</span>
+        <h1 class="reveal in-view">Software, die deine Flugschule trägt.</h1>
+        <p class="lead reveal in-view" style="transition-delay:.08s">
+          Ein Konto für alle deine Flugschulen: <strong>Season Planner</strong> organisiert Saison, Team, Tandem, Stundenzettel und Nachweise — <strong>Inventar Manager</strong> hält Ausrüstung, Checks und Tickets lückenlos im Blick.
+        </p>
+        <div class="btn-row reveal in-view" style="transition-delay:.16s">
+          <a class="btn btn-primary" href="https://planner.tragegurt.com" target="_blank" rel="noopener">
+            Season Planner öffnen
+            <svg class="icon-18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg>
+          </a>
+          <a class="btn btn-secondary" href="#inventar">Inventar Manager ansehen</a>
+        </div>
+        <p class="hero-note reveal in-view" style="transition-delay:.22s">Vorerst kostenlos für Flugschulen &amp; Teammitglieder · Keine automatischen Kosten · Hosting in Deutschland</p>
+      </div>
+
+      <div class="hero-apps">
+        <a class="hero-app-card reveal reveal-left" href="#planner">
+          <img class="hero-app-icon" src="assets/season-planner-icon.png" alt="Season Planner" />
+          <div>
+            <strong>Season Planner</strong>
+            <span>Saison, Tandem, Qualifikationen, Stundenzettel &amp; Nachweise</span>
+          </div>
+          <span class="hero-app-status status-live">Live</span>
+        </a>
+        <a class="hero-app-card reveal reveal-right" href="#inventar">
+          <svg class="hero-app-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="48" height="48" rx="13" fill="#5B3DF5"/>
+            <path d="M24 12l11 5.2v10.6c0 7-4.7 10.9-11 13.2-6.3-2.3-11-6.2-11-13.2V17.2L24 12z" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M18.5 24.5l4 4 7-8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div>
+            <strong>Inventar Manager</strong>
+            <span>Ausrüstung, QR-Scan, Service-Checks & Trouble-Tickets</span>
+          </div>
+          <span class="hero-app-status status-soon">In Vorbereitung</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SEASON PLANNER ============ -->
+  <section class="section" id="planner">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Personal, Saison & Nachweise</span>
+        <div class="product-title-row">
+          <img class="product-badge" src="assets/season-planner-icon.png" alt="Season Planner Icon" />
+          <h2 class="h2">Season Planner</h2>
+        </div>
+        <p class="lead product-tagline">
+          Von der ersten Verfügbarkeitsabfrage im Winter bis zum fertigen Stellenbesetzungsplan — klar strukturiert für Flugschul-Admins und dein gesamtes Team.
+        </p>
+      </div>
+
+      <!-- Feature 1: 3-Stufen-Saisonplanung, Kalender & Live-ICS-Abo -->
+      <div class="feature">
+        <div class="feature-copy reveal reveal-left">
+          <span class="tag">Saisonplanung & Kalender</span>
+          <h3>Planen in drei klaren Stufen — synchron mit jedem Kalender</h3>
+          <p>Steuere jede Saison über drei Planungsstufen: Erst Verfügbarkeiten sammeln, dann gezielt einteilen und im Betrieb offene Positionen freigeben. Alle bestätigten Einsätze landen automatisch im persönlichen Kalender.</p>
+          <ul class="feature-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> 3 Planungsstufen je Saison: Verfügbarkeit, Zuteilung & Live-Betrieb</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Monats- & Agenda-Kalender mit Wischgeste, Konflikterkennung & Event-Vorlagen</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Live-ICS-Abo (persönlich & Flugschule) für Apple, Google & Outlook</li>
+          </ul>
+        </div>
+        <div class="feature-visual reveal reveal-scale">
+          <div class="mock-card" aria-label="Vorschau Season Planner Kalender und ICS-Abo">
+            <div class="mock-cal-toolbar">
+              <div class="mock-cal-nav">
+                <span class="mock-cal-month">Mai 2026</span>
+                <span class="mock-cal-btn">Heute</span>
+                <span class="chip chip-primary">Stufe 2 · Planung</span>
+              </div>
+              <div class="mock-seg">
+                <span class="active">Monat</span>
+                <span>Agenda</span>
+              </div>
+            </div>
+            <div class="mock-cal-grid">
+              <span class="dow">Mo</span><span class="dow">Di</span><span class="dow">Mi</span><span class="dow">Do</span><span class="dow">Fr</span><span class="dow">Sa</span><span class="dow">So</span>
+
+              <div class="mock-day is-past"><div class="mock-day-num"><span>11</span></div></div>
+              <div class="mock-day is-past"><div class="mock-day-num"><span>12</span></div></div>
+              <div class="mock-day is-past"><div class="mock-day-num"><span>13</span></div></div>
+              <div class="mock-day is-today"><div class="mock-day-num"><span>14</span><span class="mock-avail-dot"></span></div><div class="mock-bar-pill mock-bar-ev-soft">Theorie</div></div>
+              <div class="mock-day"><div class="mock-day-num"><span>15</span><span class="mock-avail-dot"></span></div><div class="mock-bar-pill mock-bar-ev">SiTra 3/4</div><div class="mock-bar-pill mock-bar-tandem">T 2/2</div></div>
+              <div class="mock-day"><div class="mock-day-num"><span>16</span><span class="mock-avail-dot"></span></div><div class="mock-bar-pill mock-bar-ev">SiTra 3/4</div><div class="mock-bar-pill mock-bar-tandem-open">T 2/3</div></div>
+              <div class="mock-day"><div class="mock-day-num"><span>17</span></div><div class="mock-bar-pill mock-bar-ev">SiTra 3/4</div><div class="mock-bar-pill mock-bar-tandem-open">T 1/3</div></div>
+
+              <div class="mock-day"><div class="mock-day-num"><span>18</span></div></div>
+              <div class="mock-day"><div class="mock-day-num"><span>19</span><span class="mock-avail-dot"></span></div><div class="mock-bar-pill mock-bar-ev-soft">Höhenfl.</div></div>
+              <div class="mock-day"><div class="mock-day-num"><span>20</span><span class="mock-avail-dot"></span></div><div class="mock-bar-pill mock-bar-ev-soft">Höhenfl.</div></div>
+              <div class="mock-day"><div class="mock-day-num"><span>21</span><span class="mock-avail-dot"></span></div><div class="mock-bar-pill mock-bar-ev-soft">Höhenfl.</div></div>
+              <div class="mock-day"><div class="mock-day-num"><span>22</span></div><div class="mock-bar-pill mock-bar-tandem">T 2/2</div></div>
+              <div class="mock-day"><div class="mock-day-num"><span>23</span><span class="mock-avail-dot"></span></div><div class="mock-bar-pill mock-bar-ev">Reise 4/4</div><div class="mock-bar-pill mock-bar-tandem-open">T 2/3</div></div>
+              <div class="mock-day"><div class="mock-day-num"><span>24</span><span class="mock-avail-dot"></span></div><div class="mock-bar-pill mock-bar-ev">Reise 4/4</div><div class="mock-bar-pill mock-bar-tandem">T 3/3</div></div>
+            </div>
+            <div class="mock-ics-bar">
+              <div>
+                <div class="mock-row-title" style="font-size:12px">Kalender-Abo (ICS)</div>
+                <code>ics.tragegurt.com/?type=user&amp;…</code>
+              </div>
+              <span class="chip chip-ok">Live synchron</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 2: Tandem-Einsatzplanung & Tauschbörse -->
+      <div class="feature reverse">
+        <div class="feature-copy reveal reveal-right">
+          <span class="tag">Tandem & Tauschbörse</span>
+          <h3>Tandem-Bedarf steuern und Dienste sauber tauschen</h3>
+          <p>Lege Tandem-Bedarfszeiträume flexibel nach Saison und Wochentag fest. Piloten sehen freie Tage sofort, fragen per Tipp an oder bieten bestehende Event-Einsätze direkt in der Tauschbörse an.</p>
+          <ul class="feature-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Flexible Tandem-Bedarfszeiträume nach Wochentag (pro Flugschule aktivierbar)</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Direkte Tauschbörse für Event-Positionen mit sauberer Admin-Freigabe</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Automatische Konfliktsperre zwischen Event- und Tandem-Einsätzen am selben Tag</li>
+          </ul>
+        </div>
+        <div class="feature-visual reveal reveal-scale">
+          <div class="mock-card" aria-label="Vorschau Tandem-Bedarf und Tauschbörse">
+            <div class="mock-head">
+              <span class="mock-title-strong">Sa, 16. Mai · Einsätze & Bedarf</span>
+              <span class="chip chip-warn">1 Tandem-Platz offen</span>
+            </div>
+            <div class="mock-demand-box">
+              <div class="mock-demand-top">
+                <div>
+                  <div class="mock-row-title">Tandem-Bedarf Wochenende</div>
+                  <div class="mock-row-sub">Fr–So · 2 von 3 Tandempiloten bestätigt</div>
+                </div>
+                <span class="chip chip-primary">2 / 3</span>
+              </div>
+              <div class="mock-progress-track">
+                <div class="mock-progress-fill" data-w="67"></div>
+              </div>
+            </div>
+            <div class="mock-rows">
+              <div class="mock-row">
+                <div class="mock-date-badge is-ok"><strong>16</strong><span>Mai</span></div>
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Tandem-Einsatz · Ganztägig</div>
+                  <div class="mock-row-sub">Flugschule Achensee · 08:30 – 17:00</div>
+                </div>
+                <span class="chip chip-ok">Bestätigt</span>
+              </div>
+              <div class="mock-row">
+                <div class="mock-date-badge is-swap"><strong>23</strong><span>Mai</span></div>
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Höhenflugkurs · Startplatzleiter</div>
+                  <div class="mock-row-sub">Zum Tausch freigegeben · Qualifikation passt</div>
+                </div>
+                <span class="chip chip-swap">Tausch offen</span>
+              </div>
+              <div class="mock-row">
+                <div class="mock-date-badge is-primary"><strong>29</strong><span>Mai</span></div>
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Sicherheitstraining · Boot / Rettung</div>
+                  <div class="mock-row-sub">Direktanfrage vom Admin</div>
+                </div>
+                <span class="chip chip-warn">Antwort offen</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 3: Qualifikationsmappe & Stellenbesetzungsplan -->
+      <div class="feature">
+        <div class="feature-copy reveal reveal-left">
+          <span class="tag">Qualifikationen &amp; Nachweise</span>
+          <h3>Dokumente einmal pflegen — Stellenbesetzungsplan in einem Klick</h3>
+          <p>Rollen und Qualifikationen sind sauber getrennt. Piloten verwalten Lizenzen, Medicals und Haftpflicht zentral mit Ablaufdatum und geben sie pro Flugschule frei. Für Prüfungen und Behörden-Nachweise entsteht per Knopfdruck der komplette Stellenbesetzungsplan.</p>
+          <ul class="feature-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Zentrale Dokumentenmappe mit Pflicht-Ablaufdatum &amp; automatischer Nachforderung</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> In-App Dokumenten-Prüf-Popup für Admins inkl. Gültigkeits-Korrektur &amp; Freigabe</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Stellenbesetzungsplan als Gesamt-PDF inkl. aller freigegebenen PDF- &amp; Foto-Anhänge</li>
+          </ul>
+        </div>
+        <div class="feature-visual reveal reveal-scale">
+          <div class="mock-card" aria-label="Vorschau Qualifikationsmappe und Stellenbesetzungsplan-Export">
+            <div class="mock-head">
+              <span class="mock-title-strong">Meine Dokumente</span>
+              <span class="chip chip-primary">3 gültig · 1 teilen</span>
+            </div>
+            <div class="mock-doc-well">
+              <div class="mock-doc-grid">
+                <div class="mock-doc-tile">
+                  <div class="mock-doc-head ok"><span>PDF</span><span>BESTÄTIGT</span></div>
+                  <div class="mock-doc-body">
+                    <div class="mock-doc-name">Fluglehrerlizenz AT</div>
+                    <div class="mock-doc-meta">Gültig bis 08/2028</div>
+                    <span class="chip chip-ok" style="align-self:flex-start;font-size:9.5px;padding:2px 7px">2 Schulen</span>
+                  </div>
+                </div>
+                <div class="mock-doc-tile">
+                  <div class="mock-doc-head warn"><span>PDF</span><span>FREIGABE</span></div>
+                  <div class="mock-doc-body">
+                    <div class="mock-doc-name">Medical Kl. 2</div>
+                    <div class="mock-doc-meta">Gültig bis 04/2027</div>
+                    <span class="chip chip-warn" style="align-self:flex-start;font-size:9.5px;padding:2px 7px">Schule B offen</span>
+                  </div>
+                </div>
+                <div class="mock-doc-tile">
+                  <div class="mock-doc-head primary"><span>JPG</span><span>BESTÄTIGT</span></div>
+                  <div class="mock-doc-body">
+                    <div class="mock-doc-name">Tandemhaftpflicht</div>
+                    <div class="mock-doc-meta">Gültig bis 12/2026</div>
+                    <span class="chip chip-ok" style="align-self:flex-start;font-size:9.5px;padding:2px 7px">Aktiv</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mock-audit-banner">
+              <div class="mock-audit-icon">PDF</div>
+              <div class="mock-row-body">
+                <div class="mock-row-title">Stellenbesetzungsplan_2026.pdf</div>
+                <div class="mock-row-sub">Gesamt-PDF · 14 Mitarbeiter + 38 Nachweis-Anhänge</div>
+              </div>
+              <span class="chip chip-primary">Export</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 4: Arbeitsanweisungen, Checklisten & Stundenzettel -->
+      <div class="feature reverse">
+        <div class="feature-copy reveal reveal-right">
+          <span class="tag">Checklisten & Stundenzettel</span>
+          <h3>Einweisungen und Lehrtätigkeit digital unterschrieben</h3>
+          <p>Hinterlege rollenbezogene Arbeitsanweisungen und Checklisten direkt am Event. Ab Event-Beginn erfasst das Lehrpersonal seine täglichen Zeiten im vorgefüllten Stundenzettel und schließt beides per digitaler Unterschrift ab.</p>
+          <ul class="feature-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Rollen-Checklisten mit digitaler Unterschrift & automatischer Erinnerung</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Vorkonfigurierte Event-Stundenzettel (Start, Ende, Pause oder „Kein Einsatz“)</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Zeitraum-Auswertung & PDF-/CSV-Export als Nachweis für Mitarbeiter & Admins</li>
+          </ul>
+        </div>
+        <div class="feature-visual reveal reveal-scale">
+          <div class="mock-card" aria-label="Vorschau Event-Checkliste und Stundenzettel">
+            <div class="mock-head">
+              <div>
+                <div class="mock-title-strong">Sicherheitstraining Achensee</div>
+                <div class="mock-sub">15.–17. Mai · Rolle: Fluglehrer</div>
+              </div>
+              <span class="chip chip-ok">24,5 Std.</span>
+            </div>
+            <div class="mock-rows">
+              <div class="mock-row">
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Arbeitsanweisung & Checkliste</div>
+                  <div class="mock-row-sub">Startplatz, Boot & Sicherheitsbriefing · 7/7 Punkte</div>
+                </div>
+                <span class="chip chip-ok">Unterschrieben</span>
+              </div>
+            </div>
+            <div class="mock-ts-table">
+              <div class="mock-ts-row"><strong>Fr, 15.05.</strong><span>08:30 – 17:00 · 30m Pause</span><span class="mock-ts-sum">8,0 h</span></div>
+              <div class="mock-ts-row"><strong>Sa, 16.05.</strong><span>08:00 – 17:30 · 30m Pause</span><span class="mock-ts-sum">9,0 h</span></div>
+              <div class="mock-ts-row"><strong>So, 17.05.</strong><span>08:30 – 16:30 · 30m Pause</span><span class="mock-ts-sum">7,5 h</span></div>
+            </div>
+            <div class="mock-sig-box">
+              <span>Digital signiert &amp; schreibgeschützt</span>
+              <svg class="mock-sig-svg" viewBox="0 0 90 24" aria-hidden="true">
+                <path d="M4 18 C12 4, 18 4, 20 16 C22 20, 29 7, 35 15 C41 21, 48 9, 56 14 C64 18, 72 10, 84 13" />
+              </svg>
+            </div>
+            <div class="mock-head" style="margin-top:12px;margin-bottom:0">
+              <span class="mock-sub">Export als Lehrtätigkeits-Nachweis</span>
+              <div style="display:flex;gap:6px">
+                <span class="chip chip-primary">PDF</span>
+                <span class="chip chip-info">CSV</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 5: Die Team-App für eine oder mehrere Flugschulen -->
+      <div class="feature">
+        <div class="feature-copy reveal reveal-left">
+          <span class="tag">Für jedes Teammitglied</span>
+          <h3>Ein Konto für alle Flugschulen — übersichtlich am Smartphone</h3>
+          <p>Viele Fluglehrer und Tandempiloten arbeiten für mehr als eine Schule. Im Season Planner laufen alle Einsätze, offenen Anfragen, Verfügbarkeiten und Aufgaben aus beiden Tragegurt-Apps sauber an einem Ort zusammen.</p>
+          <ul class="feature-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Verfügbarkeit mit einem Eintrag für mehrere Flugschulen gleichzeitig melden</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Tab „Wichtiges“ bündelt fehlende Checklisten, Stundenzettel, Dokumente & Inventar-To-Dos</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Läuft im Browser ohne App-Store — inkl. Light- & Dark-Mode</li>
+          </ul>
+        </div>
+        <div class="feature-visual reveal reveal-scale">
+          <div class="mock-phone" aria-label="Vorschau Season Planner Mobile Startseite">
+            <div class="mock-phone-screen">
+              <div class="mock-school-chips">
+                <span class="mock-school-chip active">Alle Schulen</span>
+                <span class="mock-school-chip">FS Achensee</span>
+                <span class="mock-school-chip">FS Zillertal</span>
+              </div>
+              <div class="mock-hero-event">
+                <div class="mock-hero-event-kicker">Nächster Einsatz</div>
+                <div class="mock-hero-event-title">Sicherheitstraining Achensee</div>
+                <div class="mock-hero-event-meta">15.05. 08:30 – 17.05.2026</div>
+                <div class="mock-hero-event-pills">
+                  <span>Fluglehrer</span>
+                  <span>FS Achensee</span>
+                </div>
+              </div>
+              <div class="mock-phone-label">Tandem-Einsätze (2)</div>
+              <div class="mock-phone-card">
+                <div class="mock-date-badge is-ok" style="width:36px;height:38px;border-radius:10px"><strong style="font-size:13px">23</strong><span style="font-size:8.5px">Mai</span></div>
+                <div class="mock-row-body">
+                  <div class="mock-row-title" style="font-size:11.5px">Tandem · 2 Tage</div>
+                  <div class="mock-row-sub" style="font-size:10px">FS Zillertal</div>
+                </div>
+                <span class="chip chip-ok" style="font-size:9px;padding:3px 6px">Bestätigt</span>
+              </div>
+              <div class="mock-phone-nav-pill">
+                <span class="nav-item active">
+                  <span class="mock-dot-blue"></span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                  Start
+                </span>
+                <span class="nav-item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                  Kalender
+                </span>
+                <span class="nav-item">
+                  <span class="mock-badge-red">2</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9z"/></svg>
+                  Wichtiges
+                </span>
+                <span class="nav-item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+                  Konto
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INVENTAR MANAGER ============ -->
+  <section class="section section-alt" id="inventar">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Ausrüstung, Prüfung & Wartung</span>
+        <div class="product-title-row">
+          <svg class="product-badge" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="48" height="48" rx="13" fill="#5B3DF5"/>
+            <path d="M24 12l11 5.2v10.6c0 7-4.7 10.9-11 13.2-6.3-2.3-11-6.2-11-13.2V17.2L24 12z" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M18.5 24.5l4 4 7-8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h2 class="h2">Inventar Manager</h2>
+        </div>
+        <p class="lead product-tagline">
+          Gleitschirme, Gurtzeuge, Rettungswesten und Funkgeräte — jede Gerätenummer live nach Status sichtbar, per QR-Scan gebucht und mit lückenlosem Prüfprotokoll.
+        </p>
+      </div>
+
+      <!-- Feature 1: Kategorie-Übersicht mit Live-Status-Kacheln -->
+      <div class="feature">
+        <div class="feature-copy reveal reveal-left">
+          <span class="tag">Kategorien & Live-Status</span>
+          <h3>Auf einen Blick sehen, was im Lager, unterwegs oder gesperrt ist</h3>
+          <p>Jede Ausrüstungskategorie zeigt alle Materialnummern als direkt antippbare Status-Kacheln. Mit einem Tipp checkst du einzelne Teile ein oder aus — oder bewegst ganze Kurs-Chargen als Sammelbewegung.</p>
+          <ul class="feature-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Farbcodierte Gerätenummern: Lager (Grün), Out (Rot), Ticket (Gestreift), Gesperrt (Violett)</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Sammelbewegung für ganze Chargen & direkter Geräte-Tausch zwischen Nutzern</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Durchsuchbare Inventarliste nach Name, Material- & Seriennummer (inkl. Entsorgungs-Archiv)</li>
+          </ul>
+        </div>
+        <div class="feature-visual reveal reveal-scale">
+          <div class="mock-card" aria-label="Vorschau Inventar Manager Kategorien mit farbigen Gerätenummern">
+            <div class="mock-head">
+              <span class="mock-title-strong">Übersicht · Kategorien</span>
+              <span class="chip chip-primary">Tauschen</span>
+            </div>
+            <div class="mock-inv-cat">
+              <div class="mock-inv-cat-head">
+                <div class="mock-inv-cat-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9.5-4.6-1.3-8-4.5-8-9.5V7l8-4z"/></svg>
+                </div>
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Rettungswesten</div>
+                  <div class="mock-row-sub">Tippen für Check-in/out · Lang drücken für Details</div>
+                </div>
+                <span class="chip chip-info">Sammelbewegung</span>
+              </div>
+              <div class="mock-inv-tiles">
+                <span class="mock-inv-tile in-stock">01</span>
+                <span class="mock-inv-tile in-stock">02</span>
+                <span class="mock-inv-tile out">03</span>
+                <span class="mock-inv-tile ticket">04</span>
+                <span class="mock-inv-tile in-stock">05</span>
+                <span class="mock-inv-tile locked">06</span>
+                <span class="mock-inv-tile out">07</span>
+                <span class="mock-inv-tile in-stock">08</span>
+              </div>
+              <div class="mock-inv-foot">
+                <span class="chip chip-ok">Lager: 4</span>
+                <span class="chip chip-danger">Out: 2</span>
+              </div>
+            </div>
+
+            <div class="mock-inv-cat">
+              <div class="mock-inv-cat-head" style="margin-bottom:10px">
+                <div class="mock-inv-cat-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13c3-6 15-6 18 0"/><path d="M6 13l6 7 6-7"/></svg>
+                </div>
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Gleitschirme</div>
+                </div>
+                <span class="chip chip-ok">Lager: 5</span>
+                <span class="chip chip-danger">Out: 1</span>
+              </div>
+              <div class="mock-inv-tiles" style="margin-bottom:0">
+                <span class="mock-inv-tile in-stock">S11</span>
+                <span class="mock-inv-tile in-stock">S12</span>
+                <span class="mock-inv-tile out">S14</span>
+                <span class="mock-inv-tile in-stock">S15</span>
+                <span class="mock-inv-tile in-stock">S16</span>
+                <span class="mock-inv-tile in-stock">S17</span>
+              </div>
+            </div>
+
+            <div class="mock-inv-legend">
+              <span><i style="background:#12805C"></i>Lager</span>
+              <span><i style="background:#D92D20"></i>Ausgegeben</span>
+              <span><i style="background:repeating-linear-gradient(-45deg,#D92D20 0 3px,#fff 3px 6px);border:1px solid #D92D20"></i>Ticket offen</span>
+              <span><i style="background:#7C3AED"></i>Gesperrt</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 2: QR-Scan & Check-in / Check-out -->
+      <div class="feature reverse">
+        <div class="feature-copy reveal reveal-right">
+          <span class="tag">QR-Scan & Bewegungen</span>
+          <h3>Scannen, ausgeben, dokumentieren — in zwei Sekunden</h3>
+          <p>Jedes Ausrüstungsteil lässt sich über seinen QR-Code direkt am Lagerregal oder Startplatz scannen. Ausgabe, Rücknahme und jede Bewegung werden automatisch mit Zeitstempel und Bearbeiter protokolliert.</p>
+          <ul class="feature-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Eingebauter QR-Scanner ruft Gerät &amp; Aktionen direkt auf</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Lückenlose Historie aller Ausgaben, Rücknahmen, Tauschvorgänge &amp; Checks</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Nutzt dasselbe Tragegurt-Konto und dieselbe Flugschule wie Season Planner</li>
+          </ul>
+        </div>
+        <div class="feature-visual reveal reveal-scale">
+          <div class="mock-card" aria-label="Vorschau QR-Scan und Check-out">
+            <div class="mock-head">
+              <span class="mock-title-strong">QR-Scan erkannt</span>
+              <span class="chip chip-ok">Im Lager</span>
+            </div>
+            <div class="mock-qr-split">
+              <div class="mock-qr">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2M14 19h2v2M19 19h2v2"/></svg>
+                <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+                <span class="scan-line"></span>
+              </div>
+              <div>
+                <div class="mock-row-title" style="font-size:15px">Gleitschirm Alpha 7 (#S14)</div>
+                <div class="mock-row-sub">SN: AD-48219 · Letzter Check: 03/2026</div>
+                <div class="mock-action-pills">
+                  <span class="mock-action-btn primary">Ausgeben (Out)</span>
+                  <span class="mock-action-btn subtle">Service-Check</span>
+                  <span class="mock-action-btn subtle">Ticket</span>
+                </div>
+              </div>
+            </div>
+            <div class="mock-rows" style="margin-top:14px">
+              <div class="mock-row">
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Rücknahme · Lager</div>
+                  <div class="mock-row-sub">Per QR-Scan · Tom Brunner · Gestern 17:40</div>
+                </div>
+                <span class="chip chip-ok">Check-in</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 3: Service-Protokolle, Trouble-Tickets & To-Do-Sync -->
+      <div class="feature">
+        <div class="feature-copy reveal reveal-left">
+          <span class="tag">Wartung, Checks & Auto-Sperre</span>
+          <h3>Kein überfälliger Check, kein defektes Teil im Umlauf</h3>
+          <p>Meldet jemand ein Trouble-Ticket, wird das Gerät automatisch für die Ausgabe gesperrt. Service-Checks erfasst du wahlweise über das digitale Prüfprotokoll (z. B. Rettungswesten-Check) oder per PDF-Prüfnachweis.</p>
+          <ul class="feature-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Trouble-Tickets sperren betroffene Geräte automatisch bis zur Behebung</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Digitale Service-Formulare (inkl. Vorbelegung vom letzten Check) &amp; PDF-Nachweis-Upload</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg> Automatische To-Do-Liste bei fälligen Services (7 Tage Vorlauf) — direkt verknüpft mit Season Planner</li>
+          </ul>
+        </div>
+        <div class="feature-visual reveal reveal-scale">
+          <div class="mock-card" aria-label="Vorschau Inventar To-Do Liste und Service-Protokoll">
+            <div class="mock-head">
+              <span class="mock-title-strong">To-Do Liste · Wartung</span>
+              <span class="chip chip-ticket">1 Ticket · 1 fällig</span>
+            </div>
+            <div class="mock-rows">
+              <div class="mock-todo is-ticket">
+                <div class="mock-todo-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+                </div>
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Rettungsweste (#04)</div>
+                  <div class="mock-todo-sub-accent">Troubleticket offen · Automatisch gesperrt</div>
+                </div>
+                <span class="chip chip-danger">Gesperrt</span>
+              </div>
+              <div class="mock-todo is-warn">
+                <div class="mock-todo-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                </div>
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Gleitschirm Alpha 7 (#S12)</div>
+                  <div class="mock-todo-sub-accent">Service fällig in 4 Tagen</div>
+                </div>
+                <span class="chip chip-warn">Prüfen</span>
+              </div>
+              <div class="mock-todo is-ok">
+                <div class="mock-todo-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg>
+                </div>
+                <div class="mock-row-body">
+                  <div class="mock-row-title">Rettungsweste (#01) · Routinecheck</div>
+                  <div class="mock-todo-sub-accent">CO₂-Gewicht &amp; Drucktest bestanden · Protokoll abgelegt</div>
+                </div>
+                <span class="chip chip-ok">OK</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLATTFORM & DATENSCHUTZ ============ -->
+  <section class="section" id="plattform">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Plattform &amp; Datenschutz</span>
+        <h2 class="h2">Gebaut für echte Datensicherheit im Flugschul-Alltag.</h2>
+        <p class="lead">
+          Von Anfang an auf europäischer Infrastruktur aufgebaut — mit strikter Mandantentrennung, ohne Tracking und mit voller Kontrolle über deine Daten.
+        </p>
+      </div>
+
+      <div class="trust-grid stagger">
+        <div class="trust-card reveal">
+          <div class="trust-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <h3>Ein Konto, mehrere Schulen</h3>
+          <p>Einmal registrieren (E-Mail-Code, Google oder Apple) und schulübergreifend in Season Planner &amp; Inventar Manager arbeiten.</p>
+        </div>
+
+        <div class="trust-card reveal">
+          <div class="trust-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><path d="M6 6.5h.01M6 17.5h.01"/></svg>
+          </div>
+          <h3>Hosting in DE &amp; EU-Backups</h3>
+          <p>Eigener Server in Deutschland (Strato) und täglich lokal mit AES-256 verschlüsselte Backups in Paris (Scaleway, EU).</p>
+        </div>
+
+        <div class="trust-card reveal">
+          <div class="trust-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <h3>Strikte Mandantentrennung</h3>
+          <p>Serverseitige Team- &amp; Dateirechte je Flugschule. Lizenzen &amp; Medicals bleiben privat, bis du sie aktiv für eine Schule freigibst.</p>
+        </div>
+
+        <div class="trust-card reveal">
+          <div class="trust-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <h3>Kein Tracking, volle Kontrolle</h3>
+          <p>Keine Analyse-Tracker, keine externen Google-Fonts-Aufrufe. Datenexport (JSON) und Kontolöschung direkt in der App.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="section-tight">
+    <div class="container">
+      <div class="cta-band reveal reveal-scale">
+        <span class="eyebrow" style="color:#fff">Kostenlos starten</span>
+        <h2>Bereit für die nächste Saison?</h2>
+        <p>Starte mit deiner Flugschule und deinem Team vorerst dauerhaft kostenlos und ohne Abo-Zwang. Sollten für Flugschulen in Zukunft faire Gebühren hinzukommen, informieren wir rechtzeitig — niemals automatisch ohne deine Zustimmung.</p>
+        <div class="btn-row">
+          <a class="btn btn-primary" href="https://planner.tragegurt.com" target="_blank" rel="noopener">Season Planner öffnen</a>
+          <a class="btn btn-secondary" href="datenschutz.html">Mehr zum Datenschutz</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="#top" class="brand">
+          <svg class="brand-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="40" height="40" rx="11" fill="url(#bm)"/>
+            <path d="M11 7L20 32L29 7" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M15 19.5L25 19.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+            <circle cx="20" cy="19.5" r="2.6" fill="#9CA3AF"/>
+            <circle cx="20" cy="32" r="2.6" fill="#FF5A36"/>
+          </svg>
+          Tragegurt
+        </a>
+        <p>Schlanke Software für Flugschulen — gebaut für Saisonplanung, Nachweise und Ausrüstung im echten Flugbetrieb.</p>
+      </div>
+      <div class="footer-cols">
+        <div class="footer-col">
+          <h4>Produkte</h4>
+          <a href="#planner">Season Planner</a>
+          <a href="#inventar">Inventar Manager</a>
+          <a href="#plattform">Datenschutz &amp; Hosting</a>
+          <a href="https://planner.tragegurt.com" target="_blank" rel="noopener">Season Planner öffnen</a>
+        </div>
+        <div class="footer-col">
+          <h4>Rechtliches</h4>
+          <a href="impressum.html">Impressum</a>
+          <a href="datenschutz.html">Datenschutz</a>
+          <a href="agb.html">AGB</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="year">2026</span> Tragegurt · Timo Schumacher</span>
+      <div class="legal-links">
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Datenschutz</a>
+        <a href="agb.html">AGB</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

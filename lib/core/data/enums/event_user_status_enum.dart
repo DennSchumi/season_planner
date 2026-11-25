@@ -17,6 +17,14 @@ enum EventUserStatusLabelContext {
 }
 
 extension EventUserStatusLabelX on EventUserStatusEnum {
+  static EventUserStatusEnum parse(dynamic raw) {
+    final s = (raw ?? 'open').toString();
+    return EventUserStatusEnum.values.firstWhere(
+      (e) => e.name == s,
+      orElse: () => EventUserStatusEnum.open,
+    );
+  }
+
   String label({EventUserStatusLabelContext context = EventUserStatusLabelContext.defaultView}) {
     switch (context) {
       case EventUserStatusLabelContext.userView:
@@ -26,7 +34,6 @@ extension EventUserStatusLabelX on EventUserStatusEnum {
       case EventUserStatusLabelContext.tooltip:
         return _tooltipLabel();
       case EventUserStatusLabelContext.defaultView:
-      default:
         return _defaultLabel();
     }
   }
@@ -34,28 +41,31 @@ extension EventUserStatusLabelX on EventUserStatusEnum {
   String _defaultLabel() {
     switch (this) {
       case EventUserStatusEnum.open:
-        return 'Open Opportunity';
+        return 'Offene Stelle';
       case EventUserStatusEnum.accepted_flight_school:
-        return 'Accepted by Flight School';
+        return 'Von Flugschule bestätigt';
       case EventUserStatusEnum.accepted_user:
-        return 'Accepted by User';
+        return 'Vom Mitglied bestätigt';
       case EventUserStatusEnum.pending_flight_school:
-        return 'Waiting for Flight School';
+        return 'Warte auf Flugschule';
       case EventUserStatusEnum.pending_user:
-        return 'Waiting for User Response';
+        return 'Warte auf Rückmeldung';
       case EventUserStatusEnum.denied_user:
-        return 'Declined by User';
+        return 'Vom Mitglied abgelehnt';
       case EventUserStatusEnum.denied_flight_school:
-        return 'Declined by Flight School';
+        return 'Von Flugschule abgelehnt';
       case EventUserStatusEnum.user_requests_change:
-        return 'User requests to Change';
+        return 'Änderung angefragt';
     }
   }
 
   String _userViewLabel() {
     switch (this) {
       case EventUserStatusEnum.user_requests_change:
-        return 'You requested a Change';
+        return 'Du hast eine Änderung angefragt';
+      case EventUserStatusEnum.accepted_user:
+      case EventUserStatusEnum.accepted_flight_school:
+        return 'Bestätigt';
       default:
         return _defaultLabel();
     }
@@ -64,27 +74,29 @@ extension EventUserStatusLabelX on EventUserStatusEnum {
   String _shortLabel() {
     switch (this) {
       case EventUserStatusEnum.open:
-        return 'Open';
+        return 'Offen';
       case EventUserStatusEnum.accepted_user:
-        return 'Accepted';
+      case EventUserStatusEnum.accepted_flight_school:
+        return 'Bestätigt';
       case EventUserStatusEnum.user_requests_change:
-        return 'Change';
-      default:
-        return _defaultLabel();
+        return 'Änderung';
+      case EventUserStatusEnum.pending_flight_school:
+      case EventUserStatusEnum.pending_user:
+        return 'Ausstehend';
+      case EventUserStatusEnum.denied_user:
+      case EventUserStatusEnum.denied_flight_school:
+        return 'Abgelehnt';
     }
   }
 
   String _tooltipLabel() {
     switch (this) {
       case EventUserStatusEnum.pending_flight_school:
-        return 'Waiting for confirmation from the flight school.';
+        return 'Warte auf Bestätigung durch die Flugschule.';
       case EventUserStatusEnum.denied_user:
-        return 'You have declined this request.';
+        return 'Du hast diese Anfrage abgelehnt.';
       default:
         return _defaultLabel();
     }
   }
 }
-
-
-

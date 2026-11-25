@@ -10,24 +10,18 @@ class FlightSchoolFunctions {
   Future<List<dynamic>> getMembersWithAuth({
     required String flightSchoolId,
   }) async {
-    print(flightSchoolId);
-    final path = "/members?flightSchoolId=${Uri.encodeQueryComponent(flightSchoolId)}";
+    final path =
+        "/members?flightSchoolId=${Uri.encodeQueryComponent(flightSchoolId)}";
 
     final res = await functions.createExecution(
       functionId: AppwriteConfig().flightSchoolFunctionsId,
       path: path,
       method: ExecutionMethod.gET,
-      headers: const {
-        "content-type": "application/json",
-
-      },
+      headers: const {"content-type": "application/json"},
     );
 
-
     final body = res.responseBody;
-    if (body == null || body.isEmpty) return const [];
-
-
+    if (body.isEmpty) return const [];
 
     final decoded = jsonDecode(body);
 
@@ -38,7 +32,6 @@ class FlightSchoolFunctions {
     }
     return [];
   }
-
 
   Future<Map<String, dynamic>> inviteUserToFlightSchool({
     required String flightSchoolId,
@@ -59,7 +52,7 @@ class FlightSchoolFunctions {
       body: jsonEncode(payload),
     );
 
-    final body = (exec.responseBody ?? "").trim();
+    final body = exec.responseBody.trim();
     if (body.isEmpty) return {"ok": false};
 
     final decoded = jsonDecode(body);
