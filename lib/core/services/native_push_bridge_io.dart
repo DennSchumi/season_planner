@@ -273,7 +273,21 @@ Future<void> syncNativePushTarget({required String userId}) async {
   if (!_fcmReady) return;
 
   try {
-    // Appwrite Messaging FCM erwartet den klassischen FCM-Registration-Token.
+    if (Platform.isIOS) {
+      // Auf iOS stellt APNs das Device-Token manchmal erst kurz nach App-Start bereit;
+      // kurz warten, damit FirebaseMessaging.getToken() keinen apns-token-not-set Fehler wirft.
+      String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+      for (int attempt = 0; attempt < 5 && apnsToken == null; attempt++) {
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+        apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+      }
+      if (apnsToken == null) {
+        debugPrint('NativePush iOS APNs token noch nicht verfügbar – späterer Retry.');
+        return;
+      }
+    }
+
+    // Appwrite Messaging FCM erwartet den klassischen FCM-Registration-Token (für Android & iOS via FCM→APNs).
     // ignore: deprecated_member_use
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.trim().isEmpty) return;
@@ -301,9 +315,9 @@ Future<void> _registerTokenInAppwrite({
     }
 
     final cfg = AppwriteConfig();
-    final providerId = Platform.isIOS
-        ? (cfg.apnsProviderId.isNotEmpty ? cfg.apnsProviderId : null)
-        : (cfg.fcmProviderId.isNotEmpty ? cfg.fcmProviderId : null);
+    // Sowohl Android als auch iOS senden über Firebase Cloud Messaging (FCM → APNs),
+    // daher nutzen beide Plattformen denselben Appwrite-FCM-Provider.
+    final providerId = cfg.fcmProviderId.isNotEmpty ? cfg.fcmProviderId : null;
 
     final account = AuthService().account;
     String targetId = savedTargetId ?? '';

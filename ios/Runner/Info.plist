@@ -37,10 +37,33 @@
 			</array>
 		</dict>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>https</string>
+		<string>http</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Erlaubt das Exportieren deiner bestätigten Einsätze und Kurse in deinen iOS-Kalender.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Erlaubt das Exportieren deiner bestätigten Einsätze und Kurse in deinen iOS-Kalender.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Erlaubt das Hinzufügen deiner bestätigten Einsätze und Kurse in deinen iOS-Kalender.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Erlaubt das Aufnehmen von Profilbildern sowie Lizenz- und Qualifikationsnachweisen mit der Kamera.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>Please allow access to export events to your local calendar.</string>
+	<string>Wird vom System-Kalenderdialog beim Exportieren von Terminen benötigt.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Erlaubt das Auswählen von Profilbildern sowie Lizenz- und Qualifikationsnachweisen aus deiner Fotomediathek.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
