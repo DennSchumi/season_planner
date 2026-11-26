@@ -645,10 +645,7 @@ class AppModeSwitchChip extends StatelessWidget {
     final user = context.watch<UserProvider>().user;
     if (user == null) return const SizedBox.shrink();
 
-    final isAdmin = user.flightSchools.any(
-      (fs) => fs.adminUserIds.contains(user.id),
-    );
-    if (!isAdmin) return const SizedBox.shrink();
+    if (!user.isAdmin) return const SizedBox.shrink();
 
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -802,9 +799,7 @@ class _AdminFlightSchoolSwitcherChipState
     final activeFs = context.watch<FlightSchoolProvider>().flightSchool;
     if (user == null || activeFs == null) return const SizedBox.shrink();
 
-    final adminSchools = user.flightSchools
-        .where((fs) => fs.adminUserIds.contains(user.id))
-        .toList();
+    final adminSchools = user.adminFlightSchools;
     if (adminSchools.length <= 1) return const SizedBox.shrink();
 
     final label = activeFs.displayShortName.trim().isNotEmpty

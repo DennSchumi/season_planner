@@ -82,9 +82,8 @@ class _BaseAdminViewState extends State<BaseAdminView> {
       );
     }
 
-    final List<FlightSchoolUserView> adminFlightSchools = user.flightSchools
-        .where((fs) => fs.adminUserIds.contains(user.id))
-        .toList();
+    final List<FlightSchoolUserView> adminFlightSchools =
+        user.adminFlightSchools;
 
     if (adminFlightSchools.isEmpty) {
       return Scaffold(

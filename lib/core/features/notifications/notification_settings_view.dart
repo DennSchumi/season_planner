@@ -66,8 +66,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<UserProvider>().user;
-    final isAdmin = user != null &&
-        user.flightSchools.any((fs) => fs.adminUserIds.contains(user.id));
+    final isAdmin = user != null && user.isAdmin;
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(

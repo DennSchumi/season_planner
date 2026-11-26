@@ -103,14 +103,8 @@ class _DesktopAppShellState extends State<DesktopAppShell> {
         ? context.watch<FlightSchoolProvider>().flightSchool
         : null;
 
-    final isAdmin =
-        user != null &&
-        user.flightSchools.any((fs) => fs.adminUserIds.contains(user.id));
-    final adminSchools = user == null
-        ? const []
-        : user.flightSchools
-              .where((fs) => fs.adminUserIds.contains(user.id))
-              .toList();
+    final isAdmin = user != null && user.isAdmin;
+    final adminSchools = user?.adminFlightSchools ?? const [];
 
     final sidebarBg = isDark ? AppTheme.darkCard : AppTheme.desktopSidebar;
     final borderColor = isDark ? AppTheme.darkBorder : AppTheme.desktopBorder;
@@ -224,16 +218,22 @@ class _DesktopAppShellState extends State<DesktopAppShell> {
                               ),
                       ),
 
-                      // Admin: aktive Flugschule + ggf. Flugschul-Umschalter
-                      if (widget.isAdminMode && activeFs != null && !compact)
+                      // Admin: aktive Flugschule + ggf. Flugschul-Umschalter (auch eingeklappt)
+                      if (widget.isAdminMode && activeFs != null)
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          padding: EdgeInsets.fromLTRB(
+                            compact ? 12 : 12,
+                            0,
+                            compact ? 12 : 12,
+                            12,
+                          ),
                           child: _SidebarSchoolCard(
                             schoolName: activeFs.displayName,
                             logoLink: activeFs.logoLink,
                             switching: _switchingSchool,
                             adminSchools: adminSchools,
                             activeSchoolId: activeFs.id,
+                            collapsed: compact,
                             onSelectSchool: _switchAdminSchool,
                           ),
                         ),
@@ -517,6 +517,7 @@ class _SidebarSchoolCard extends StatelessWidget {
   final bool switching;
   final List<dynamic> adminSchools;
   final String activeSchoolId;
+  final bool collapsed;
   final ValueChanged<String> onSelectSchool;
 
   const _SidebarSchoolCard({
@@ -525,6 +526,7 @@ class _SidebarSchoolCard extends StatelessWidget {
     required this.switching,
     required this.adminSchools,
     required this.activeSchoolId,
+    this.collapsed = false,
     required this.onSelectSchool,
   });
 
@@ -568,7 +570,9 @@ class _SidebarSchoolCard extends StatelessWidget {
     final canSwitch = adminSchools.length > 1;
 
     final inner = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: collapsed
+          ? const EdgeInsets.all(8)
+          : const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkCardElevated : Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -576,49 +580,70 @@ class _SidebarSchoolCard extends StatelessWidget {
           color: isDark ? AppTheme.darkBorder : AppTheme.desktopBorder,
         ),
       ),
-      child: Row(
-        children: [
-          if (switching)
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: Center(
-                child: SizedBox(
-                  width: 15,
-                  height: 15,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: cs.primary,
+      child: collapsed
+          ? Center(
+              child: switching
+                  ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Center(
+                        child: SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: cs.primary,
+                          ),
+                        ),
+                      ),
+                    )
+                  : _logo(context, logoLink, 24),
+            )
+          : Row(
+              children: [
+                if (switching)
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Center(
+                      child: SizedBox(
+                        width: 15,
+                        height: 15,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: cs.primary,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  _logo(context, logoLink, 24),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    schoolName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface,
+                    ),
                   ),
                 ),
-              ),
-            )
-          else
-            _logo(context, logoLink, 24),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              schoolName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: cs.onSurface,
-              ),
+                if (canSwitch)
+                  Icon(
+                    Icons.unfold_more_rounded,
+                    size: 16,
+                    color: cs.onSurfaceVariant,
+                  ),
+              ],
             ),
-          ),
-          if (canSwitch)
-            Icon(
-              Icons.unfold_more_rounded,
-              size: 16,
-              color: cs.onSurfaceVariant,
-            ),
-        ],
-      ),
     );
 
-    if (!canSwitch) return inner;
+    if (!canSwitch) {
+      return collapsed ? Tooltip(message: schoolName, child: inner) : inner;
+    }
 
     return PopupMenuButton<String>(
       enabled: !switching,

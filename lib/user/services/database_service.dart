@@ -106,57 +106,12 @@ class DatabaseService {
     }
   }
 
-  /// Legt für jede gewählte Flugschule eine Beitrittsanfrage (`status: requested`) an.
+  /// Legt für jede gewählte Flugschule serverseitig eine Beitrittsanfrage (`status: requested`) an.
   Future<int> requestJoinFlightSchools(List<String> flightSchoolIds) async {
     final user = await AuthService().getCurrentUser();
     if (user == null) throw Exception('Kein angemeldeter Benutzer.');
-    final userRow = await AuthService().ensureUserProfileRow(user: user);
-    final userRowId = userRow?.$id ?? user.$id;
-
-    final cfg = AppwriteConfig();
-    final existing = await tablesDB.listRows(
-      databaseId: cfg.mainDatabaseId,
-      tableId: cfg.membershipsId,
-      queries: [
-        Query.equal('users', userRowId),
-        Query.select(['*', 'flightSchools.*']),
-        Query.limit(200),
-      ],
-    );
-
-    final existingSchoolIds = <String>{};
-    for (final m in existing.rows) {
-      final fs = m.data['flightSchools'];
-      if (fs is Map && fs['\$id'] != null) {
-        existingSchoolIds.add(fs['\$id'].toString());
-      } else if (fs is String && fs.isNotEmpty) {
-        existingSchoolIds.add(fs);
-      }
-    }
-
-    int createdCount = 0;
-    for (final schoolId in flightSchoolIds) {
-      if (existingSchoolIds.contains(schoolId)) continue;
-      await tablesDB.createRow(
-        databaseId: cfg.mainDatabaseId,
-        tableId: cfg.membershipsId,
-        rowId: ID.unique(),
-        data: {
-          'users': userRowId,
-          'flightSchools': schoolId,
-          'status': MembershipStatusEnum.requested.name,
-          'roles': <String>[],
-        },
-        permissions: SecurityPrivacyService.ownerAndSchoolAdminPerms(
-          userId: user.$id,
-          flightSchoolId: schoolId,
-          allowOwnerDelete: true,
-        ),
-      );
-      await SecurityPrivacyService().syncSchoolTeam(schoolId);
-      createdCount++;
-    }
-    return createdCount;
+    await AuthService().ensureUserProfileRow(user: user);
+    return SecurityPrivacyService().requestJoinFlightSchools(flightSchoolIds);
   }
 
   /// Erstellt eine neue Flugschule (`subscription_status: pending`),
@@ -454,20 +409,35 @@ class DatabaseService {
         );
       }
 
+      final trimmedPhone = phone.trim();
       final prefs = Map<String, dynamic>.from(current.prefs.data);
-      if (phone.trim().isNotEmpty) {
-        prefs['phone'] = phone.trim();
-      } else {
-        prefs.remove('phone');
+      final oldPrefsPhone = (prefs['phone'] ?? '').toString().trim();
+      if (trimmedPhone != oldPrefsPhone) {
+        if (trimmedPhone.isNotEmpty) {
+          prefs['phone'] = trimmedPhone;
+        } else if (prefs.containsKey('phone')) {
+          // Appwrite lehnt ein komplett leeres JSON-Objekt `{}` bei PATCH /account/prefs mit 400 ab.
+          if (prefs.length <= 1) {
+            prefs['phone'] = '';
+          } else {
+            prefs.remove('phone');
+          }
+        }
+        if (prefs.isNotEmpty) {
+          try {
+            await account.updatePrefs(prefs: prefs);
+          } catch (e) {
+            debugPrint('updateAccount prefs warning: $e');
+          }
+        }
       }
-      await account.updatePrefs(prefs: prefs);
 
       // Auch in core_db.users synchronisieren
       final cfg = AppwriteConfig();
       try {
         final userRow = await AuthService().ensureUserProfileRow(
           user: current,
-          phoneOverride: phone.trim(),
+          phoneOverride: trimmedPhone,
         );
         if (userRow != null) {
           await tablesDB.updateRow(
@@ -477,7 +447,7 @@ class DatabaseService {
             data: {
               'name': fullName,
               'email': email.trim(),
-              'phone': phone.trim(),
+              'phone': trimmedPhone,
               if (emergencyContactName != null)
                 'emergency_contact_name': emergencyContactName.trim(),
               if (emergencyContactRelation != null)
@@ -495,7 +465,9 @@ class DatabaseService {
             },
           );
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('updateAccount core_db.users sync warning: $e');
+      }
 
       return true;
     } catch (e) {
@@ -1140,6 +1112,69 @@ class DatabaseService {
         flightSchools.addAll(loadedSchools.whereType<FlightSchoolUserView>());
       }
 
+      // Auch Flugschulen laden, bei denen der Nutzer in `admin_users` steht,
+      // aber (z. B. nach Austritt aus dem Team) keine reguläre `memberships`-Zeile hat.
+      final List<FlightSchoolUserView> adminOnlyFlightSchools = [];
+      try {
+        final userRowId = userDocument.rows.isNotEmpty
+            ? userDocument.rows.first.$id
+            : userID;
+        final knownSchoolIds = flightSchools.map((fs) => fs.id).toSet();
+        final allSchoolsRes = await tablesDB.listRows(
+          databaseId: cfg.mainDatabaseId,
+          tableId: cfg.flightSchoolsCollectionId,
+          queries: [Query.limit(200)],
+        );
+        for (final row in allSchoolsRes.rows) {
+          final fsId = row.$id;
+          if (knownSchoolIds.contains(fsId)) continue;
+          final adminIds = List<String>.from(row.data['admin_users'] ?? const []);
+          if (!adminIds.contains(userID) && !adminIds.contains(userRowId)) {
+            continue;
+          }
+          adminOnlyFlightSchools.add(
+            FlightSchoolUserView(
+              id: fsId,
+              membershipId: '',
+              displayName: (row.data['display_name'] ?? '').toString(),
+              displayShortName:
+                  (row.data['display_short_name'] ?? '').toString(),
+              membershipStatus: MembershipStatusEnum.inactive,
+              subscriptionStatus: SubscriptionStatusEnumX.parse(
+                row.data['subscription_status'],
+              ),
+              teamTier: TeamTierEnum.core,
+              availableRoles: const [],
+              assignedQualificationIds: const [],
+              requestedQualificationIds: const [],
+              databaseId:
+                  (row.data['database_id'] ?? cfg.seasonPlannerDatabaseId)
+                      .toString(),
+              teamAssignmentsEventsCollectionId:
+                  (row.data['team_assigments_events_id'] ??
+                          cfg.teamAssignmentsEventsTableId)
+                      .toString(),
+              eventsCollectionId:
+                  (row.data['events_id'] ?? cfg.eventsTableId).toString(),
+              auditLogsCollectionId:
+                  (row.data['audit_logs_id'] ?? cfg.auditLogsTableId)
+                      .toString(),
+              adminUserIds: adminIds,
+              logoLink: (row.data['logo_link'] ?? '').toString(),
+              tandemEnabled: row.data['tandem_enabled'] != false,
+              timesheetEnabled: row.data['timesheet_enabled'] != false,
+              timesheetQualificationIds:
+                  (row.data['timesheet_qualification_ids'] as List? ?? const [])
+                      .map((e) => e.toString().trim())
+                      .where((e) => e.isNotEmpty)
+                      .toList(),
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('getUserInformation admin-only schools warning: $e');
+      }
+
       final phone = dbPhone.isNotEmpty
           ? dbPhone
           : (user.phone.isNotEmpty
@@ -1163,6 +1198,7 @@ class DatabaseService {
         employmentType: employmentType,
         activeSince: activeSince,
         flightSchools: flightSchools,
+        adminOnlyFlightSchools: adminOnlyFlightSchools,
         events: const [],
       );
 

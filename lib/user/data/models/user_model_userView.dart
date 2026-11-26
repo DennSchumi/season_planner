@@ -19,6 +19,7 @@ class UserModelUserView {
   final String employmentType;
   final String activeSince;
   final List<FlightSchoolUserView> flightSchools;
+  final List<FlightSchoolUserView> adminOnlyFlightSchools;
   final List<Event> events;
   final List<TandemDuty> tandemDuties;
   final List<TandemDemand> tandemDemands;
@@ -42,12 +43,36 @@ class UserModelUserView {
     this.employmentType = '',
     this.activeSince = '',
     required this.flightSchools,
+    this.adminOnlyFlightSchools = const [],
     required this.events,
     this.tandemDuties = const [],
     this.tandemDemands = const [],
     this.tandemPilotNamesById = const {},
     this.hasLoadedArchive = false,
   });
+
+  /// Alle Flugschulen, bei denen der Nutzer als Administrator eingetragen ist
+  /// (inkl. Schulen ohne reguläre Team-Mitgliedschaft).
+  List<FlightSchoolUserView> get adminFlightSchools {
+    final byId = <String, FlightSchoolUserView>{};
+    for (final fs in flightSchools) {
+      if (fs.adminUserIds.contains(id)) {
+        byId[fs.id] = fs;
+      }
+    }
+    for (final fs in adminOnlyFlightSchools) {
+      byId.putIfAbsent(fs.id, () => fs);
+    }
+    final list = byId.values.toList()
+      ..sort(
+        (a, b) => a.displayName.toLowerCase().compareTo(
+              b.displayName.toLowerCase(),
+            ),
+      );
+    return list;
+  }
+
+  bool get isAdmin => adminFlightSchools.isNotEmpty;
 
   bool get hasEmergencyContact =>
       emergencyContactName.trim().isNotEmpty ||
@@ -79,6 +104,10 @@ class UserModelUserView {
       flightSchools: (json['flightSchools'] as List? ?? const [])
           .map((fs) => FlightSchoolUserView.fromJson(fs))
           .toList(),
+      adminOnlyFlightSchools:
+          (json['adminOnlyFlightSchools'] as List? ?? const [])
+              .map((fs) => FlightSchoolUserView.fromJson(fs))
+              .toList(),
       events: (json['events'] as List? ?? const [])
           .map((e) => Event.fromJson(e))
           .toList(),
@@ -111,6 +140,8 @@ class UserModelUserView {
       'employmentType': employmentType,
       'activeSince': activeSince,
       'flightSchools': flightSchools.map((fs) => fs.toJson()).toList(),
+      'adminOnlyFlightSchools':
+          adminOnlyFlightSchools.map((fs) => fs.toJson()).toList(),
       'events': events.map((e) => e.toJson()).toList(),
       'tandemDuties': tandemDuties.map((d) => d.toJson()).toList(),
       'tandemDemands': tandemDemands.map((d) => d.toJson()).toList(),
@@ -135,6 +166,7 @@ class UserModelUserView {
     String? employmentType,
     String? activeSince,
     List<FlightSchoolUserView>? flightSchools,
+    List<FlightSchoolUserView>? adminOnlyFlightSchools,
     List<Event>? events,
     List<TandemDuty>? tandemDuties,
     List<TandemDemand>? tandemDemands,
@@ -160,6 +192,8 @@ class UserModelUserView {
       employmentType: employmentType ?? this.employmentType,
       activeSince: activeSince ?? this.activeSince,
       flightSchools: flightSchools ?? this.flightSchools,
+      adminOnlyFlightSchools:
+          adminOnlyFlightSchools ?? this.adminOnlyFlightSchools,
       events: events ?? this.events,
       tandemDuties: tandemDuties ?? this.tandemDuties,
       tandemDemands: tandemDemands ?? this.tandemDemands,

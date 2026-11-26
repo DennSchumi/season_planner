@@ -1682,6 +1682,67 @@ export default async ({ req, res, log, error }) => {
         return res.json(result, 200);
       }
 
+      case 'requestJoinFlightSchools': {
+        const rawIds = Array.isArray(payload.flightSchoolIds)
+          ? payload.flightSchoolIds
+          : [];
+        const schoolIds = [
+          ...new Set(
+            rawIds.map((x) => String(x || '').trim()).filter(Boolean)
+          ),
+        ];
+        if (schoolIds.length === 0) {
+          return res.json({ ok: true, createdCount: 0 }, 200);
+        }
+
+        const callerRow = await getUserRowByAuthId(tablesDB, callerId);
+        const userRowId = String(callerRow?.$id || callerId).trim();
+
+        const existingRows = await listAllRows(tablesDB, CORE_DB, 'memberships', [
+          Query.equal('users', userRowId),
+          Query.select(['*', 'flightSchools.$id']),
+        ]);
+        const existingSchoolIds = new Set(
+          existingRows.map((m) => extractSchoolId(m.flightSchools)).filter(Boolean)
+        );
+
+        let createdCount = 0;
+        for (const schoolId of schoolIds) {
+          if (existingSchoolIds.has(schoolId)) continue;
+          try {
+            await getSchoolRow(tablesDB, schoolId);
+          } catch {
+            continue;
+          }
+          await tablesDB.createRow({
+            databaseId: CORE_DB,
+            tableId: 'memberships',
+            rowId: ID.unique(),
+            data: {
+              users: userRowId,
+              flightSchools: schoolId,
+              status: 'requested',
+              roles: [],
+            },
+            permissions: [
+              Permission.read(Role.user(callerId)),
+              Permission.update(Role.user(callerId)),
+              Permission.delete(Role.user(callerId)),
+              Permission.read(Role.team(schoolId, 'admin')),
+              Permission.update(Role.team(schoolId, 'admin')),
+              Permission.delete(Role.team(schoolId, 'admin')),
+            ],
+          });
+          try {
+            await syncSchoolTeam(tablesDB, teams, schoolId);
+          } catch (_) {}
+          existingSchoolIds.add(schoolId);
+          createdCount++;
+        }
+
+        return res.json({ ok: true, createdCount }, 200);
+      }
+
       case 'exportMyData': {
         const data = await exportUserData(tablesDB, usersApi, callerId);
         return res.json({ ok: true, data }, 200);

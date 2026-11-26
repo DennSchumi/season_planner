@@ -442,8 +442,7 @@ class _AccountViewState extends State<AccountView> {
                     listenable: NotificationService(),
                     builder: (context, _) {
                       final np = NotificationService().prefs;
-                      final isAdmin = user.flightSchools
-                          .any((fs) => fs.adminUserIds.contains(user.id));
+                      final isAdmin = user.isAdmin;
                       final active = np.activeUserCategoryCount +
                           (isAdmin ? np.activeAdminCategoryCount : 0);
                       final total = isAdmin ? 11 : 7;

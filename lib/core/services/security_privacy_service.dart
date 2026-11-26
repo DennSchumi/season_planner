@@ -235,6 +235,25 @@ class SecurityPrivacyService {
     }
   }
 
+  /// Legt serverseitig Beitrittsanfragen (`status: requested`) für eine oder
+  /// mehrere Flugschulen an – inkl. korrekter Admin-Team-Permissions (da der
+  /// anfragende Nutzer clientseitig noch kein Mitglied des Ziel-Teams ist).
+  Future<int> requestJoinFlightSchools(List<String> flightSchoolIds) async {
+    final ids = flightSchoolIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+    if (ids.isEmpty) return 0;
+    final res = await _call({
+      'action': 'requestJoinFlightSchools',
+      'flightSchoolIds': ids,
+    });
+    final count = res['createdCount'];
+    if (count is int) return count;
+    return int.tryParse(count?.toString() ?? '') ?? 0;
+  }
+
   /// Art. 15 & Art. 20 DSGVO: Lädt alle eigenen personenbezogenen Daten als JSON.
   Future<Map<String, dynamic>> exportMyData() async {
     final res = await _call({'action': 'exportMyData'});
