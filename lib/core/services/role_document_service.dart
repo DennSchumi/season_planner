@@ -7,6 +7,7 @@ import 'package:season_planner/core/data/models/role_document_model.dart';
 import 'package:season_planner/core/services/appwrite_pagination.dart';
 import 'package:season_planner/core/services/audit_log_service.dart';
 import 'package:season_planner/core/services/auth_service.dart';
+import 'package:season_planner/core/services/notification_service.dart';
 import 'package:season_planner/core/services/security_privacy_service.dart';
 
 class MarkdownImportResult {
@@ -453,7 +454,15 @@ class RoleDocumentService {
   Future<List<ChecklistCompletion>> listCompletionsForUser(
     String userId,
   ) async {
-    if (userId.trim().isEmpty) return [];
+    return await tryListCompletionsForUser(userId) ?? const [];
+  }
+
+  /// Gibt bei einem Netzwerk-/Abfragefehler `null` zurück statt einer leeren Liste,
+  /// damit Benachrichtigungs-Checks nicht fälschlich bereits unterschriebene Checklisten anmahnen.
+  Future<List<ChecklistCompletion>?> tryListCompletionsForUser(
+    String userId,
+  ) async {
+    if (userId.trim().isEmpty) return const [];
     try {
       final cfg = AppwriteConfig();
       final rows = await listAllRows(
@@ -466,8 +475,8 @@ class RoleDocumentService {
           .map((r) => ChecklistCompletion.fromMap(r.$id, r.data))
           .toList();
     } catch (e) {
-      debugPrint('listCompletionsForUser error: $e');
-      return [];
+      debugPrint('tryListCompletionsForUser error: $e');
+      return null;
     }
   }
 
@@ -646,6 +655,7 @@ class RoleDocumentService {
               ),
             );
 
+      NotificationService().markKeyAsSeen('u_checklist_due:$assignmentId');
       await AuditLogService().log(
         flightSchoolId: flightSchoolId,
         userId: userId,

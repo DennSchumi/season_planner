@@ -7,6 +7,7 @@ import 'package:season_planner/core/data/models/event_model.dart';
 import 'package:season_planner/core/data/models/planning_period_model.dart';
 import 'package:season_planner/core/data/models/tandem_model.dart';
 import 'package:season_planner/core/services/data_window.dart';
+import 'package:season_planner/core/services/notification_service.dart';
 import 'package:season_planner/core/services/planning_service.dart';
 import 'package:season_planner/core/services/security_privacy_service.dart';
 import 'package:season_planner/core/services/tandem_service.dart';
@@ -41,7 +42,6 @@ class CalenderView extends StatefulWidget {
 class _CalenderView extends State<CalenderView> {
   final _planningService = PlanningService();
   List<AvailabilitySubmission> _submissions = [];
-  DateTime? _selectedDay;
   String? _loadedUserId;
   bool _loadingArchive = false;
 
@@ -249,6 +249,9 @@ class _CalenderView extends State<CalenderView> {
     );
     if (!mounted) return;
     if (ok) {
+      if (approve) {
+        NotificationService().markKeyAsSeen('u_tandem_confirmed:${duty.id}');
+      }
       await _reloadUserData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -460,24 +463,6 @@ class _CalenderView extends State<CalenderView> {
           ),
         ],
       ),
-      floatingActionButton: activeSchools.isEmpty
-          ? null
-          : AdaptiveFloatingActionButton(
-              tooltip: 'Verfügbarkeit oder Abwesenheit eintragen',
-              onPressed: () {
-                final nowDay = DateTime(now.year, now.month, now.day);
-                final sel = _selectedDay;
-                final initialDay = (sel != null && !sel.isBefore(nowDay))
-                    ? sel
-                    : nowDay;
-                _createAvailabilityForDay(
-                  initialDay,
-                  AvailabilityKind.available,
-                );
-              },
-              icon: Icons.event_available,
-              label: 'Verfügbarkeit',
-            ),
       body: SafeArea(
         child: Column(
           children: [
@@ -502,7 +487,6 @@ class _CalenderView extends State<CalenderView> {
                 stage1Periods: stage1Periods,
                 availabilityEntries: visibleSubmissions,
                 resolveUserName: user.resolveTandemPilotName,
-                onSelectedDayChanged: (day) => _selectedDay = day,
                 onVisibleMonthChanged: _ensureArchiveForMonth,
                 onCreateAvailabilityForDay: activeSchools.isEmpty
                     ? null

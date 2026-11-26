@@ -4,6 +4,7 @@ import 'package:season_planner/core/data/enums/event_status_enum.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
 import 'package:season_planner/core/data/models/tandem_model.dart';
+import 'package:season_planner/core/services/notification_service.dart';
 import 'package:season_planner/core/services/tandem_service.dart';
 import 'package:season_planner/core/theme.dart';
 import 'package:season_planner/core/widgets/ux_components.dart';
@@ -389,6 +390,9 @@ class _TandemPreviewSheetState extends State<_TandemPreviewSheet> {
           newStatus: newStatus,
           summary: 'Tandem ${d.dateRangeLabel}',
         );
+        if (ok && newStatus == TandemDutyStatus.confirmed) {
+          NotificationService().markKeyAsSeen('u_tandem_confirmed:${d.id}');
+        }
         if (!ok) allOk = false;
       }
       final fresh = await DatabaseService().getUserInformation();

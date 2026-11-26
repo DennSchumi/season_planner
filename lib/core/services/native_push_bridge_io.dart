@@ -66,9 +66,10 @@ Future<void> initNativePush({
     await _localNotifications.initialize(settings: settings);
 
     if (Platform.isAndroid) {
-      final androidPlugin =
-          _localNotifications.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await androidPlugin?.createNotificationChannel(
         const AndroidNotificationChannel(
           _kAndroidChannelId,
@@ -102,18 +103,17 @@ Future<void> initNativePush({
     if (Platform.isIOS) {
       await FirebaseMessaging.instance
           .setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+            alert: true,
+            badge: true,
+            sound: true,
+          );
     }
 
     await _fgSub?.cancel();
     _fgSub = FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
       final title =
           msg.notification?.title ?? msg.data['title']?.toString() ?? '';
-      final body =
-          msg.notification?.body ?? msg.data['body']?.toString() ?? '';
+      final body = msg.notification?.body ?? msg.data['body']?.toString() ?? '';
       if (title.isEmpty && body.isEmpty) return;
 
       unawaited(
@@ -132,7 +132,9 @@ Future<void> initNativePush({
     await _tokenRefreshSub?.cancel();
     // Appwrite Messaging FCM erwartet den klassischen FCM-Registration-Token.
     // ignore: deprecated_member_use
-    _tokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((token) {
+    _tokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((
+      token,
+    ) {
       final uid = _activeUserId;
       if (uid != null && uid.isNotEmpty && token.isNotEmpty) {
         unawaited(_registerTokenInAppwrite(userId: uid, token: token));
@@ -143,7 +145,9 @@ Future<void> initNativePush({
   } catch (e) {
     // Erwartbar, solange google-services.json noch nicht hinterlegt wurde.
     _fcmReady = false;
-    debugPrint('NativePush FCM nicht konfiguriert (nur lokale Pushs aktiv): $e');
+    debugPrint(
+      'NativePush FCM nicht konfiguriert (nur lokale Pushs aktiv): $e',
+    );
   }
 }
 
@@ -171,9 +175,10 @@ Future<String> requestNativeNotificationPermission() async {
 
   try {
     if (Platform.isAndroid) {
-      final androidPlugin =
-          _localNotifications.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       final granted = await androidPlugin?.requestNotificationsPermission();
       if (granted == true) {
         _cachedPermission = 'granted';
@@ -190,9 +195,10 @@ Future<String> requestNativeNotificationPermission() async {
       );
       _applyAuthStatus(settings.authorizationStatus);
     } else if (Platform.isIOS) {
-      final iosPlugin =
-          _localNotifications.resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>();
+      final iosPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
       final granted = await iosPlugin?.requestPermissions(
         alert: true,
         badge: true,
@@ -225,8 +231,8 @@ Future<bool> showNativeNotification({
   if (!_localReady) return false;
 
   try {
-    final id = (tag?.hashCode ?? DateTime.now().millisecondsSinceEpoch)
-            .abs() %
+    final id =
+        (tag?.hashCode ?? DateTime.now().millisecondsSinceEpoch).abs() %
         2147483647;
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -304,10 +310,7 @@ Future<void> _registerTokenInAppwrite({
 
     if (savedUser == userId && targetId.isNotEmpty) {
       try {
-        await account.updatePushTarget(
-          targetId: targetId,
-          identifier: token,
-        );
+        await account.updatePushTarget(targetId: targetId, identifier: token);
       } catch (_) {
         targetId = ID.unique();
         await account.createPushTarget(

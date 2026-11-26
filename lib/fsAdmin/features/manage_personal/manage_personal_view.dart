@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/event_role_enum.dart';
 import 'package:season_planner/core/data/enums/membership_status_enum.dart';
@@ -1310,6 +1311,102 @@ class _MemberDetailSheetState extends State<_MemberDetailSheet> {
     return '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
   }
 
+  Future<void> _showContactActionDialog({
+    required bool isEmail,
+    required String value,
+  }) async {
+    final cs = Theme.of(context).colorScheme;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dCtx) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              TintedIconBadge(
+                icon: isEmail ? Icons.email_outlined : Icons.phone_outlined,
+                iconColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.primaryTint,
+                size: 36,
+                iconSize: 19,
+                radius: 10,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isEmail ? 'E-Mail' : 'Telefon',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 17,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                trimmed,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () async {
+                  Navigator.pop(dCtx);
+                  final uri = Uri(
+                    scheme: isEmail ? 'mailto' : 'tel',
+                    path: trimmed,
+                  );
+                  await launchUrl(uri);
+                },
+                icon: Icon(
+                  isEmail ? Icons.mail_outline_rounded : Icons.call_outlined,
+                  size: 18,
+                ),
+                label: Text(isEmail ? 'E-Mail schreiben' : 'Anrufen'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: trimmed));
+                  if (!dCtx.mounted) return;
+                  Navigator.pop(dCtx);
+                  if (!mounted) return;
+                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isEmail
+                            ? 'E-Mail-Adresse kopiert.'
+                            : 'Telefonnummer kopiert.',
+                      ),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.copy_rounded, size: 17),
+                label: const Text('Kopieren'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx),
+              child: const Text('Abbrechen'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -1401,14 +1498,6 @@ class _MemberDetailSheetState extends State<_MemberDetailSheet> {
                       ],
                     ),
                   ),
-                  if (m.phone.trim().isNotEmpty)
-                    IconButton.filledTonal(
-                      tooltip: 'Anrufen',
-                      icon: const Icon(Icons.call_outlined, size: 19),
-                      onPressed: () async {
-                        await launchUrl(Uri(scheme: 'tel', path: m.phone.trim()));
-                      },
-                    ),
                 ],
               ),
             ),
@@ -1494,6 +1583,71 @@ class _MemberDetailSheetState extends State<_MemberDetailSheet> {
                           : Column(
                               children: List.generate(personalEntries.length, (i) {
                                 final (icon, label, value) = personalEntries[i];
+                                final isEmail = label == 'E-Mail';
+                                final isPhone = label == 'Telefon';
+                                final isContact = isEmail || isPhone;
+
+                                final rowContent = Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 2,
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        icon,
+                                        size: 18,
+                                        color: isContact
+                                            ? cs.primary
+                                            : cs.onSurfaceVariant,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              label,
+                                              style: TextStyle(
+                                                fontSize: 11.5,
+                                                color: cs.onSurfaceVariant,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 1),
+                                            isContact
+                                                ? Text(
+                                                    value,
+                                                    style: TextStyle(
+                                                      fontSize: 13.5,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: cs.primary,
+                                                    ),
+                                                  )
+                                                : SelectableText(
+                                                    value,
+                                                    style: const TextStyle(
+                                                      fontSize: 13.5,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (isContact)
+                                        Icon(
+                                          Icons.chevron_right_rounded,
+                                          size: 19,
+                                          color: cs.onSurfaceVariant,
+                                        ),
+                                    ],
+                                  ),
+                                );
+
                                 return Column(
                                   children: [
                                     if (i > 0)
@@ -1501,46 +1655,17 @@ class _MemberDetailSheetState extends State<_MemberDetailSheet> {
                                         height: 1,
                                         color: cs.outlineVariant,
                                       ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                      ),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Icon(
-                                            icon,
-                                            size: 18,
-                                            color: cs.onSurfaceVariant,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  label,
-                                                  style: TextStyle(
-                                                    fontSize: 11.5,
-                                                    color: cs.onSurfaceVariant,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 1),
-                                                SelectableText(
-                                                  value,
-                                                  style: const TextStyle(
-                                                    fontSize: 13.5,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                    if (isContact)
+                                      InkWell(
+                                        borderRadius: BorderRadius.circular(10),
+                                        onTap: () => _showContactActionDialog(
+                                          isEmail: isEmail,
+                                          value: value,
+                                        ),
+                                        child: rowContent,
+                                      )
+                                    else
+                                      rowContent,
                                   ],
                                 );
                               }),

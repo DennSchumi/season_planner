@@ -5,6 +5,7 @@ import 'package:season_planner/core/data/models/timesheet_model.dart';
 import 'package:season_planner/core/services/appwrite_pagination.dart';
 import 'package:season_planner/core/services/audit_log_service.dart';
 import 'package:season_planner/core/services/auth_service.dart';
+import 'package:season_planner/core/services/notification_service.dart';
 import 'package:season_planner/core/services/security_privacy_service.dart';
 
 class TimesheetService {
@@ -71,6 +72,12 @@ class TimesheetService {
   }
 
   Future<List<EventTimesheet>> listTimesheetsForUser(String userId) async {
+    return await tryListTimesheetsForUser(userId) ?? const [];
+  }
+
+  /// Gibt bei einem Netzwerk-/Abfragefehler `null` zurück statt einer leeren Liste,
+  /// damit Benachrichtigungs-Checks nicht fälschlich bereits abgegebene Stundenzettel anmahnen.
+  Future<List<EventTimesheet>?> tryListTimesheetsForUser(String userId) async {
     if (userId.trim().isEmpty) return const [];
     try {
       final cfg = AppwriteConfig();
@@ -86,8 +93,8 @@ class TimesheetService {
         ..sort((a, b) => b.eventStart.compareTo(a.eventStart));
       return list;
     } catch (e) {
-      debugPrint('TimesheetService.listTimesheetsForUser error: $e');
-      return const [];
+      debugPrint('TimesheetService.tryListTimesheetsForUser error: $e');
+      return null;
     }
   }
 
@@ -225,6 +232,7 @@ class TimesheetService {
             );
 
       final saved = EventTimesheet.fromMap(row.$id, row.data);
+      NotificationService().markKeyAsSeen('u_timesheet_due:${sheet.assignmentId}');
       await AuditLogService().log(
         flightSchoolId: sheet.flightSchoolId,
         action: 'timesheet_submitted',

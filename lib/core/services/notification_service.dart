@@ -12,6 +12,7 @@ import 'package:season_planner/core/data/models/tandem_model.dart';
 import 'package:season_planner/core/services/auth_service.dart';
 import 'package:season_planner/core/services/inventory_todo_service.dart';
 import 'package:season_planner/core/services/native_push_bridge.dart';
+import 'package:season_planner/core/services/role_document_service.dart';
 import 'package:season_planner/core/services/tandem_service.dart';
 import 'package:season_planner/core/services/timesheet_service.dart';
 import 'package:season_planner/core/services/web_notification_bridge.dart';
@@ -173,6 +174,16 @@ class NotificationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Markiert einen Benachrichtigungs-Key vorab als gesehen (z. B. nach eigener
+  /// Bestätigung oder Abgabe eines Stundenzettels/einer Checkliste), damit der
+  /// anschließende Snapshot-Diff keine überflüssige Push-Meldung auslöst.
+  void markKeyAsSeen(String key) {
+    if (key.trim().isEmpty) return;
+    if (_seenKeys.add(key)) {
+      unawaited(_persistSeenKeys());
+    }
+  }
+
   Future<void> resetOnLogout() async {
     _primedUser = false;
     _primedAdmin = false;
@@ -293,7 +304,10 @@ class NotificationService extends ChangeNotifier {
     }
 
     final runningSchoolIds = <String>{};
-    final recentTimesheetDueEvents = <({String id, String name, String role})>[];
+    final recentChecklistDueEvents =
+        <({String id, String eventDocId, String name, String role})>[];
+    final recentTimesheetDueEvents =
+        <({String id, String eventDocId, String name, String role})>[];
     for (final ev in user.events) {
       final fs = fsById[ev.flightSchoolId];
       if (fs == null || fs.membershipStatus != MembershipStatusEnum.active) {
@@ -310,27 +324,28 @@ class NotificationService extends ChangeNotifier {
 
       if (ev.endTime.isBefore(now) || ev.status == EventStatusEnum.canceled) {
         // Beendetes Event mit Rollen-Checkliste & Stundenzettel-Pflicht als Erinnerung prüfen
+        // (nicht mehr für bereits abgeschlossene Events mit Status `done`)
         if (ev.isOwnBindingAssignment &&
             ev.status != EventStatusEnum.canceled &&
+            ev.status != EventStatusEnum.done &&
             ev.endTime.isBefore(now) &&
             ev.endTime.isAfter(now.subtract(const Duration(days: 7)))) {
           final role = fs.findTeamRole(ev.role);
           if ((role?.checklistId ?? '').trim().isNotEmpty) {
-            candidates.add(
-              AppNotificationEntry(
-                key: 'u_checklist_due:${ev.id}',
-                category: NotificationCategory.checklistsAndDocs,
-                title: 'Checkliste prüfen',
-                body:
-                    'Bitte Checkliste für „${ev.displayName}“ (${ev.roleLabel}) abschließen.',
-                createdAt: now,
-              ),
-            );
+            recentChecklistDueEvents.add((
+              id: ev.id,
+              eventDocId: ev.eventDocId ?? '',
+              name: ev.displayName,
+              role: ev.roleLabel,
+            ));
           }
           if (fs.userRequiresTimesheet) {
-            recentTimesheetDueEvents.add(
-              (id: ev.id, name: ev.displayName, role: ev.roleLabel),
-            );
+            recentTimesheetDueEvents.add((
+              id: ev.id,
+              eventDocId: ev.eventDocId ?? '',
+              name: ev.displayName,
+              role: ev.roleLabel,
+            ));
           }
         }
         continue;
@@ -356,8 +371,10 @@ class NotificationService extends ChangeNotifier {
           );
         }
       }
-      // 3b) Verbindliche Zuteilung / bestätigte Bewerbung
-      else if (ev.isOwnBindingAssignment) {
+      // 3b) Verbindliche Zuteilung / bestätigte Bewerbung durch Admin
+      // Hinweis: `accepted_user` ist immer die eigene Zusage des Nutzers -> keine überflüssige Push!
+      else if (ev.assignmentStatus ==
+          EventUserStatusEnum.accepted_flight_school) {
         candidates.add(
           AppNotificationEntry(
             key: 'u_assigned:${ev.id}:${ev.assignmentStatus.name}',
@@ -421,16 +438,59 @@ class NotificationService extends ChangeNotifier {
       }
     }
 
-    // 3a2) Fehlende Stundenzettel (nur wenn tatsächlich noch nicht abgesendet)
+    // 3a1) Fehlende Checklisten (nur wenn Abruf erfolgreich UND tatsächlich noch nicht unterschrieben)
+    if (recentChecklistDueEvents.isNotEmpty) {
+      final completions =
+          await RoleDocumentService().tryListCompletionsForUser(user.id);
+      if (completions != null) {
+        final signedAssignmentIds = completions
+            .where((c) => c.isSigned)
+            .map((c) => c.assignmentId)
+            .where((id) => id.isNotEmpty)
+            .toSet();
+        final signedEventIds = completions
+            .where((c) => c.isSigned)
+            .map((c) => c.eventId)
+            .where((id) => id.isNotEmpty)
+            .toSet();
+        for (final item in recentChecklistDueEvents) {
+          final alreadySigned = signedAssignmentIds.contains(item.id) ||
+              (item.eventDocId.isNotEmpty &&
+                  signedEventIds.contains(item.eventDocId));
+          if (alreadySigned) continue;
+          candidates.add(
+            AppNotificationEntry(
+              key: 'u_checklist_due:${item.id}',
+              category: NotificationCategory.checklistsAndDocs,
+              title: 'Checkliste prüfen',
+              body:
+                  'Bitte Checkliste für „${item.name}“ (${item.role}) abschließen.',
+              createdAt: now,
+            ),
+          );
+        }
+      }
+    }
+
+    // 3a2) Fehlende Stundenzettel (nur wenn Abruf erfolgreich UND tatsächlich noch nicht abgesendet)
     if (recentTimesheetDueEvents.isNotEmpty) {
-      try {
-        final sheets = await TimesheetService().listTimesheetsForUser(user.id);
-        final submittedIds = sheets
+      final sheets = await TimesheetService().tryListTimesheetsForUser(user.id);
+      if (sheets != null) {
+        final submittedAssignmentIds = sheets
             .where((s) => s.isSubmitted)
             .map((s) => s.assignmentId)
+            .where((id) => id.isNotEmpty)
+            .toSet();
+        final submittedEventIds = sheets
+            .where((s) => s.isSubmitted)
+            .map((s) => s.eventId)
+            .where((id) => id.isNotEmpty)
             .toSet();
         for (final item in recentTimesheetDueEvents) {
-          if (submittedIds.contains(item.id)) continue;
+          final alreadySubmitted = submittedAssignmentIds.contains(item.id) ||
+              (item.eventDocId.isNotEmpty &&
+                  submittedEventIds.contains(item.eventDocId));
+          if (alreadySubmitted) continue;
           candidates.add(
             AppNotificationEntry(
               key: 'u_timesheet_due:${item.id}',
@@ -442,7 +502,7 @@ class NotificationService extends ChangeNotifier {
             ),
           );
         }
-      } catch (_) {}
+      }
     }
 
     // 3b) Tandem-Einsätze & -Anfragen (für qualifizierte Tandempiloten)

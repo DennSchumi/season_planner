@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:season_planner/core/appwrite_config.dart';
 import 'package:season_planner/core/data/models/qualification_model.dart';
+import 'package:season_planner/core/services/file_download_helper.dart';
 import 'package:season_planner/core/services/qualification_service.dart';
 import 'package:season_planner/core/theme.dart';
 import 'package:season_planner/core/widgets/embedded_pdf_view.dart';
@@ -109,6 +110,26 @@ class _QualificationDocumentDialogState
     await launchUrl(
       Uri.parse(_externalUrl),
       mode: LaunchMode.externalApplication,
+    );
+  }
+
+  Future<void> _downloadDocument() async {
+    final data = _bytes;
+    if (data == null || data.isEmpty) return;
+    final lower = _doc.fileName.toLowerCase();
+    final mime = lower.endsWith('.pdf')
+        ? 'application/pdf'
+        : lower.endsWith('.png')
+            ? 'image/png'
+            : lower.endsWith('.webp')
+                ? 'image/webp'
+                : (lower.endsWith('.jpg') || lower.endsWith('.jpeg'))
+                    ? 'image/jpeg'
+                    : 'application/octet-stream';
+    await downloadBytesFile(
+      bytes: data,
+      filename: _doc.fileName.trim().isNotEmpty ? _doc.fileName.trim() : 'dokument',
+      mimeType: mime,
     );
   }
 
@@ -321,6 +342,12 @@ class _QualificationDocumentDialogState
                       ],
                     ),
                   ),
+                  if (_bytes != null)
+                    IconButton(
+                      tooltip: 'Herunterladen',
+                      onPressed: _downloadDocument,
+                      icon: const Icon(Icons.download_outlined, size: 21),
+                    ),
                   IconButton(
                     tooltip: 'In neuem Tab öffnen',
                     onPressed: _openExternal,

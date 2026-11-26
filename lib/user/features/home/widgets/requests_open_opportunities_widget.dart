@@ -5,6 +5,7 @@ import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
 import 'package:season_planner/core/data/enums/membership_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
 import 'package:season_planner/core/data/models/tandem_model.dart';
+import 'package:season_planner/core/services/notification_service.dart';
 import 'package:season_planner/core/services/security_privacy_service.dart';
 import 'package:season_planner/core/services/tandem_service.dart';
 import 'package:season_planner/core/theme.dart';
@@ -307,6 +308,9 @@ class RequestsOpportunitiesWidget extends StatelessWidget {
         summary: 'Tandem ${duty.dateRangeLabel}',
       );
       if (ok && context.mounted) {
+        if (approve) {
+          NotificationService().markKeyAsSeen('u_tandem_confirmed:${duty.id}');
+        }
         await reloadUser();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

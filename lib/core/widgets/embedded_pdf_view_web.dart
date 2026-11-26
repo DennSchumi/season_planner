@@ -13,16 +13,19 @@ Widget buildEmbeddedPdfView({
   final isDark = Theme.of(context).brightness == Brightness.dark;
   return _WebEmbeddedPdfView(
     bytes: bytes,
+    fileName: fileName,
     isDark: isDark,
   );
 }
 
 class _WebEmbeddedPdfView extends StatefulWidget {
   final Uint8List bytes;
+  final String fileName;
   final bool isDark;
 
   const _WebEmbeddedPdfView({
     required this.bytes,
+    required this.fileName,
     required this.isDark,
   });
 
@@ -50,9 +53,15 @@ class _WebEmbeddedPdfViewState extends State<_WebEmbeddedPdfView> {
     // Lokal mitgehosteter PDF.js-Canvas-Renderer (web/pdfjs/viewer.html):
     // funktioniert zuverlässig inline auf Android-Chrome, iOS Safari & Desktop
     // und bleibt 100 % lokal im Browser (kein externes CDN, keine Drittserver).
+    final safeName = widget.fileName.trim().isEmpty
+        ? 'dokument.pdf'
+        : (widget.fileName.toLowerCase().endsWith('.pdf')
+            ? widget.fileName.trim()
+            : '${widget.fileName.trim()}.pdf');
     final viewerUri = Uri.base.resolve('pdfjs/viewer.html').replace(
       queryParameters: <String, String>{
         'file': _blobUrl,
+        'name': safeName,
         'dark': widget.isDark ? '1' : '0',
       },
     );
