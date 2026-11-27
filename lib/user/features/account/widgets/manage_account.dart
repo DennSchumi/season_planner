@@ -244,8 +244,8 @@ class _ManageAccountViewState extends State<ManageAccountView> {
         _toast('Bilddatei konnte nicht gelesen werden.');
         return;
       }
-      if (bytes.length > 5 * 1024 * 1024) {
-        _toast('Das Bild darf maximal 5 MB groß sein.');
+      if (bytes.length > 25 * 1024 * 1024) {
+        _toast('Das Bild darf maximal 25 MB groß sein.');
         return;
       }
 

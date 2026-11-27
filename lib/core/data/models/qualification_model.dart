@@ -29,22 +29,60 @@ class QualificationDocument {
   final String id;
   final String userId;
   final String documentType;
+  final List<String> documentTypes;
   final String title;
   final String fileId;
   final String fileName;
   final DateTime? issuedAt;
   final DateTime? expiresAt;
 
-  const QualificationDocument({
+  QualificationDocument({
     required this.id,
     required this.userId,
     required this.documentType,
+    List<String>? documentTypes,
     required this.title,
     required this.fileId,
     required this.fileName,
     this.issuedAt,
     this.expiresAt,
-  });
+  }) : documentTypes = _normalizeTypes(documentType, documentTypes);
+
+  static List<String> _normalizeTypes(String primary, List<String>? list) {
+    final result = <String>[];
+    final seen = <String>{};
+    if (list != null) {
+      for (final raw in list) {
+        final t = raw.trim();
+        if (t.isNotEmpty && seen.add(t.toLowerCase())) {
+          result.add(t);
+        }
+      }
+    }
+    final p = primary.trim();
+    if (p.isNotEmpty && seen.add(p.toLowerCase())) {
+      result.insert(0, p);
+    }
+    return List.unmodifiable(result);
+  }
+
+  /// Prüft, ob dieses Dokument dem angeforderten Nachweistyp zugeordnet ist.
+  bool matchesType(String reqType) {
+    final needle = reqType.trim().toLowerCase();
+    if (needle.isEmpty) return false;
+    return documentTypes.any((t) => t.toLowerCase() == needle);
+  }
+
+  /// Benutzerdefinierte optionale Bezeichnung (leer, falls identisch zum Typ).
+  String get customTitle {
+    final t = title.trim();
+    if (t.isEmpty) return '';
+    if (documentTypes.length == 1 &&
+        t.toLowerCase() == documentTypes.first.toLowerCase()) {
+      return '';
+    }
+    return t;
+  }
 
   bool get isExpired =>
       expiresAt != null && expiresAt!.isBefore(DateTime.now());
@@ -55,10 +93,18 @@ class QualificationDocument {
       expiresAt!.isBefore(DateTime.now().add(const Duration(days: 30)));
 
   factory QualificationDocument.fromMap(String id, Map<String, dynamic> map) {
+    final rawTypes = map['document_types'];
+    final parsedTypes = rawTypes is List
+        ? rawTypes.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList()
+        : null;
+    final primaryType = (map['document_type'] ?? '').toString();
     return QualificationDocument(
       id: id,
       userId: (map['user_id'] ?? '').toString(),
-      documentType: (map['document_type'] ?? '').toString(),
+      documentType: primaryType.isNotEmpty
+          ? primaryType
+          : (parsedTypes != null && parsedTypes.isNotEmpty ? parsedTypes.first : ''),
+      documentTypes: parsedTypes,
       title: (map['title'] ?? '').toString(),
       fileId: (map['file_id'] ?? '').toString(),
       fileName: (map['file_name'] ?? '').toString(),
@@ -74,6 +120,7 @@ class QualificationDocument {
   Map<String, dynamic> toMap() => {
         'user_id': userId,
         'document_type': documentType,
+        'document_types': documentTypes,
         'title': title,
         'file_id': fileId,
         'file_name': fileName,

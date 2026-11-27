@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:season_planner/core/data/enums/event_status_enum.dart';
 import 'package:season_planner/core/data/enums/event_user_status_enum.dart';
@@ -8,6 +10,7 @@ import 'package:season_planner/core/data/models/qualification_model.dart';
 import 'package:season_planner/core/data/models/role_document_model.dart';
 import 'package:season_planner/core/data/models/tandem_model.dart';
 import 'package:season_planner/core/data/models/timesheet_model.dart';
+import 'package:season_planner/core/services/auth_service.dart';
 import 'package:season_planner/core/services/inventory_todo_service.dart';
 import 'package:season_planner/core/services/qualification_service.dart';
 import 'package:season_planner/core/services/role_document_service.dart';
@@ -78,6 +81,9 @@ class UserBadgeStateService extends ChangeNotifier {
     return 'ev_rescheduled:$key:${e.startTime.toUtc().toIso8601String()}_${e.endTime.toUtc().toIso8601String()}';
   }
 
+  static const String _kAppwriteDismissedField = 'dismissed_important_ids';
+  static const int _kMaxRemoteDismissedIds = 120;
+
   bool isImportantDismissed(String id) => _dismissedImportantIds.contains(id);
 
   Future<void> dismissImportantId(String id) async {
@@ -86,7 +92,47 @@ class UserBadgeStateService extends ChangeNotifier {
     _activeImportantIds.remove(id);
     _seenImportantIds.remove(id);
     await _persistSeen();
+    unawaited(_syncDismissedToRemote());
     notifyListeners();
+  }
+
+  List<String> _parseDismissedList(dynamic raw) {
+    if (raw is List) {
+      return raw.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+    }
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          return decoded
+              .map((e) => e.toString().trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } catch (_) {}
+    }
+    return const [];
+  }
+
+  Future<void> _syncDismissedToRemote() async {
+    if (_loadedUserId.isEmpty) return;
+    try {
+      final authUser = await AuthService().getCurrentUser();
+      if (authUser == null || authUser.$id != _loadedUserId) return;
+      final existing = Map<String, dynamic>.from(authUser.prefs.data);
+      final remoteList = _parseDismissedList(existing[_kAppwriteDismissedField]);
+      final merged = <String>[
+        ...remoteList,
+        ..._dismissedImportantIds.where((id) => !remoteList.contains(id)),
+      ];
+      final trimmed = merged.length > _kMaxRemoteDismissedIds
+          ? merged.sublist(merged.length - _kMaxRemoteDismissedIds)
+          : merged;
+      existing[_kAppwriteDismissedField] = jsonEncode(trimmed);
+      await AuthService().account.updatePrefs(prefs: existing);
+    } catch (e) {
+      debugPrint('UserBadgeStateService _syncDismissedToRemote warning: $e');
+    }
   }
 
   Future<void> _ensureSeenLoaded(String uid) async {
@@ -103,6 +149,31 @@ class UserBadgeStateService extends ChangeNotifier {
       _seenOpenOpportunityIds =
           (prefs.getStringList(_keyOpenOpp(uid)) ?? const []).toSet();
     } catch (_) {}
+
+    // Weggeklickte Meldungen zusätzlich mit Appwrite account.prefs abgleichen,
+    // damit sie über App-Updates, Neuanmeldungen und mehrere Geräte erhalten bleiben.
+    try {
+      final authUser = await AuthService().getCurrentUser();
+      if (authUser != null && authUser.$id == uid) {
+        final remoteDismissed =
+            _parseDismissedList(authUser.prefs.data[_kAppwriteDismissedField])
+                .toSet();
+        final hadLocalOnly = _dismissedImportantIds
+            .any((id) => !remoteDismissed.contains(id));
+        if (remoteDismissed.isNotEmpty) {
+          _dismissedImportantIds = {
+            ..._dismissedImportantIds,
+            ...remoteDismissed,
+          };
+          await _persistSeen();
+        }
+        if (hadLocalOnly) {
+          unawaited(_syncDismissedToRemote());
+        }
+      }
+    } catch (e) {
+      debugPrint('UserBadgeStateService remote dismissed load warning: $e');
+    }
   }
 
   Future<void> _persistSeen() async {
@@ -420,6 +491,7 @@ class UserBadgeStateService extends ChangeNotifier {
       final docsById = {for (final d in docs) d.id: d};
       final missingDocs = <String>{};
       final expiredDocs = <String>{};
+      final expiringSoonDocs = <String>{};
 
       for (final fs in user.flightSchools) {
         if (fs.membershipStatus != MembershipStatusEnum.active) continue;
@@ -447,6 +519,11 @@ class UserBadgeStateService extends ChangeNotifier {
             final doc = docsById[a.documentId];
             return doc != null && !doc.isExpired;
           });
+          final hasLongValidSubmitted = matching.any((a) {
+            if (a.status != ApprovalStatusEnum.submitted) return false;
+            final doc = docsById[a.documentId];
+            return doc != null && !doc.isExpired && !doc.expiresSoon;
+          });
           final approvedOnes = matching
               .where((a) => a.status == ApprovalStatusEnum.approved)
               .toList();
@@ -464,12 +541,21 @@ class UserBadgeStateService extends ChangeNotifier {
             }
             continue;
           }
-          final hasValid = approvedOnes.any((a) {
-            final doc = docsById[a.documentId];
-            return doc != null && !doc.isExpired;
-          });
-          if (!hasValid && !hasValidSubmitted) {
-            expiredDocs.add(reqType);
+          final validApprovedDocs = approvedOnes
+              .map((a) => docsById[a.documentId])
+              .whereType<QualificationDocument>()
+              .where((doc) => !doc.isExpired)
+              .toList();
+          if (validApprovedDocs.isEmpty) {
+            if (!hasValidSubmitted) {
+              expiredDocs.add(reqType);
+            }
+            continue;
+          }
+          final hasLongValidApproved =
+              validApprovedDocs.any((doc) => !doc.expiresSoon);
+          if (!hasLongValidApproved && !hasLongValidSubmitted) {
+            expiringSoonDocs.add(reqType);
           }
         }
       }
@@ -477,10 +563,15 @@ class UserBadgeStateService extends ChangeNotifier {
       for (final d in expiredDocs) {
         importantIds.add('doc_expired:${d.toLowerCase()}');
       }
+      for (final d in expiringSoonDocs) {
+        importantIds.add('doc_expiring:${d.toLowerCase()}');
+      }
       for (final d in missingDocs) {
         importantIds.add('doc_missing:${d.toLowerCase()}');
       }
-      openQuals = expiredDocs.isNotEmpty || missingDocs.isNotEmpty;
+      openQuals = expiredDocs.isNotEmpty ||
+          expiringSoonDocs.isNotEmpty ||
+          missingDocs.isNotEmpty;
       asyncSuccess = true;
     } catch (_) {}
 

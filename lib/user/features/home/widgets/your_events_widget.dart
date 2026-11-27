@@ -254,19 +254,14 @@ class _TandemBundleCard extends StatelessWidget {
     final daysSuffix = bundle.dayCount > 1 ? ' (${bundle.dayCount} Tage)' : '';
     final isCancelReq = bundle.hasCancellationRequest;
 
-    final assignmentPill = isCancelReq
+    final StatusPill? assignmentPill = isCancelReq
         ? const StatusPill(
             label: 'Absage angefragt',
             foreground: AppTheme.warningColor,
             background: AppTheme.warningBg,
             fontSize: 10.5,
           )
-        : const StatusPill(
-            label: 'Arbeitseinsatz bestätigt',
-            foreground: AppTheme.successColor,
-            background: AppTheme.successBg,
-            fontSize: 10.5,
-          );
+        : null;
 
     return SoftCard(
       padding: const EdgeInsets.all(14),
@@ -284,7 +279,22 @@ class _TandemBundleCard extends StatelessWidget {
                     ? AppTheme.warningColor
                     : AppTheme.successColor,
               ),
-              const SizedBox(width: 14),
+              if (!isCancelReq) ...[
+                const SizedBox(width: 10),
+                Tooltip(
+                  message: 'Arbeitseinsatz bestätigt',
+                  child: Container(
+                    width: 3,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppTheme.successColor,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 11),
+              ] else
+                const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,17 +334,17 @@ class _TandemBundleCard extends StatelessWidget {
                         height: 1.35,
                       ),
                     ),
-                    if (!isWide) ...[const SizedBox(height: 8), assignmentPill],
+                    if (!isWide && assignmentPill != null) ...[
+                      const SizedBox(height: 8),
+                      assignmentPill,
+                    ],
                   ],
                 ),
               ),
-              if (isWide) ...[const SizedBox(width: 12), assignmentPill],
-              const SizedBox(width: 4),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: cs.onSurfaceVariant,
-              ),
+              if (isWide && assignmentPill != null) ...[
+                const SizedBox(width: 12),
+                assignmentPill,
+              ],
             ],
           );
         },
@@ -1001,19 +1011,6 @@ class _NextEventHeroCard extends StatelessWidget {
                         )
                       else
                         const Spacer(),
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                      ),
                     ],
                   ),
                 ],

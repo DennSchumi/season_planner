@@ -31,7 +31,13 @@ class EventCardTile extends StatelessWidget {
   String _fmtTime(DateTime d) =>
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
-  Widget _buildAssignmentPill() {
+  bool get _isConfirmedAssignment =>
+      !_isStage1Preview &&
+      !(event.swapOffered && !event.isSwapOfferFromOther) &&
+      (event.assignmentStatus == EventUserStatusEnum.accepted_user ||
+          event.assignmentStatus == EventUserStatusEnum.accepted_flight_school);
+
+  Widget? _buildAssignmentPill() {
     if (_isStage1Preview) {
       return const StatusPill(
         label: 'Stufe 1 – Verfügbarkeit',
@@ -66,12 +72,9 @@ class EventCardTile extends StatelessWidget {
         );
       case EventUserStatusEnum.accepted_user:
       case EventUserStatusEnum.accepted_flight_school:
-        return const StatusPill(
-          label: 'Arbeitseinsatz bestätigt',
-          foreground: AppTheme.successColor,
-          background: AppTheme.successBg,
-          fontSize: 10.5,
-        );
+        // Bestätigte Einsätze werden platzsparend über den dezenten grünen
+        // Vertikalstrich direkt hinter dem Datumskästchen markiert.
+        return null;
       case EventUserStatusEnum.denied_user:
       case EventUserStatusEnum.denied_flight_school:
         return const StatusPill(
@@ -142,7 +145,22 @@ class EventCardTile extends StatelessWidget {
                       ? AppTheme.stage1Color
                       : eventStatusColor(status.name),
                 ),
-                const SizedBox(width: 14),
+                if (_isConfirmedAssignment) ...[
+                  const SizedBox(width: 10),
+                  Tooltip(
+                    message: 'Arbeitseinsatz bestätigt',
+                    child: Container(
+                      width: 3,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppTheme.successColor,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                ] else
+                  const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,7 +188,7 @@ class EventCardTile extends StatelessWidget {
                           height: 1.35,
                         ),
                       ),
-                      if (!isWide) ...[
+                      if (!isWide && assignmentPill != null) ...[
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 6,
@@ -181,7 +199,7 @@ class EventCardTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (isWide) ...[
+                if (isWide && assignmentPill != null) ...[
                   const SizedBox(width: 12),
                   assignmentPill,
                 ],

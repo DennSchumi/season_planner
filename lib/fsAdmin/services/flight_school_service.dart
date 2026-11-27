@@ -15,6 +15,7 @@ import 'package:season_planner/core/data/models/team_role_model.dart';
 import 'package:season_planner/core/services/appwrite_pagination.dart';
 import 'package:season_planner/core/services/audit_log_service.dart';
 import 'package:season_planner/core/services/auth_service.dart';
+import 'package:season_planner/core/services/file_optimization_service.dart';
 import 'package:season_planner/core/services/data_window.dart';
 import 'package:season_planner/core/services/planning_service.dart';
 import 'package:season_planner/core/services/qualification_service.dart';
@@ -75,11 +76,20 @@ class FlightSchoolService {
     String? oldLogoFileId,
   }) async {
     try {
+      final optimized = await FileOptimizationService().optimizeAvatarOrLogo(
+        bytes: bytes,
+        fileName: filename,
+        preserveTransparency: true,
+      );
+
       final cfg = AppwriteConfig();
       final uploaded = await storage.createFile(
         bucketId: cfg.flightSchoolLogosId,
         fileId: ID.unique(),
-        file: InputFile.fromBytes(bytes: bytes, filename: filename),
+        file: InputFile.fromBytes(
+          bytes: optimized.bytes,
+          filename: optimized.fileName,
+        ),
         permissions: [
           Permission.read(Role.any()),
           Permission.update(Role.team(flightSchoolId, 'admin')),

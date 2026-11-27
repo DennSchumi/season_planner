@@ -11,11 +11,18 @@ class EmbeddedPdfView extends StatelessWidget {
   final String fileName;
   final VoidCallback? onOpenExternal;
 
+  /// Im Web muss der eingebettete `<iframe>` Pointer-Events vorübergehend
+  /// freigeben (`pointer-events: none`), sobald darüber ein Flutter-Dialog
+  /// (z. B. DatePicker oder Ablehnen-Popup) geöffnet wird, damit der `<iframe>`
+  /// keine Klicks/Taps verschluckt.
+  final bool pointerEventsEnabled;
+
   const EmbeddedPdfView({
     super.key,
     required this.bytes,
     required this.fileName,
     this.onOpenExternal,
+    this.pointerEventsEnabled = true,
   });
 
   @override
@@ -25,6 +32,7 @@ class EmbeddedPdfView extends StatelessWidget {
       bytes: bytes,
       fileName: fileName,
       onOpenExternal: onOpenExternal,
+      pointerEventsEnabled: pointerEventsEnabled,
     );
   }
 }

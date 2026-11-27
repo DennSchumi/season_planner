@@ -23,6 +23,7 @@ dependencies:
   flutter_markdown_plus: ^1.0.12
   signature: ^6.4.0
   archive: ^4.7.1
+  image: ^4.13.1
   http: ^1.2.0
   google_fonts: ^6.2.1
   shared_preferences: ^2.3.5

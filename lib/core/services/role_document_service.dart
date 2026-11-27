@@ -7,6 +7,7 @@ import 'package:season_planner/core/data/models/role_document_model.dart';
 import 'package:season_planner/core/services/appwrite_pagination.dart';
 import 'package:season_planner/core/services/audit_log_service.dart';
 import 'package:season_planner/core/services/auth_service.dart';
+import 'package:season_planner/core/services/file_optimization_service.dart';
 import 'package:season_planner/core/services/notification_service.dart';
 import 'package:season_planner/core/services/security_privacy_service.dart';
 
@@ -223,10 +224,17 @@ class RoleDocumentService {
         return null;
       }
 
+      final optimized = await FileOptimizationService().optimizeInstructionImage(
+        bytes: match.bytes,
+        fileName: match.name,
+      );
       final uploaded = await _storage.createFile(
         bucketId: cfg.instructionAssetsBucketId,
         fileId: ID.unique(),
-        file: InputFile.fromBytes(bytes: match.bytes, filename: match.name),
+        file: InputFile.fromBytes(
+          bytes: optimized.bytes,
+          filename: optimized.fileName,
+        ),
       );
       assetFileIds.add(uploaded.$id);
       final url = cfg.fileViewUrl(cfg.instructionAssetsBucketId, uploaded.$id);

@@ -8,10 +8,12 @@ import 'package:season_planner/core/data/enums/membership_status_enum.dart';
 import 'package:season_planner/core/data/models/event_model.dart';
 import 'package:season_planner/core/data/models/notification_preferences_model.dart';
 import 'package:season_planner/core/data/models/planning_period_model.dart';
+import 'package:season_planner/core/data/models/qualification_model.dart';
 import 'package:season_planner/core/data/models/tandem_model.dart';
 import 'package:season_planner/core/services/auth_service.dart';
 import 'package:season_planner/core/services/inventory_todo_service.dart';
 import 'package:season_planner/core/services/native_push_bridge.dart';
+import 'package:season_planner/core/services/qualification_service.dart';
 import 'package:season_planner/core/services/role_document_service.dart';
 import 'package:season_planner/core/services/tandem_service.dart';
 import 'package:season_planner/core/services/timesheet_service.dart';
@@ -223,7 +225,7 @@ class NotificationService extends ChangeNotifier {
             body: actual.body,
             tag: 'season_planner_test',
           );
-    if (context != null && context.mounted) {
+    if (!nativeSent && context != null && context.mounted) {
       showInAppBanner(context, actual);
     }
     return nativeSent;
@@ -503,6 +505,93 @@ class NotificationService extends ChangeNotifier {
           );
         }
       }
+    }
+
+    // 3a3) Bald ablaufende Qualifikationsnachweise (~30 Tage vor Ablauf)
+    final hasAnyAssignedQuals = user.flightSchools.any(
+      (fs) =>
+          fs.membershipStatus == MembershipStatusEnum.active &&
+          fs.assignedQualificationIds.isNotEmpty,
+    );
+    if (hasAnyAssignedQuals) {
+      try {
+        final qualResults = await Future.wait([
+          QualificationService().listUserDocuments(user.id),
+          QualificationService().listUserApprovals(user.id),
+        ]);
+        final docs = qualResults[0] as List<QualificationDocument>;
+        final approvals = qualResults[1] as List<QualificationApproval>;
+        final docsById = {for (final d in docs) d.id: d};
+
+        // Pro Dokumenttyp das späteste bald ablaufende Dokument sammeln,
+        // sofern noch kein gültiges/eingereichtes Folgedokument (>30 Tage) existiert.
+        final expiringByType = <String, QualificationDocument>{};
+        for (final fs in user.flightSchools) {
+          if (fs.membershipStatus != MembershipStatusEnum.active) continue;
+          final requiredTypes = <String>{};
+          for (final qId in fs.assignedQualificationIds) {
+            final q = fs.findQualificationById(qId);
+            if (q != null) requiredTypes.addAll(q.requiredDocuments);
+          }
+          if (requiredTypes.isEmpty) continue;
+
+          final schoolApprovals =
+              approvals.where((a) => a.flightSchoolId == fs.id).toList();
+          for (final reqType in requiredTypes) {
+            final matching = schoolApprovals
+                .where(
+                  (a) => a.documentType.toLowerCase() == reqType.toLowerCase(),
+                )
+                .toList();
+            if (matching.isEmpty) continue;
+
+            final hasLongValidCoverage = matching.any((a) {
+              if (a.status != ApprovalStatusEnum.approved &&
+                  a.status != ApprovalStatusEnum.submitted) {
+                return false;
+              }
+              final doc = docsById[a.documentId];
+              return doc != null && !doc.isExpired && !doc.expiresSoon;
+            });
+            if (hasLongValidCoverage) continue;
+
+            QualificationDocument? latestExpiring;
+            for (final a in matching) {
+              if (a.status != ApprovalStatusEnum.approved) continue;
+              final doc = docsById[a.documentId];
+              if (doc == null || !doc.expiresSoon) continue;
+              if (latestExpiring == null ||
+                  (doc.expiresAt != null &&
+                      latestExpiring.expiresAt != null &&
+                      doc.expiresAt!.isAfter(latestExpiring.expiresAt!))) {
+                latestExpiring = doc;
+              }
+            }
+            if (latestExpiring != null) {
+              final typeKey = reqType.trim().toLowerCase();
+              expiringByType.putIfAbsent(typeKey, () => latestExpiring!);
+            }
+          }
+        }
+
+        for (final doc in expiringByType.values) {
+          final exp = doc.expiresAt;
+          if (exp == null) continue;
+          final daysLeft = exp.difference(now).inDays.clamp(0, 30);
+          final expStr =
+              '${exp.day.toString().padLeft(2, '0')}.${exp.month.toString().padLeft(2, '0')}.${exp.year}';
+          candidates.add(
+            AppNotificationEntry(
+              key: 'u_doc_expiring:${doc.id}',
+              category: NotificationCategory.checklistsAndDocs,
+              title: 'Nachweis läuft bald ab',
+              body:
+                  '„${doc.documentType}“ läuft am $expStr ab (${daysLeft == 0 ? "heute" : daysLeft == 1 ? "in 1 Tag" : "in $daysLeft Tagen"}) – bitte rechtzeitig ein neues Dokument hochladen.',
+              createdAt: now,
+            ),
+          );
+        }
+      } catch (_) {}
     }
 
     // 3b) Tandem-Einsätze & -Anfragen (für qualifizierte Tandempiloten)
@@ -842,23 +931,24 @@ class NotificationService extends ChangeNotifier {
             createdAt: DateTime.now(),
           );
 
-    if (kIsWeb) {
-      showWebNotification(
-        title: toShow.title,
-        body: toShow.body,
-        tag: toShow.key,
-      );
-    } else {
-      unawaited(
-        showNativeNotification(
-          title: toShow.title,
-          body: toShow.body,
-          tag: toShow.key,
-        ),
-      );
-    }
+    final systemSent = kIsWeb
+        ? showWebNotification(
+            title: toShow.title,
+            body: toShow.body,
+            tag: toShow.key,
+          )
+        : await showNativeNotification(
+            title: toShow.title,
+            body: toShow.body,
+            tag: toShow.key,
+          );
 
-    if (_prefs.inAppBanners && context != null && context.mounted) {
+    // Immer nur eine Benachrichtigung anzeigen: wenn das System/der Browser
+    // bereits eine Push-Meldung gezeigt hat, keinen doppelten In-App-Banner darunter einblenden.
+    if (!systemSent &&
+        _prefs.inAppBanners &&
+        context != null &&
+        context.mounted) {
       showInAppBanner(context, toShow);
     }
   }

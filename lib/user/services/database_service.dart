@@ -16,6 +16,7 @@ import 'package:season_planner/core/services/appwrite_pagination.dart';
 import 'package:season_planner/core/services/audit_log_service.dart';
 import 'package:season_planner/core/services/auth_service.dart';
 import 'package:season_planner/core/services/data_window.dart';
+import 'package:season_planner/core/services/file_optimization_service.dart';
 import 'package:season_planner/core/services/planning_service.dart';
 import 'package:season_planner/core/services/qualification_service.dart';
 import 'package:season_planner/core/services/security_privacy_service.dart';
@@ -300,11 +301,19 @@ class DatabaseService {
       final userRow = await AuthService().ensureUserProfileRow(user: current);
       if (userRow == null) return null;
 
+      final optimized = await FileOptimizationService().optimizeAvatarOrLogo(
+        bytes: bytes,
+        fileName: filename,
+      );
+
       final cfg = AppwriteConfig();
       final uploaded = await storage.createFile(
         bucketId: cfg.userAvatarsBucketId,
         fileId: ID.unique(),
-        file: InputFile.fromBytes(bytes: bytes, filename: filename),
+        file: InputFile.fromBytes(
+          bytes: optimized.bytes,
+          filename: optimized.fileName,
+        ),
         permissions: [
           Permission.read(Role.users()),
           Permission.update(Role.user(current.$id)),

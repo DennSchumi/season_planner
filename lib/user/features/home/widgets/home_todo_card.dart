@@ -573,10 +573,11 @@ class _HomeTodoCardState extends State<HomeTodoCard> {
         );
       }
 
-      // 3) Fehlende oder abgelaufene Pflichtdokumente für zugeteilte Qualifikationen
+      // 3) Fehlende, abgelaufene oder bald ablaufende (≤ 30 Tage) Pflichtdokumente
       final docsById = {for (final d in _userDocs) d.id: d};
       final missingDocs = <String>{};
       final expiredDocs = <String>{};
+      final expiringSoonByType = <String, DateTime>{};
 
       for (final fs in user.flightSchools) {
         if (fs.membershipStatus != MembershipStatusEnum.active) continue;
@@ -604,25 +605,63 @@ class _HomeTodoCardState extends State<HomeTodoCard> {
             continue;
           }
 
-          final hasSubmitted =
-              matching.any((a) => a.status == ApprovalStatusEnum.submitted);
+          final hasValidSubmitted = matching.any((a) {
+            if (a.status != ApprovalStatusEnum.submitted) return false;
+            final doc = docsById[a.documentId];
+            return doc != null && !doc.isExpired;
+          });
+          final hasLongValidSubmitted = matching.any((a) {
+            if (a.status != ApprovalStatusEnum.submitted) return false;
+            final doc = docsById[a.documentId];
+            return doc != null && !doc.isExpired && !doc.expiresSoon;
+          });
           final approvedOnes = matching
               .where((a) => a.status == ApprovalStatusEnum.approved)
               .toList();
 
           if (approvedOnes.isEmpty) {
-            if (!hasSubmitted) {
-              missingDocs.add(reqType);
+            if (!hasValidSubmitted) {
+              final hasAnyExpired = matching.any((a) {
+                final doc = docsById[a.documentId];
+                return doc != null && doc.isExpired;
+              });
+              if (hasAnyExpired) {
+                expiredDocs.add(reqType);
+              } else {
+                missingDocs.add(reqType);
+              }
             }
             continue;
           }
 
-          final hasValid = approvedOnes.any((a) {
-            final doc = docsById[a.documentId];
-            return doc != null && !doc.isExpired;
-          });
-          if (!hasValid) {
-            expiredDocs.add(reqType);
+          final validApprovedDocs = approvedOnes
+              .map((a) => docsById[a.documentId])
+              .whereType<QualificationDocument>()
+              .where((doc) => !doc.isExpired)
+              .toList();
+          if (validApprovedDocs.isEmpty) {
+            if (!hasValidSubmitted) {
+              expiredDocs.add(reqType);
+            }
+            continue;
+          }
+
+          final hasLongValidApproved =
+              validApprovedDocs.any((doc) => !doc.expiresSoon);
+          if (!hasLongValidApproved && !hasLongValidSubmitted) {
+            DateTime? latestExp;
+            for (final doc in validApprovedDocs) {
+              final e = doc.expiresAt;
+              if (e != null && (latestExp == null || e.isAfter(latestExp))) {
+                latestExp = e;
+              }
+            }
+            if (latestExp != null) {
+              final existing = expiringSoonByType[reqType];
+              if (existing == null || latestExp.isBefore(existing)) {
+                expiringSoonByType[reqType] = latestExp;
+              }
+            }
           }
         }
       }
@@ -636,6 +675,35 @@ class _HomeTodoCardState extends State<HomeTodoCard> {
                 ? 'Nachweis abgelaufen: ${expiredDocs.first}'
                 : '${expiredDocs.length} Nachweise abgelaufen',
             subtitle: expiredDocs.join(', '),
+            priority: 2,
+            onTap: (ctx) async {
+              await Navigator.push(
+                ctx,
+                MaterialPageRoute(builder: (_) => const MyQualificationsView()),
+              );
+              if (mounted) _loadAsyncStatus();
+            },
+          ),
+        );
+      }
+
+      if (expiringSoonByType.isNotEmpty) {
+        final entries = expiringSoonByType.entries.toList()
+          ..sort((a, b) => a.value.compareTo(b.value));
+        final first = entries.first;
+        final daysLeft = first.value.difference(now).inDays.clamp(0, 30);
+        items.add(
+          _TodoItem(
+            icon: Icons.schedule_rounded,
+            color: AppTheme.warningColor,
+            title: entries.length == 1
+                ? 'Nachweis läuft bald ab: ${first.key}'
+                : '${entries.length} Nachweise laufen bald ab',
+            subtitle: entries.length == 1
+                ? 'Gültig bis ${_fmtDate(first.value)} (${daysLeft == 0 ? "heute" : daysLeft == 1 ? "noch 1 Tag" : "noch $daysLeft Tage"}) – neues Dokument hochladen'
+                : entries
+                    .map((e) => '${e.key} (bis ${_fmtDate(e.value)})')
+                    .join(', '),
             priority: 2,
             onTap: (ctx) async {
               await Navigator.push(
@@ -855,12 +923,6 @@ class _HomeTodoCardState extends State<HomeTodoCard> {
                                 ),
                               ],
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 18,
-                            color: cs.onSurfaceVariant,
                           ),
                         ],
                       ),

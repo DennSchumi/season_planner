@@ -250,6 +250,24 @@ class _ReviewQualificationsViewState extends State<ReviewQualificationsView> {
                               }
                             }
 
+                            final isEarlyRenewal =
+                                a.status == ApprovalStatusEnum.submitted &&
+                                _approvals.any((other) {
+                                  if (other.id == a.id) return false;
+                                  if (other.userId != a.userId) return false;
+                                  if (other.documentType.toLowerCase() !=
+                                      a.documentType.toLowerCase()) {
+                                    return false;
+                                  }
+                                  if (other.status !=
+                                      ApprovalStatusEnum.approved) {
+                                    return false;
+                                  }
+                                  final otherDoc = _docsById[other.documentId];
+                                  return otherDoc != null &&
+                                      !otherDoc.isExpired;
+                                });
+
                             return Card(
                               clipBehavior: Clip.antiAlias,
                               child: InkWell(
@@ -270,6 +288,15 @@ class _ReviewQualificationsViewState extends State<ReviewQualificationsView> {
                                               ),
                                             ),
                                           ),
+                                          if (isEarlyRenewal) ...[
+                                            const StatusPill(
+                                              label: 'Folgedokument',
+                                              foreground: Color(0xFF1570EF),
+                                              background: Color(0xFFEFF6FF),
+                                              fontSize: 11,
+                                            ),
+                                            const SizedBox(width: 6),
+                                          ],
                                           Chip(
                                             label: Text(
                                               a.status.label,

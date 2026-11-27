@@ -116,13 +116,18 @@ Future<void> initNativePush({
       final body = msg.notification?.body ?? msg.data['body']?.toString() ?? '';
       if (title.isEmpty && body.isEmpty) return;
 
-      unawaited(
-        showNativeNotification(
-          title: title.isNotEmpty ? title : 'Season Planner',
-          body: body,
-          tag: msg.messageId,
-        ),
-      );
+      // Auf iOS zeigt setForegroundNotificationPresentationOptions bereits
+      // automatisch das System-Banner für Notification-Payloads an -> nicht doppelt feuern.
+      final iosAutoPresented = Platform.isIOS && msg.notification != null;
+      if (!iosAutoPresented) {
+        unawaited(
+          showNativeNotification(
+            title: title.isNotEmpty ? title : 'Season Planner',
+            body: body,
+            tag: msg.messageId,
+          ),
+        );
+      }
       onForegroundFcmMessage?.call(
         title.isNotEmpty ? title : 'Season Planner',
         body,
@@ -229,6 +234,29 @@ Future<bool> showNativeNotification({
     await initNativePush();
   }
   if (!_localReady) return false;
+
+  // Prüfen, ob System-Benachrichtigungen tatsächlich erlaubt sind —
+  // sonst `false` zurückgeben, damit die App sauber auf den In-App-Banner ausweicht.
+  if (_cachedPermission != 'granted') {
+    if (Platform.isAndroid) {
+      try {
+        final androidPlugin = _localNotifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
+        final enabled = await androidPlugin?.areNotificationsEnabled();
+        if (enabled == true) {
+          _cachedPermission = 'granted';
+        } else {
+          return false;
+        }
+      } catch (_) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
 
   try {
     final id =

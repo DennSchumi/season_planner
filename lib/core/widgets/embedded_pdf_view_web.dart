@@ -9,12 +9,14 @@ Widget buildEmbeddedPdfView({
   required Uint8List bytes,
   required String fileName,
   VoidCallback? onOpenExternal,
+  bool pointerEventsEnabled = true,
 }) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   return _WebEmbeddedPdfView(
     bytes: bytes,
     fileName: fileName,
     isDark: isDark,
+    pointerEventsEnabled: pointerEventsEnabled,
   );
 }
 
@@ -22,11 +24,13 @@ class _WebEmbeddedPdfView extends StatefulWidget {
   final Uint8List bytes;
   final String fileName;
   final bool isDark;
+  final bool pointerEventsEnabled;
 
   const _WebEmbeddedPdfView({
     required this.bytes,
     required this.fileName,
     required this.isDark,
+    required this.pointerEventsEnabled,
   });
 
   @override
@@ -37,10 +41,13 @@ class _WebEmbeddedPdfViewState extends State<_WebEmbeddedPdfView> {
   static int _viewCounter = 0;
   late final String _viewType;
   late final String _blobUrl;
+  web.HTMLIFrameElement? _iframe;
+  bool _effectivePointerEvents = true;
 
   @override
   void initState() {
     super.initState();
+    _effectivePointerEvents = widget.pointerEventsEnabled;
     _viewCounter++;
     _viewType = 'sp_embedded_pdf_$_viewCounter';
 
@@ -72,13 +79,45 @@ class _WebEmbeddedPdfViewState extends State<_WebEmbeddedPdfView> {
         ..style.border = 'none'
         ..style.width = '100%'
         ..style.height = '100%'
+        ..style.pointerEvents = _effectivePointerEvents ? 'auto' : 'none'
         ..style.backgroundColor = widget.isDark ? '#12131A' : '#F4F4F2';
+      _iframe = iframe;
       return iframe;
     });
   }
 
+  void _syncPointerEvents() {
+    final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
+    _effectivePointerEvents = widget.pointerEventsEnabled && isCurrentRoute;
+    _applyPointerEvents();
+  }
+
+  void _applyPointerEvents() {
+    final iframe = _iframe;
+    if (iframe == null) return;
+    final value = _effectivePointerEvents ? 'auto' : 'none';
+    iframe.style.pointerEvents = value;
+    final parent = iframe.parentElement;
+    if (parent != null && parent.isA<web.HTMLElement>()) {
+      (parent as web.HTMLElement).style.pointerEvents = value;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncPointerEvents();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WebEmbeddedPdfView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncPointerEvents();
+  }
+
   @override
   void dispose() {
+    _iframe = null;
     try {
       web.URL.revokeObjectURL(_blobUrl);
     } catch (_) {}
@@ -87,9 +126,13 @@ class _WebEmbeddedPdfViewState extends State<_WebEmbeddedPdfView> {
 
   @override
   Widget build(BuildContext context) {
+    _syncPointerEvents();
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: HtmlElementView(viewType: _viewType),
+      child: HtmlElementView(
+        viewType: _viewType,
+        onPlatformViewCreated: (_) => _applyPointerEvents(),
+      ),
     );
   }
 }

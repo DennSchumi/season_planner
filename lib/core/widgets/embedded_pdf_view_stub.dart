@@ -10,6 +10,7 @@ Widget buildEmbeddedPdfView({
   required Uint8List bytes,
   required String fileName,
   VoidCallback? onOpenExternal,
+  bool pointerEventsEnabled = true,
 }) {
   return _NativeEmbeddedPdfView(
     bytes: bytes,

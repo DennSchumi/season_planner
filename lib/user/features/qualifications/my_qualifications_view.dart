@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:season_planner/core/data/enums/membership_status_enum.dart';
 import 'package:season_planner/core/data/models/qualification_model.dart';
 import 'package:season_planner/core/data/models/team_role_model.dart';
+import 'package:season_planner/core/services/file_optimization_service.dart';
 import 'package:season_planner/core/services/qualification_service.dart';
 import 'package:season_planner/core/theme.dart';
 import 'package:season_planner/core/widgets/document_preview_dialog.dart';
@@ -18,6 +19,7 @@ class _SchoolDocRequirement {
   final List<String> qualifications;
   final QualificationDocument? approvedDoc;
   final QualificationDocument? submittedDoc;
+  final QualificationDocument? renewalSubmittedDoc;
   final QualificationDocument? unsubmittedDoc;
   final bool hasExpired;
   final bool hasRejected;
@@ -27,13 +29,17 @@ class _SchoolDocRequirement {
     required this.qualifications,
     this.approvedDoc,
     this.submittedDoc,
+    this.renewalSubmittedDoc,
     this.unsubmittedDoc,
     this.hasExpired = false,
     this.hasRejected = false,
   });
 
   bool get isApproved => approvedDoc != null;
-  bool get isSubmitted => submittedDoc != null;
+  bool get isSubmitted => !isApproved && submittedDoc != null;
+  bool get hasRenewalSubmitted => isApproved && renewalSubmittedDoc != null;
+  bool get needsRenewal =>
+      isApproved && (approvedDoc?.expiresSoon == true) && !hasRenewalSubmitted;
   bool get needsShare => !isApproved && !isSubmitted && unsubmittedDoc != null;
   bool get needsUpload => !isApproved && !isSubmitted && unsubmittedDoc == null;
 }
@@ -62,8 +68,22 @@ class _GroupedRequiredDoc {
   bool get allApproved =>
       schoolReqs.isNotEmpty && approvedReqs.length == schoolReqs.length;
 
-  bool get anyExpiresSoon =>
-      approvedReqs.any((r) => r.approvedDoc?.expiresSoon == true);
+  bool get anyExpiresSoon => approvedReqs.any((r) => r.needsRenewal);
+
+  bool get hasRenewalSubmitted =>
+      approvedReqs.any((r) => r.hasRenewalSubmitted);
+
+  DateTime? get earliestExpiringDate {
+    DateTime? earliest;
+    for (final r in approvedReqs) {
+      final exp = r.approvedDoc?.expiresAt;
+      if (exp == null) continue;
+      if (earliest == null || exp.isBefore(earliest)) {
+        earliest = exp;
+      }
+    }
+    return earliest;
+  }
 
   bool get hasNeedsUpload => uploadReqs.isNotEmpty;
   bool get hasNeedsShare => !hasNeedsUpload && shareableReqs.isNotEmpty;
@@ -73,8 +93,8 @@ class _GroupedRequiredDoc {
   int get sortPriority {
     if (hasNeedsUpload) return 0;
     if (hasNeedsShare) return 1;
-    if (hasPendingReview) return 2;
-    if (anyExpiresSoon) return 3;
+    if (anyExpiresSoon) return 2;
+    if (hasPendingReview) return 3;
     return 4;
   }
 }
@@ -157,37 +177,174 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
     final user = context.read<UserProvider>().user;
     if (user == null) return;
 
-    // Alle geforderten Dokumenttypen + Standardkatalog sammeln (Kuratierte Reihenfolge erhalten)
-    final extraTypes = <String>{};
+    // Ausschließlich Dokumenttypen sammeln, die von den aktiven Flugschulen
+    // des Mitarbeiters definiert wurden (eigene zugewiesene Qualifikationen zuerst).
+    final schoolDefinedTypes = <String>[];
+    final seenLower = <String>{};
+    void addUnique(String raw) {
+      final t = raw.trim();
+      if (t.isEmpty) return;
+      if (seenLower.add(t.toLowerCase())) {
+        schoolDefinedTypes.add(t);
+      }
+    }
+
     for (final fs in activeSchools) {
       for (final q in fs.qualifications) {
-        for (final req in q.requiredDocuments) {
-          if (!kStandardDocumentTypes.contains(req)) {
-            extraTypes.add(req);
+        if (fs.hasQualification(q.id)) {
+          for (final req in q.requiredDocuments) {
+            addUnique(req);
           }
         }
       }
     }
-    if (preselectedType != null &&
-        preselectedType.trim().isNotEmpty &&
-        !kStandardDocumentTypes.contains(preselectedType.trim())) {
-      extraTypes.add(preselectedType.trim());
+    for (final fs in activeSchools) {
+      for (final q in fs.qualifications) {
+        for (final req in q.requiredDocuments) {
+          addUnique(req);
+        }
+      }
     }
-    final sortedExtra = extraTypes.toList()..sort();
-    final typeList = [...kStandardDocumentTypes, ...sortedExtra];
+    if (preselectedType != null && preselectedType.trim().isNotEmpty) {
+      addUnique(preselectedType.trim());
+    }
 
-    String selectedType =
-        (preselectedType != null && typeList.contains(preselectedType.trim()))
-            ? preselectedType.trim()
-            : typeList.first;
-    bool useCustomType = false;
-    final customTypeCtrl = TextEditingController();
+    final Set<String> selectedTypes = {};
+    if (preselectedType != null && preselectedType.trim().isNotEmpty) {
+      final match = schoolDefinedTypes.firstWhere(
+        (t) => t.toLowerCase() == preselectedType.trim().toLowerCase(),
+        orElse: () => preselectedType.trim(),
+      );
+      selectedTypes.add(match);
+    }
+
     final titleCtrl = TextEditingController();
     DateTime? issuedAt;
     DateTime? expiresAt;
-    PlatformFile? pickedFile;
+    OptimizedFileResult? optimizedFile;
+    bool optimizingFile = false;
     bool healthDataConsent = false;
     String? validationError;
+
+    Future<void> openTypePickerPopup(
+      BuildContext parentCtx,
+      StateSetter setLocal,
+    ) async {
+      final draft = Set<String>.from(selectedTypes);
+      final picked = await showDialog<Set<String>>(
+        context: parentCtx,
+        builder: (pCtx) {
+          return StatefulBuilder(
+            builder: (pCtx, setPopup) {
+              final pcs = Theme.of(pCtx).colorScheme;
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+                contentPadding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Dokumenttyp(en) auswählen',
+                      style: TextStyle(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Ein Dokument kann mehreren Nachweisen zugeordnet werden.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: pcs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                content: SizedBox(
+                  width: 380,
+                  child: schoolDefinedTypes.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            'Deine Flugschule(n) haben aktuell keine Pflichtnachweise definiert.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: pcs.onSurfaceVariant,
+                            ),
+                          ),
+                        )
+                      : ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 340),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: schoolDefinedTypes.length,
+                            itemBuilder: (_, idx) {
+                              final t = schoolDefinedTypes[idx];
+                              final checked = draft.contains(t);
+                              return CheckboxListTile(
+                                value: checked,
+                                dense: true,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                activeColor: AppTheme.primaryColor,
+                                title: Text(
+                                  t,
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: checked
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                                onChanged: (v) {
+                                  setPopup(() {
+                                    if (v == true) {
+                                      draft.add(t);
+                                    } else {
+                                      draft.remove(t);
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(pCtx),
+                    child: const Text('Abbrechen'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(pCtx, draft),
+                    child: Text(
+                      draft.isEmpty
+                          ? 'Übernehmen'
+                          : 'Übernehmen (${draft.length})',
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (picked != null) {
+        setLocal(() {
+          selectedTypes
+            ..clear()
+            ..addAll(picked);
+          validationError = null;
+        });
+      }
+    }
 
     bool isHealthRelatedType(String docType) {
       final lower = docType.toLowerCase();
@@ -211,8 +368,9 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
           builder: (ctx, setLocal) {
             final cs = Theme.of(ctx).colorScheme;
             final isDark = Theme.of(ctx).brightness == Brightness.dark;
-            final hasFile = pickedFile != null && pickedFile!.bytes != null;
-            final fileMissing = validationError != null && !hasFile;
+            final hasFile = optimizedFile != null;
+            final fileMissing =
+                validationError != null && !hasFile && !optimizingFile;
             final expiryMissing = validationError != null && expiresAt == null;
 
             Widget buildDateTile({
@@ -401,25 +559,60 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: InkWell(
-                          onTap: () async {
-                            final result = await FilePicker.platform.pickFiles(
-                              type: FileType.custom,
-                              allowedExtensions: [
-                                'pdf',
-                                'jpg',
-                                'jpeg',
-                                'png',
-                                'webp',
-                              ],
-                              withData: true,
-                            );
-                            if (result != null && result.files.isNotEmpty) {
-                              setLocal(() {
-                                pickedFile = result.files.first;
-                                validationError = null;
-                              });
-                            }
-                          },
+                          onTap: optimizingFile
+                              ? null
+                              : () async {
+                                  final result =
+                                      await FilePicker.platform.pickFiles(
+                                    type: FileType.custom,
+                                    allowedExtensions: [
+                                      'pdf',
+                                      'jpg',
+                                      'jpeg',
+                                      'png',
+                                      'webp',
+                                    ],
+                                    withData: true,
+                                  );
+                                  if (result == null || result.files.isEmpty) {
+                                    return;
+                                  }
+                                  final rawFile = result.files.first;
+                                  final rawBytes = rawFile.bytes;
+                                  if (rawBytes == null || rawBytes.isEmpty) {
+                                    setLocal(() {
+                                      validationError =
+                                          'Die ausgewählte Datei konnte nicht gelesen werden.';
+                                    });
+                                    return;
+                                  }
+                                  setLocal(() {
+                                    optimizingFile = true;
+                                    validationError = null;
+                                  });
+                                  try {
+                                    final opt = await FileOptimizationService()
+                                        .optimizeDocument(
+                                      bytes: rawBytes,
+                                      fileName: rawFile.name,
+                                    );
+                                    if (!ctx.mounted) return;
+                                    setLocal(() {
+                                      optimizedFile = opt;
+                                      optimizingFile = false;
+                                      validationError = null;
+                                    });
+                                  } catch (e) {
+                                    if (!ctx.mounted) return;
+                                    setLocal(() {
+                                      optimizedFile = null;
+                                      optimizingFile = false;
+                                      validationError = e
+                                          .toString()
+                                          .replaceFirst('Exception: ', '');
+                                    });
+                                  }
+                                },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
@@ -427,22 +620,43 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                             ),
                             child: Row(
                               children: [
-                                TintedIconBadge(
-                                  icon: hasFile
-                                      ? Icons.check_circle_rounded
-                                      : Icons.cloud_upload_outlined,
-                                  iconColor: fileMissing
-                                      ? AppTheme.dangerColor
-                                      : hasFile
-                                          ? AppTheme.successColor
-                                          : AppTheme.primaryColor,
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: isDark ? 0.12 : 0.85,
+                                if (optimizingFile)
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: isDark ? 0.12 : 0.85,
+                                      ),
+                                      borderRadius: BorderRadius.circular(13),
+                                    ),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  TintedIconBadge(
+                                    icon: hasFile
+                                        ? Icons.check_circle_rounded
+                                        : Icons.cloud_upload_outlined,
+                                    iconColor: fileMissing
+                                        ? AppTheme.dangerColor
+                                        : hasFile
+                                            ? AppTheme.successColor
+                                            : AppTheme.primaryColor,
+                                    backgroundColor: Colors.white.withValues(
+                                      alpha: isDark ? 0.12 : 0.85,
+                                    ),
+                                    size: 44,
+                                    iconSize: 22,
+                                    radius: 13,
                                   ),
-                                  size: 44,
-                                  iconSize: 22,
-                                  radius: 13,
-                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
@@ -450,9 +664,11 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        hasFile
-                                            ? pickedFile!.name
-                                            : 'Datei auswählen (PDF / Bild) *',
+                                        optimizingFile
+                                            ? 'Datei wird optimiert…'
+                                            : hasFile
+                                                ? optimizedFile!.fileName
+                                                : 'Datei auswählen (PDF / Bild) *',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
@@ -467,9 +683,13 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        hasFile
-                                            ? '${_formatFileSize(pickedFile!.size)} · Tippen zum Ändern'
-                                            : 'PDF, JPG, PNG oder WEBP',
+                                        optimizingFile
+                                            ? 'Bild / PDF wird für schnellen Upload verkleinert'
+                                            : hasFile
+                                                ? (optimizedFile!.wasOptimized
+                                                    ? '${_formatFileSize(optimizedFile!.finalBytes)} (von ${_formatFileSize(optimizedFile!.originalBytes)} optimiert) · Ändern'
+                                                    : '${_formatFileSize(optimizedFile!.finalBytes)} · Tippen zum Ändern')
+                                                : 'PDF, JPG, PNG oder WEBP (max. 4 MB nach Optimierung)',
                                         style: TextStyle(
                                           fontSize: 11.5,
                                           color: cs.onSurfaceVariant,
@@ -493,48 +713,123 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      DropdownButtonFormField<String>(
-                        initialValue:
-                            useCustomType ? '__custom__' : selectedType,
-                        decoration: const InputDecoration(
-                          labelText: 'Dokumenttyp *',
-                          prefixIcon: Icon(Icons.category_outlined, size: 19),
-                        ),
-                        items: [
-                          ...typeList.map(
-                            (t) => DropdownMenuItem(value: t, child: Text(t)),
-                          ),
-                          const DropdownMenuItem(
-                            value: '__custom__',
-                            child: Text('Eigener Dokumenttyp...'),
-                          ),
-                        ],
-                        onChanged: (v) {
-                          setLocal(() {
-                            validationError = null;
-                            if (v == '__custom__') {
-                              useCustomType = true;
-                            } else if (v != null) {
-                              useCustomType = false;
-                              selectedType = v;
-                            }
-                          });
+                      // Kompakte anklickbare Dokumenttyp-Pille -> öffnet Auswahl-Popup
+                      Builder(
+                        builder: (_) {
+                          final typeMissing =
+                              validationError != null && selectedTypes.isEmpty;
+                          final orderedSelected = schoolDefinedTypes
+                              .where((t) => selectedTypes.contains(t))
+                              .toList();
+                          final bg = typeMissing
+                              ? AppTheme.dangerBg
+                              : orderedSelected.isNotEmpty
+                                  ? (isDark
+                                      ? cs.primaryContainer
+                                          .withValues(alpha: 0.45)
+                                      : AppTheme.primaryTint
+                                          .withValues(alpha: 0.65))
+                                  : cs.surfaceContainerHighest
+                                      .withValues(alpha: 0.45);
+                          final borderCol = typeMissing
+                              ? AppTheme.dangerColor
+                              : orderedSelected.isNotEmpty
+                                  ? AppTheme.primaryColor
+                                      .withValues(alpha: 0.45)
+                                  : cs.outlineVariant;
+
+                          return Material(
+                            color: bg,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(
+                                color: borderCol,
+                                width: typeMissing ? 1.4 : 1.0,
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () => openTypePickerPopup(ctx, setLocal),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 11,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.category_outlined,
+                                      size: 18,
+                                      color: typeMissing
+                                          ? AppTheme.dangerColor
+                                          : orderedSelected.isNotEmpty
+                                              ? AppTheme.primaryColor
+                                              : cs.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Dokumenttyp *',
+                                            style: TextStyle(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: typeMissing
+                                                  ? AppTheme.dangerColor
+                                                  : cs.onSurfaceVariant,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          if (orderedSelected.isEmpty)
+                                            Text(
+                                              'Wähle Dokumententyp',
+                                              style: TextStyle(
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: typeMissing
+                                                    ? AppTheme.dangerColor
+                                                    : cs.onSurfaceVariant,
+                                              ),
+                                            )
+                                          else
+                                            Wrap(
+                                              spacing: 6,
+                                              runSpacing: 5,
+                                              children: orderedSelected
+                                                  .map(
+                                                    (t) => StatusPill(
+                                                      label: t,
+                                                      foreground:
+                                                          AppTheme.primaryColor,
+                                                      background: isDark
+                                                          ? cs.surface
+                                                          : Colors.white,
+                                                      fontSize: 11.5,
+                                                    ),
+                                                  )
+                                                  .toList(),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Icon(
+                                      Icons.tune_rounded,
+                                      size: 18,
+                                      color: orderedSelected.isNotEmpty
+                                          ? AppTheme.primaryColor
+                                          : cs.onSurfaceVariant,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
                         },
                       ),
-                      if (useCustomType) ...[
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: customTypeCtrl,
-                          onChanged: (_) {
-                            if (validationError != null) {
-                              setLocal(() => validationError = null);
-                            }
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Eigener Typ (z. B. Windenschein) *',
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 10),
                       TextField(
                         controller: titleCtrl,
@@ -685,11 +980,8 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                       const SizedBox(height: 14),
                       Builder(
                         builder: (_) {
-                          final currentType = useCustomType
-                              ? customTypeCtrl.text.trim()
-                              : selectedType;
                           final needsHealthConsent =
-                              isHealthRelatedType(currentType);
+                              selectedTypes.any(isHealthRelatedType);
                           if (needsHealthConsent) {
                             final consentMissing = validationError != null &&
                                 !healthDataConsent;
@@ -791,42 +1083,46 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                   child: const Text('Abbrechen'),
                 ),
                 FilledButton.icon(
-                  onPressed: () {
-                    final docType = useCustomType
-                        ? customTypeCtrl.text.trim()
-                        : selectedType;
-                    if (docType.isEmpty) {
-                      setLocal(
-                        () => validationError =
-                            'Bitte gib einen Dokumenttyp an.',
-                      );
-                      return;
-                    }
-                    if (pickedFile == null || pickedFile!.bytes == null) {
-                      setLocal(
-                        () => validationError =
-                            'Bitte wähle zuerst eine Datei (PDF oder Bild) aus.',
-                      );
-                      return;
-                    }
-                    if (expiresAt == null) {
-                      setLocal(
-                        () => validationError =
-                            'Bitte gib das Ablaufdatum („Gültig bis“) an.',
-                      );
-                      return;
-                    }
-                    if (isHealthRelatedType(docType) && !healthDataConsent) {
-                      setLocal(
-                        () => validationError =
-                            'Bitte bestätige die Datenschutz-Einwilligung für Gesundheits-/Tauglichkeitsnachweise.',
-                      );
-                      return;
-                    }
-                    Navigator.pop(ctx, true);
-                  },
+                  onPressed: optimizingFile
+                      ? null
+                      : () {
+                          if (selectedTypes.isEmpty) {
+                            setLocal(
+                              () => validationError =
+                                  'Bitte wähle mindestens einen Dokumenttyp aus.',
+                            );
+                            return;
+                          }
+                          if (optimizedFile == null) {
+                            setLocal(
+                              () => validationError =
+                                  'Bitte wähle zuerst eine Datei (PDF oder Bild) aus.',
+                            );
+                            return;
+                          }
+                          if (expiresAt == null) {
+                            setLocal(
+                              () => validationError =
+                                  'Bitte gib das Ablaufdatum („Gültig bis“) an.',
+                            );
+                            return;
+                          }
+                          if (selectedTypes.any(isHealthRelatedType) &&
+                              !healthDataConsent) {
+                            setLocal(
+                              () => validationError =
+                                  'Bitte bestätige die Datenschutz-Einwilligung für Gesundheits-/Tauglichkeitsnachweise.',
+                            );
+                            return;
+                          }
+                          Navigator.pop(ctx, true);
+                        },
                   icon: const Icon(Icons.cloud_upload_outlined, size: 18),
-                  label: const Text('Hochladen'),
+                  label: Text(
+                    selectedTypes.length > 1
+                        ? 'Für ${selectedTypes.length} Nachweise hochladen'
+                        : 'Hochladen',
+                  ),
                 ),
               ],
             );
@@ -835,30 +1131,34 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
       },
     );
 
-    final finalType = useCustomType ? customTypeCtrl.text.trim() : selectedType;
+    final finalTypes = selectedTypes.toList();
     final finalTitle = titleCtrl.text.trim();
-    customTypeCtrl.dispose();
     titleCtrl.dispose();
 
-    if (ok != true || pickedFile?.bytes == null) return;
+    if (ok != true || optimizedFile == null || finalTypes.isEmpty) return;
 
     setState(() => _busy = true);
     try {
-      await _service.uploadDocument(
+      await _service.uploadDocumentForTypes(
         userId: user.id,
-        documentType: finalType,
+        documentTypes: finalTypes,
         title: finalTitle,
-        fileBytes: pickedFile!.bytes!,
-        fileName: pickedFile!.name,
+        fileBytes: optimizedFile!.bytes,
+        fileName: optimizedFile!.fileName,
         issuedAt: issuedAt,
         expiresAt: expiresAt,
         submitToFlightSchoolIds: selectedSchools.toList(),
+        alreadyOptimized: true,
       );
       await _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dokument hochgeladen und zur Prüfung eingereicht.'),
+          SnackBar(
+            content: Text(
+              finalTypes.length > 1
+                  ? 'Dokument für ${finalTypes.length} Nachweise hochgeladen und zur Prüfung eingereicht.'
+                  : 'Dokument hochgeladen und zur Prüfung eingereicht.',
+            ),
           ),
         );
       }
@@ -908,7 +1208,7 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '„${doc.documentType}“ freigeben',
+                    '„${doc.customTitle.isNotEmpty ? doc.customTitle : doc.documentTypes.join(', ')}“ freigeben',
                     style: const TextStyle(
                       fontSize: 16.5,
                       fontWeight: FontWeight.w800,
@@ -1010,6 +1310,7 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
         await _service.submitDocumentToSchool(
           document: req.unsubmittedDoc!,
           flightSchoolId: req.school.id,
+          documentTypeOverride: docType,
         );
       }
       await _load();
@@ -1025,12 +1326,15 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
   }
 
   Future<void> _deleteDoc(QualificationDocument doc) async {
+    final displayTitle = doc.customTitle.isNotEmpty
+        ? doc.customTitle
+        : doc.documentTypes.join(', ');
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Dokument löschen?'),
         content: Text(
-          'Soll „${doc.title}“ inkl. aller Flugschul-Freigaben entfernt werden?',
+          'Soll „$displayTitle“ inkl. aller Flugschul-Freigaben entfernt werden?',
         ),
         actions: [
           TextButton(
@@ -1133,8 +1437,18 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
         final key = entry.key;
         final qualNames = entry.value;
         final matchingDocs = _docs
-            .where((d) => d.documentType.trim().toLowerCase() == key)
+            .where((d) => d.matchesType(key))
             .toList();
+
+        bool isLaterExpiry(
+          QualificationDocument candidate,
+          QualificationDocument? current,
+        ) {
+          if (current == null) return true;
+          if (candidate.expiresAt == null) return true;
+          if (current.expiresAt == null) return false;
+          return candidate.expiresAt!.isAfter(current.expiresAt!);
+        }
 
         QualificationDocument? validApprovedDoc;
         QualificationDocument? validSubmittedDoc;
@@ -1144,7 +1458,12 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
 
         for (final d in matchingDocs) {
           final schoolApprovals = _approvals
-              .where((a) => a.documentId == d.id && a.flightSchoolId == s.id)
+              .where(
+                (a) =>
+                    a.documentId == d.id &&
+                    a.flightSchoolId == s.id &&
+                    a.documentType.trim().toLowerCase() == key,
+              )
               .toList();
 
           if (d.isExpired) {
@@ -1155,18 +1474,35 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
           if (schoolApprovals.any(
             (a) => a.status == ApprovalStatusEnum.approved,
           )) {
-            validApprovedDoc = d;
-            break;
+            if (isLaterExpiry(d, validApprovedDoc)) {
+              validApprovedDoc = d;
+            }
           } else if (schoolApprovals.any(
             (a) => a.status == ApprovalStatusEnum.submitted,
           )) {
-            validSubmittedDoc ??= d;
+            if (isLaterExpiry(d, validSubmittedDoc)) {
+              validSubmittedDoc = d;
+            }
           } else if (schoolApprovals.any(
             (a) => a.status == ApprovalStatusEnum.rejected,
           )) {
             hasRejected = true;
           } else {
-            validUnsubmittedDoc ??= d;
+            if (isLaterExpiry(d, validUnsubmittedDoc)) {
+              validUnsubmittedDoc = d;
+            }
+          }
+        }
+
+        // Folgedokument in Prüfung erkennen, wenn parallel bereits ein gültiges Dokument besteht
+        QualificationDocument? renewalSubmittedDoc;
+        if (validApprovedDoc != null && validSubmittedDoc != null) {
+          final approvedExp = validApprovedDoc.expiresAt;
+          final submittedExp = validSubmittedDoc.expiresAt;
+          if (submittedExp == null ||
+              (approvedExp != null && submittedExp.isAfter(approvedExp)) ||
+              validApprovedDoc.expiresSoon) {
+            renewalSubmittedDoc = validSubmittedDoc;
           }
         }
 
@@ -1176,6 +1512,7 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                 qualifications: qualNames,
                 approvedDoc: validApprovedDoc,
                 submittedDoc: validSubmittedDoc,
+                renewalSubmittedDoc: renewalSubmittedDoc,
                 unsubmittedDoc: validUnsubmittedDoc,
                 hasExpired: hasExpired,
                 hasRejected: hasRejected,
@@ -1255,18 +1592,31 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
       icon = Icons.hourglass_top_rounded;
       statusColor = AppTheme.warningColor;
       statusText = 'Prüfung offen';
+    } else if (group.anyExpiresSoon) {
+      icon = Icons.schedule_rounded;
+      statusColor = AppTheme.warningColor;
+      final exp = group.earliestExpiringDate;
+      statusText = exp != null
+          ? 'Bestätigt · läuft bald ab (bis ${_fmtDate(exp)})'
+          : 'Bestätigt (läuft bald ab)';
+      rowBg = isDark
+          ? AppTheme.warningColor.withValues(alpha: 0.14)
+          : AppTheme.warningBg;
+      rowBorder = AppTheme.warningColor.withValues(alpha: 0.35);
+    } else if (group.hasRenewalSubmitted) {
+      icon = Icons.check_circle_rounded;
+      statusColor = AppTheme.successColor;
+      statusText = 'Bestätigt · Folgedokument eingereicht (Prüfung offen)';
     } else {
       icon = Icons.check_circle_rounded;
-      statusColor =
-          group.anyExpiresSoon ? AppTheme.warningColor : AppTheme.successColor;
-      statusText = group.anyExpiresSoon
-          ? 'Bestätigt (läuft bald ab)'
-          : 'Bestätigt';
+      statusColor = AppTheme.successColor;
+      final exp = group.earliestExpiringDate;
+      statusText = exp != null ? 'Bestätigt · gültig bis ${_fmtDate(exp)}' : 'Bestätigt';
     }
 
+    final targetSchoolIds = group.schoolReqs.map((r) => r.school.id).toSet();
     Widget? trailingAction;
     if (group.hasNeedsUpload) {
-      final targetSchoolIds = group.schoolReqs.map((r) => r.school.id).toSet();
       trailingAction = FilledButton.tonalIcon(
         onPressed: _busy
             ? null
@@ -1294,6 +1644,37 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
             : () => _submitExistingDocToSchools(shareReqs, group.docType),
         icon: const Icon(Icons.send_rounded, size: 15),
         label: Text(buttonLabel, style: const TextStyle(fontSize: 12.5)),
+      );
+    } else if (group.anyExpiresSoon) {
+      trailingAction = FilledButton.tonalIcon(
+        onPressed: _busy
+            ? null
+            : () => _openUploadDialog(
+                  activeSchools,
+                  preselectedType: group.docType,
+                  preselectedSchoolIds: targetSchoolIds,
+                ),
+        icon: const Icon(Icons.upload_file, size: 16),
+        label: const Text('Erneuern'),
+      );
+    } else if (group.allApproved) {
+      // Auch während ein Dokument noch gültig ist, kann jederzeit vorab ein
+      // zweites / Folgedokument hochgeladen und zur Prüfung eingereicht werden.
+      trailingAction = IconButton(
+        tooltip: 'Neues / Folgedokument hochladen',
+        visualDensity: VisualDensity.compact,
+        onPressed: _busy
+            ? null
+            : () => _openUploadDialog(
+                  activeSchools,
+                  preselectedType: group.docType,
+                  preselectedSchoolIds: targetSchoolIds,
+                ),
+        icon: Icon(
+          Icons.note_add_outlined,
+          size: 20,
+          color: cs.primary,
+        ),
       );
     }
 
@@ -1393,15 +1774,26 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                 ? cs.primaryContainer.withValues(alpha: 0.35)
                 : AppTheme.primaryTint.withValues(alpha: 0.65));
 
+    final customTitle = doc.customTitle;
+    final hasCustomTitle = customTitle.isNotEmpty;
+    final assignedTypes = doc.documentTypes;
+
+    // Freigaben pro Flugschule bündeln (bei Dokumenten mit mehreren Nachweisen
+    // gibt es mehrere Approval-Zeilen je Schule -> genau 1 Pill pro Flugschule).
+    final approvalsBySchool = <String, List<QualificationApproval>>{};
+    for (final a in docApprovals) {
+      approvalsBySchool.putIfAbsent(a.flightSchoolId, () => []).add(a);
+    }
+
     return SoftCard(
       radius: compact ? 13 : 16,
       onTap: () => _openDocumentUrl(doc),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Oberer Dokument-Vorschau-Bereich (Hochformat-Akzent)
+          // Oberer Dokument-Vorschau-Bereich (Icon + optionale Bezeichnung)
           Container(
-            height: compact ? 50 : 68,
+            height: hasCustomTitle ? (compact ? 60 : 76) : (compact ? 48 : 64),
             color: previewBg,
             padding: compact
                 ? const EdgeInsets.fromLTRB(5, 4, 2, 4)
@@ -1409,12 +1801,36 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
             child: Stack(
               children: [
                 Center(
-                  child: Icon(
-                    isImg
-                        ? Icons.image_outlined
-                        : Icons.picture_as_pdf_outlined,
-                    size: compact ? 23 : 30,
-                    color: accentColor,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isImg
+                            ? Icons.image_outlined
+                            : Icons.picture_as_pdf_outlined,
+                        size: compact ? 22 : 28,
+                        color: accentColor,
+                      ),
+                      if (hasCustomTitle) ...[
+                        const SizedBox(height: 3),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            customTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: compact ? 9.5 : 10.5,
+                              fontWeight: FontWeight.w800,
+                              color: accentColor,
+                              height: 1.15,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 if (doc.isExpired || doc.expiresSoon)
@@ -1527,33 +1943,6 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    doc.documentType,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: compact ? 11 : 12.5,
-                      height: 1.15,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                  if (!compact) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      doc.title != doc.documentType &&
-                              doc.title.trim().isNotEmpty
-                          ? doc.title
-                          : doc.fileName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                  SizedBox(height: compact ? 3 : 5),
                   Row(
                     children: [
                       Icon(
@@ -1575,7 +1964,7 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: compact ? 9.5 : 10.5,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                             color: doc.isExpired
                                 ? AppTheme.dangerColor
                                 : cs.onSurfaceVariant,
@@ -1585,60 +1974,122 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
                     ],
                   ),
                   SizedBox(height: compact ? 4 : 6),
-                  // Flugschul-Freigabe-Pills
-                  Expanded(
-                    child: docApprovals.isEmpty
-                        ? Text(
-                            compact ? 'Nicht geteilt' : 'Noch nicht geteilt',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: compact ? 9 : 10,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.warningColor,
-                            ),
-                          )
-                        : SingleChildScrollView(
-                            child: Wrap(
-                              spacing: compact ? 3 : 4,
-                              runSpacing: compact ? 3 : 4,
-                              children: docApprovals.map((a) {
-                                final fs = schoolById[a.flightSchoolId];
-                                final short = fs != null
-                                    ? _schoolShortLabel(fs)
-                                    : 'FS';
-                                final (fg, bg, stIcon) = switch (a.status) {
-                                  ApprovalStatusEnum.approved => (
-                                    AppTheme.successColor,
-                                    AppTheme.successBg,
-                                    Icons.check_circle,
-                                  ),
-                                  ApprovalStatusEnum.rejected => (
-                                    AppTheme.dangerColor,
-                                    AppTheme.dangerBg,
-                                    Icons.cancel,
-                                  ),
-                                  ApprovalStatusEnum.submitted => (
-                                    AppTheme.warningColor,
-                                    AppTheme.warningBg,
-                                    Icons.hourglass_top,
-                                  ),
-                                };
-                                return Tooltip(
-                                  message:
-                                      '${fs?.displayName ?? short}: ${a.status.label}'
-                                      '${(a.comment ?? '').isNotEmpty ? ' (${a.comment})' : ''}',
-                                  child: StatusPill(
-                                    label: short,
-                                    icon: compact ? null : stIcon,
-                                    foreground: fg,
-                                    background: bg,
-                                    fontSize: compact ? 8.5 : 9.5,
-                                  ),
-                                );
-                              }).toList(),
-                            ),
+                  // Flugschul-Freigabe-Pills (1 Pill pro Flugschule)
+                  if (approvalsBySchool.isEmpty)
+                    Text(
+                      compact ? 'Nicht geteilt' : 'Noch nicht geteilt',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: compact ? 9 : 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.warningColor,
+                      ),
+                    )
+                  else
+                    Wrap(
+                      spacing: compact ? 3 : 4,
+                      runSpacing: compact ? 3 : 4,
+                      children: approvalsBySchool.entries.map((entry) {
+                        final schoolId = entry.key;
+                        final list = entry.value;
+                        final fs = schoolById[schoolId];
+                        final short = fs != null ? _schoolShortLabel(fs) : 'FS';
+
+                        final ApprovalStatusEnum aggStatus = list.any(
+                          (a) => a.status == ApprovalStatusEnum.rejected,
+                        )
+                            ? ApprovalStatusEnum.rejected
+                            : list.every(
+                                (a) => a.status == ApprovalStatusEnum.approved,
+                              )
+                                ? ApprovalStatusEnum.approved
+                                : ApprovalStatusEnum.submitted;
+
+                        final (fg, bg, stIcon) = switch (aggStatus) {
+                          ApprovalStatusEnum.approved => (
+                            AppTheme.successColor,
+                            AppTheme.successBg,
+                            Icons.check_circle,
                           ),
+                          ApprovalStatusEnum.rejected => (
+                            AppTheme.dangerColor,
+                            AppTheme.dangerBg,
+                            Icons.cancel,
+                          ),
+                          ApprovalStatusEnum.submitted => (
+                            AppTheme.warningColor,
+                            AppTheme.warningBg,
+                            Icons.hourglass_top,
+                          ),
+                        };
+                        final tooltipDetails = list
+                            .map(
+                              (a) =>
+                                  '${a.documentType}: ${a.status.label}'
+                                  '${(a.comment ?? '').isNotEmpty ? ' (${a.comment})' : ''}',
+                            )
+                            .join('\n');
+                        return Tooltip(
+                          message:
+                              '${fs?.displayName ?? short}\n$tooltipDetails',
+                          child: StatusPill(
+                            label: short,
+                            icon: compact ? null : stIcon,
+                            foreground: fg,
+                            background: bg,
+                            fontSize: compact ? 8.5 : 9.5,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  SizedBox(height: compact ? 5 : 7),
+                  // Zugeordnete Qualifikationsnachweise (unter den Schul-Pills)
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: assignedTypes.map((typeName) {
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: compact ? 3 : 4),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (assignedTypes.length > 1) ...[
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      top: compact ? 4 : 5,
+                                      right: 4,
+                                    ),
+                                    child: Container(
+                                      width: compact ? 4 : 4.5,
+                                      height: compact ? 4 : 4.5,
+                                      decoration: BoxDecoration(
+                                        color: accentColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    typeName,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: compact ? 10 : 11.5,
+                                      height: 1.2,
+                                      color: cs.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
                   ),
                   Divider(height: compact ? 7 : 9),
                   Row(
@@ -1747,7 +2198,7 @@ class _MyQualificationsViewState extends State<MyQualificationsView> {
 
     final groupedRequired = _buildGroupedRequiredDocs(activeSchools);
     final openRequiredCount = groupedRequired
-        .where((g) => g.hasNeedsUpload || g.hasNeedsShare)
+        .where((g) => g.hasNeedsUpload || g.hasNeedsShare || g.anyExpiresSoon)
         .length;
     final activeDocs = _docs.where((d) => !d.isExpired).toList();
     final expiredDocs = _docs.where((d) => d.isExpired).toList();

@@ -67,6 +67,7 @@ class _QualificationDocumentDialogState
   Uint8List? _bytes;
   bool _busy = false;
   bool _hasChanges = false;
+  bool _childDialogOpen = false;
 
   @override
   void initState() {
@@ -138,13 +139,26 @@ class _QualificationDocumentDialogState
     if (schoolId.isEmpty) return;
 
     final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _doc.expiresAt ?? now.add(const Duration(days: 365)),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-      helpText: 'Gültig bis anpassen (${_doc.documentType})',
-    );
+    final minDate = DateTime(2020);
+    final maxDate = DateTime(2100);
+    DateTime initialDate = _doc.expiresAt ?? now.add(const Duration(days: 365));
+    if (initialDate.isBefore(minDate)) initialDate = minDate;
+    if (initialDate.isAfter(maxDate)) initialDate = maxDate;
+    final label = _approval?.documentType ?? _doc.documentType;
+
+    setState(() => _childDialogOpen = true);
+    final DateTime? picked;
+    try {
+      picked = await showDatePicker(
+        context: context,
+        initialDate: initialDate,
+        firstDate: minDate,
+        lastDate: maxDate,
+        helpText: 'Gültig bis anpassen ($label)',
+      );
+    } finally {
+      if (mounted) setState(() => _childDialogOpen = false);
+    }
     if (picked == null || !mounted) return;
 
     setState(() => _busy = true);
@@ -178,33 +192,39 @@ class _QualificationDocumentDialogState
     String comment = '';
     if (decision == ApprovalStatusEnum.rejected) {
       final ctrl = TextEditingController();
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Nachweis ablehnen'),
-          content: TextField(
-            controller: ctrl,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Begründung (optional)',
-              hintText: 'z. B. Dokument unleserlich oder abgelaufen',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Abbrechen'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.dangerColor,
+      setState(() => _childDialogOpen = true);
+      final bool? ok;
+      try {
+        ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Nachweis ablehnen'),
+            content: TextField(
+              controller: ctrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Begründung (optional)',
+                hintText: 'z. B. Dokument unleserlich oder abgelaufen',
               ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Ablehnen'),
             ),
-          ],
-        ),
-      );
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Abbrechen'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.dangerColor,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Ablehnen'),
+              ),
+            ],
+          ),
+        );
+      } finally {
+        if (mounted) setState(() => _childDialogOpen = false);
+      }
       comment = ctrl.text.trim();
       ctrl.dispose();
       if (ok != true || !mounted) return;
@@ -219,12 +239,13 @@ class _QualificationDocumentDialogState
       );
       if (!mounted) return;
       _hasChanges = true;
+      final label = approval.documentType;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             decision == ApprovalStatusEnum.approved
-                ? 'Nachweis „${_doc.documentType}“ bestätigt.'
-                : 'Nachweis „${_doc.documentType}“ abgelehnt.',
+                ? 'Nachweis „$label“ bestätigt.'
+                : 'Nachweis „$label“ abgelehnt.',
           ),
         ),
       );
@@ -302,10 +323,17 @@ class _QualificationDocumentDialogState
                           children: [
                             Flexible(
                               child: Text(
-                                widget.ownerName != null &&
-                                        widget.ownerName!.trim().isNotEmpty
-                                    ? '${widget.ownerName} · ${_doc.documentType}'
-                                    : _doc.documentType,
+                                () {
+                                  final label = approval != null
+                                      ? approval.documentType
+                                      : (_doc.customTitle.isNotEmpty
+                                          ? _doc.customTitle
+                                          : _doc.documentTypes.join(' · '));
+                                  return widget.ownerName != null &&
+                                          widget.ownerName!.trim().isNotEmpty
+                                      ? '${widget.ownerName} · $label'
+                                      : label;
+                                }(),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -455,6 +483,7 @@ class _QualificationDocumentDialogState
                                     bytes: _bytes!,
                                     fileName: _doc.fileName,
                                     onOpenExternal: _openExternal,
+                                    pointerEventsEnabled: !_childDialogOpen,
                                   )
                                 : Center(
                                     child: FilledButton.tonalIcon(

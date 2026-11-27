@@ -6,6 +6,7 @@ import 'package:season_planner/core/data/models/qualification_model.dart';
 import 'package:season_planner/core/data/models/team_role_model.dart';
 import 'package:season_planner/core/services/audit_log_service.dart';
 import 'package:season_planner/core/services/auth_service.dart';
+import 'package:season_planner/core/services/file_optimization_service.dart';
 import 'package:season_planner/core/services/security_privacy_service.dart';
 
 class QualificationService {
@@ -454,30 +455,66 @@ class QualificationService {
     'jpeg',
     'webp',
   };
-  static const int _maxDocumentBytes = 10 * 1024 * 1024; // 10 MB
+  static const int _maxDocumentBytes =
+      FileOptimizationService.maxDocumentUploadBytes; // 4 MB nach Optimierung
 
   Future<QualificationDocument?> uploadDocument({
     required String userId,
     required String documentType,
+    List<String>? documentTypes,
     required String title,
     required Uint8List fileBytes,
     required String fileName,
     DateTime? issuedAt,
     DateTime? expiresAt,
     List<String> submitToFlightSchoolIds = const [],
+    bool alreadyOptimized = false,
   }) async {
-    final extIdx = fileName.lastIndexOf('.');
-    final ext = extIdx >= 0 ? fileName.substring(extIdx + 1).toLowerCase() : '';
-    if (!_allowedDocumentExtensions.contains(ext)) {
-      throw Exception(
-        'Dateityp „.$ext“ nicht erlaubt. Unterstützt werden: PDF, PNG, JPG, JPEG, WEBP.',
-      );
+    final cleanedTypes = <String>[];
+    final seenLower = <String>{};
+    for (final raw in [
+      ...?documentTypes,
+      documentType,
+    ]) {
+      final t = raw.trim();
+      if (t.isNotEmpty && seenLower.add(t.toLowerCase())) {
+        cleanedTypes.add(t);
+      }
     }
+    if (cleanedTypes.isEmpty) {
+      throw Exception('Bitte wähle mindestens einen Dokumenttyp aus.');
+    }
+
     if (fileBytes.isEmpty) {
       throw Exception('Die ausgewählte Datei ist leer.');
     }
-    if (fileBytes.length > _maxDocumentBytes) {
-      throw Exception('Die Datei darf maximal 10 MB groß sein.');
+
+    final detectedExt = FileOptimizationService.detectExtension(
+      fileName: fileName,
+      bytes: fileBytes,
+    );
+    if (!_allowedDocumentExtensions.contains(detectedExt)) {
+      throw Exception(
+        'Dateityp „.${detectedExt.isEmpty ? "unbekannt" : detectedExt}“ nicht erlaubt. Unterstützt werden: PDF, PNG, JPG, JPEG, WEBP.',
+      );
+    }
+
+    Uint8List finalBytes = fileBytes;
+    String finalFileName =
+        FileOptimizationService.ensureExtension(fileName, detectedExt);
+    if (!alreadyOptimized) {
+      final optimized = await FileOptimizationService().optimizeDocument(
+        bytes: fileBytes,
+        fileName: finalFileName,
+      );
+      finalBytes = optimized.bytes;
+      finalFileName = optimized.fileName;
+    }
+
+    if (finalBytes.length > _maxDocumentBytes) {
+      throw Exception(
+        'Die Datei darf nach Optimierung maximal 4 MB groß sein.',
+      );
     }
 
     final cfg = AppwriteConfig();
@@ -487,7 +524,7 @@ class QualificationService {
       final uploaded = await _storage.createFile(
         bucketId: cfg.qualificationDocumentsBucketId,
         fileId: ID.unique(),
-        file: InputFile.fromBytes(bytes: fileBytes, filename: fileName),
+        file: InputFile.fromBytes(bytes: finalBytes, filename: finalFileName),
         permissions: ownerPerms,
       );
       uploadedFileId = uploaded.$id;
@@ -498,10 +535,11 @@ class QualificationService {
         rowId: ID.unique(),
         data: {
           'user_id': userId,
-          'document_type': documentType.trim(),
-          'title': title.trim().isEmpty ? documentType.trim() : title.trim(),
+          'document_type': cleanedTypes.first,
+          'document_types': cleanedTypes,
+          'title': title.trim(),
           'file_id': uploaded.$id,
-          'file_name': fileName,
+          'file_name': finalFileName,
           if (issuedAt != null) 'issued_at': issuedAt.toIso8601String(),
           if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
         },
@@ -531,6 +569,45 @@ class QualificationService {
       debugPrint('uploadDocument error: $e');
       rethrow;
     }
+  }
+
+  /// Lädt EINE Datei als ein einziges Qualifikationsdokument hoch und ordnet es
+  /// einem oder mehreren Nachweistypen zu (z. B. Fluglehrer- & Tandemhaftpflicht).
+  Future<QualificationDocument?> uploadDocumentForTypes({
+    required String userId,
+    required List<String> documentTypes,
+    required String title,
+    required Uint8List fileBytes,
+    required String fileName,
+    DateTime? issuedAt,
+    DateTime? expiresAt,
+    List<String> submitToFlightSchoolIds = const [],
+    bool alreadyOptimized = false,
+  }) async {
+    final cleanedTypes = <String>[];
+    final seenLower = <String>{};
+    for (final raw in documentTypes) {
+      final t = raw.trim();
+      if (t.isNotEmpty && seenLower.add(t.toLowerCase())) {
+        cleanedTypes.add(t);
+      }
+    }
+    if (cleanedTypes.isEmpty) {
+      throw Exception('Bitte wähle mindestens einen Nachweistyp aus.');
+    }
+
+    return uploadDocument(
+      userId: userId,
+      documentType: cleanedTypes.first,
+      documentTypes: cleanedTypes,
+      title: title,
+      fileBytes: fileBytes,
+      fileName: fileName,
+      issuedAt: issuedAt,
+      expiresAt: expiresAt,
+      submitToFlightSchoolIds: submitToFlightSchoolIds,
+      alreadyOptimized: alreadyOptimized,
+    );
   }
 
   /// Lädt die Rohdaten (PDF / Bild) eines Qualifikationsdokuments über den
@@ -620,52 +697,64 @@ class QualificationService {
   Future<QualificationApproval?> submitDocumentToSchool({
     required QualificationDocument document,
     required String flightSchoolId,
+    String? documentTypeOverride,
   }) async {
     try {
       final cfg = AppwriteConfig();
-      // Prüfen, ob schon eine Freigabe für dieses Dokument + diese Schule existiert
-      final existing = await _tablesDB.listRows(
-        databaseId: cfg.mainDatabaseId,
-        tableId: cfg.qualificationApprovalsTableId,
-        queries: [
-          Query.equal('document_id', document.id),
-          Query.equal('flight_school_id', flightSchoolId),
-          Query.limit(1),
-        ],
-      );
-      if (existing.rows.isNotEmpty) {
-        final row = await _tablesDB.updateRow(
+      final targetTypes = (documentTypeOverride != null &&
+              documentTypeOverride.trim().isNotEmpty)
+          ? [documentTypeOverride.trim()]
+          : document.documentTypes;
+
+      QualificationApproval? lastApproval;
+      for (final docType in targetTypes) {
+        // Prüfen, ob schon eine Freigabe für dieses Dokument + Schule + Nachweistyp existiert
+        final existing = await _tablesDB.listRows(
           databaseId: cfg.mainDatabaseId,
           tableId: cfg.qualificationApprovalsTableId,
-          rowId: existing.rows.first.$id,
-          data: {
-            'status': ApprovalStatusEnum.submitted.name,
-            'comment': '',
-          },
+          queries: [
+            Query.equal('document_id', document.id),
+            Query.equal('flight_school_id', flightSchoolId),
+            Query.equal('document_type', docType),
+            Query.limit(1),
+          ],
         );
-        await SecurityPrivacyService().syncDocumentPermissions(document.id);
-        return QualificationApproval.fromMap(row.$id, row.data);
+        if (existing.rows.isNotEmpty) {
+          final row = await _tablesDB.updateRow(
+            databaseId: cfg.mainDatabaseId,
+            tableId: cfg.qualificationApprovalsTableId,
+            rowId: existing.rows.first.$id,
+            data: {
+              'status': ApprovalStatusEnum.submitted.name,
+              'comment': '',
+            },
+          );
+          lastApproval = QualificationApproval.fromMap(row.$id, row.data);
+          continue;
+        }
+
+        final row = await _tablesDB.createRow(
+          databaseId: cfg.mainDatabaseId,
+          tableId: cfg.qualificationApprovalsTableId,
+          rowId: ID.unique(),
+          data: {
+            'document_id': document.id,
+            'user_id': document.userId,
+            'flight_school_id': flightSchoolId,
+            'document_type': docType,
+            'status': ApprovalStatusEnum.submitted.name,
+          },
+          permissions: SecurityPrivacyService.ownerAndSchoolAdminPerms(
+            userId: document.userId,
+            flightSchoolId: flightSchoolId,
+            allowOwnerDelete: true,
+          ),
+        );
+        lastApproval = QualificationApproval.fromMap(row.$id, row.data);
       }
 
-      final row = await _tablesDB.createRow(
-        databaseId: cfg.mainDatabaseId,
-        tableId: cfg.qualificationApprovalsTableId,
-        rowId: ID.unique(),
-        data: {
-          'document_id': document.id,
-          'user_id': document.userId,
-          'flight_school_id': flightSchoolId,
-          'document_type': document.documentType,
-          'status': ApprovalStatusEnum.submitted.name,
-        },
-        permissions: SecurityPrivacyService.ownerAndSchoolAdminPerms(
-          userId: document.userId,
-          flightSchoolId: flightSchoolId,
-          allowOwnerDelete: true,
-        ),
-      );
       await SecurityPrivacyService().syncDocumentPermissions(document.id);
-      return QualificationApproval.fromMap(row.$id, row.data);
+      return lastApproval;
     } catch (e) {
       debugPrint('submitDocumentToSchool error: $e');
       return null;
